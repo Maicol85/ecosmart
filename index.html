@@ -15394,19 +15394,17 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div class="card sacc" id="sacc-sgl">
     <button type="button" class="sacc-hdr" onclick="secToggle('sgl')" aria-expanded="false"><span class="sacc-arrow">▶</span>Strain Longitudinal Global (SGL)</button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá cada segmento del bull's eye para ciclar el strain según la escala General Electric (rojo = normal → azul = discinesia). 17 segmentos, sin números.</p>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá cada segmento del bull's eye para cambiar el color del strain, o activá «Ingresar datos numéricos» para escribir el valor de cada segmento. 17 segmentos.</p>
       <div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;justify-content:center;">
 
         <!-- REFERENCIA DE COLORES (izquierda) -->
-        <div style="align-self:center;background:var(--bg3);border-radius:8px;padding:12px 16px;font-size:12px;">
-          <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:8px;">Referencia de colores (GE)</div>
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#DC2626;display:inline-block;"></span>Normal</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#F87171;display:inline-block;"></span>Hipoquinesia leve</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#FECACA;display:inline-block;border:1px solid #ccc;"></span>Hipoquinesia</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#93C5FD;display:inline-block;"></span>Acinesia</div>
-            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:3px;background:#1D4ED8;display:inline-block;"></span>Discinesia / aneurisma</div>
-          </div>
+        <!-- LA LEYENDA LA PINTA `strainLeyendaPintar` DESDE `STRAIN_PAL`, que es el mismo dueno
+             que colorea el bull's eye y el del papel. Escrita a mano en el marcado, el dia que un
+             tramo cambie de color la leyenda seguiria rotulando el anterior. Sin nombres de
+             categoria: lo que la barra dice son los ocho rangos. -->
+        <div style="align-self:center;background:var(--bg3);border-radius:8px;padding:12px 16px;font-size:12px;min-width:200px;">
+          <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:8px;">Referencia de colores</div>
+          <div data-strain-leyenda="sgl"></div>
         </div>
 
         <!-- BULL'S EYE (centro, un solo bull, sin números) -->
@@ -15427,6 +15425,15 @@ window.cerrarSesionReal = cerrarSesionReal;
                    El barrido de `limpiarCampos` toma text y number, asi que no lo alcanza: lo
                    vacia y lo repinta esa misma funcion. -->
               <input type="hidden" id="sgl_be_pdf" value="">
+            <!-- /!\ EL INTERRUPTOR NO LLEVA UN `input`, y es a proposito: el censo del estudio y el
+                 Excel recorren input[id] y select[id], asi que una casilla con id entraria a las 457
+                 columnas por existir y «Nuevo estudio» le escribiria su valor guardado. Es un modo de
+                 trabajo y vive SOLO en memoria, igual que el interruptor del resumen de valvulas. -->
+            <button class="btn btn-ghost" id="sgl-num-toggle" aria-pressed="false"
+                    onclick="strainNumToggle()" title="Escribir el valor de strain de cada segmento">✏️ Ingresar datos numéricos</button>
+            <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="sgl-num" aria-expanded="false"
+                    aria-label="Cómo funciona el ingreso de datos numéricos del bull's eye de strain"
+                    onclick="vInfoClic(this)">&#9432;</button>
             <button class="btn btn-ghost" id="sgl-pdf-toggle" onclick="toggleSglPDF()">📄 Incluir en PDF</button>
             <button class="btn btn-ghost" onclick="sglReset()">🧹 Limpiar</button>
           </div>
@@ -15466,14 +15473,8 @@ window.cerrarSesionReal = cerrarSesionReal;
 
   <div class="card">
     <div class="card-title"><span>🎨</span> Escala de colores — Strain longitudinal</div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-swatch" style="background:#DC2626"></div>Normal</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:#F87171"></div>Hipoquinesia leve</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:#FECACA;border:1px solid #64748b"></div>Hipoquinesia</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:#93C5FD"></div>Acinesia</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:#1D4ED8"></div>Discinesia / aneurisma</div>
-    </div>
-    <div style="font-size:11px;color:var(--muted);margin-top:8px">Anterior ↑ · Septum ← · Lateral → · Inferior ↓ · Misma escala GE que el bull's eye principal</div>
+    <div data-strain-leyenda="patrones"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px">Anterior ↑ · Septum ← · Lateral → · Inferior ↓ · Misma referencia de colores que el bull's eye del paciente</div>
   </div>
     </div><!-- /#sp-acc-uso -->
   </div><!-- /Acordeón 1 -->
@@ -32493,6 +32494,83 @@ function sglCortesPintar() {
   });
 }
 try { sglCortesPintar(); } catch (e) {}
+/* == STRAIN: UN SOLO BULL'S EYE DE 17 SEGMENTOS, PALETA PROPIA VIOLETA A AZUL ===============
+   DECISION DE MAICOL DEL 23/11/2026 (PR7). Ocho tramos de cinco puntos entre -20 y +20, mas
+   un noveno estado que NO es un tramo: SIN DATO.
+
+   /!\ LA PALETA ES PROPIA DE ESTA APLICACION Y NO SE PRESENTA COMO LA DE NINGUNA MARCA. La
+   anterior se anunciaba en pantalla como «la escala General Electric» en tres textos del
+   usuario y en el titulo de su leyenda, y eso es una afirmacion sobre un producto ajeno que
+   esta casa no puede sostener. Los textos quedaron descriptivos. Las menciones de «General
+   Electric» que SI se conservan son las citas bibliograficas de amiloidosis -Phelan 2012 y
+   Boldrini, donde el equipo es parte del metodo publicado- y el nombre del pendrive del
+   ecografo: son otro contexto y no hablan de esta paleta.
+
+   /!\ EL INDICE 0 ES SIN DATO Y ANTES ERA «NORMAL», y de eso depende la migracion. El modelo
+   viejo tenia cinco estados con el 0 = «Normal» en rojo, que era a la vez el valor por omision
+   del segmento que nadie toco y el que dejaba «Limpiar»: indistinguible. STRAIN_MIGRA lo
+   manda a SIN DATO, que es el unico lado que no afirma una evaluacion que nadie hizo.
+
+   /!\ UN VALOR EN UN BORDE PERTENECE AL TRAMO DE SU DERECHA -el -15 es del tramo 2-, y el tope
+   lo pone un acote y no un rechazo: un -30 o un +25 se pintan con el color del extremo y el
+   numero se publica tal cual. No se bloquea el ingreso.
+
+   /!\ NO SE TOCA LA PALETA DE LA MOTILIDAD (CONTR_MOTILIDAD): es otro bull's eye, de otro
+   modulo, y los dos pueden terminar en el MISMO PDF. Tampoco el mapa de territorios del visor,
+   que usa una rampa de intensidad verde azulada por la razon que su propio comentario explica. */
+const STRAIN_PAL = Object.freeze([
+  Object.freeze({ color:'#D4D4D0', rango:'Sin dato',  txt:'#2B2B2B' }),
+  Object.freeze({ color:'#6A1B9A', rango:'-20 a -15', txt:'#FFFFFF' }),
+  Object.freeze({ color:'#9B59C4', rango:'-15 a -10', txt:'#FFFFFF' }),
+  Object.freeze({ color:'#C9A3E0', rango:'-10 a -5',  txt:'#2B2B2B' }),
+  Object.freeze({ color:'#E6D5F0', rango:'-5 a 0',    txt:'#2B2B2B' }),
+  Object.freeze({ color:'#D3E3FA', rango:'0 a +5',    txt:'#2B2B2B' }),
+  Object.freeze({ color:'#9DBFF2', rango:'+5 a +10',  txt:'#2B2B2B' }),
+  Object.freeze({ color:'#5C8CE0', rango:'+10 a +15', txt:'#FFFFFF' }),
+  Object.freeze({ color:'#2450C0', rango:'+15 a +20', txt:'#FFFFFF' })
+]);
+const STRAIN_N_TRAMOS = 8;
+const STRAIN_MIN = -20, STRAIN_PASO = 5;
+/* Las ocho marcas del borde izquierdo de cada tramo: son las que rotula la leyenda. */
+const STRAIN_MARCAS = Object.freeze([-20, -15, -10, -5, 0, 5, 10, 15]);
+/* Estado viejo de cinco pasos -> tramo nuevo. El 0 va a SIN DATO; ver el aviso de arriba.
+   1 Hipoquinesia leve -> 2  ·  2 Hipoquinesia -> 3  ·  3 Acinesia -> 5  ·  4 Discinesia -> 7 */
+const STRAIN_MIGRA = Object.freeze([0, 2, 3, 5, 7]);
+/* La version del modelo guardado. Sin esta marca no hay forma de distinguir un strain_sgl de
+   cinco pasos de uno de nueve: los dos son numeros chicos y el 2 significa cosas distintas. */
+const STRAIN_VER = '2';
+
+
+/* EL DUENIO UNICO DEL TRAMO DE UN NUMERO. floor((n+20)/5)+1 acotado a [1,8]: el borde cae en
+   el tramo de su derecha por el piso, y el acote cubre los dos extremos sin un if por caso. */
+function strainTramoDe(n){
+  const v = Number(n);
+  if (!isFinite(v)) return 0;
+  const i = Math.floor((v - STRAIN_MIN) / STRAIN_PASO) + 1;
+  return Math.max(1, Math.min(STRAIN_N_TRAMOS, i));
+}
+/* EL SIGNO, CON LA MISMA CONVENCION QUE EL CAMPO SGL GLOBAL Y UNA SALIDA MAS. sglNeg hace
+   -|x| siempre, asi que un +18 se vuelve -18 y por ese camino no habria forma de cargar un
+   valor POSITIVO, que es justo lo que un segmento discinetico necesita. Aca: sin signo se toma
+   NEGATIVO -igual que el global- y con un mas explicito se respeta el positivo.
+   Acepta coma o punto, el menos comun y el tipografico, y redondea a un decimal. */
+function strainParseNum(txt){
+  let t = String(txt === null || txt === undefined ? '' : txt).trim();
+  if (!t) return null;
+  t = t.replace(/−/g, '-').replace(/–/g, '-').replace(/—/g, '-');
+  t = t.replace(/,/g, '.').replace(/\s/g, '');
+  const mas = t.charAt(0) === '+';
+  const n = Number(t.replace(/^[+-]/, ''));
+  if (!isFinite(n) || t.replace(/^[+-]/, '') === '') return null;
+  const a = Math.round(Math.abs(n) * 10) / 10;
+  if (a === 0) return 0;
+  return mas ? a : -a;
+}
+window.STRAIN_PAL = STRAIN_PAL; window.STRAIN_MARCAS = STRAIN_MARCAS;
+window.STRAIN_MIGRA = STRAIN_MIGRA; window.STRAIN_VER = STRAIN_VER;
+window.STRAIN_N_TRAMOS = STRAIN_N_TRAMOS;
+window.strainTramoDe = strainTramoDe; window.strainParseNum = strainParseNum;
+
 window.SGL_NORMAL_MAX = SGL_NORMAL_MAX; window.SGL_ANORMAL_MIN = SGL_ANORMAL_MIN;
 window.SGL_CATS = SGL_CATS; window.sglClasificar = sglClasificar;
 window.sglNeg = sglNeg; window.sglNegTxt = sglNegTxt;
@@ -53065,6 +53143,18 @@ const VINFO = Object.freeze({
        + 'folio 1558, que es la que publica el score con sus tres puntos.',
     ojo: 'La aplicación pide un strain apical y uno basal sin decir de qué paredes: el valor '
        + 'con el que el corte se validó es el septal de cuatro cámaras.'
+  },
+  /* /!\ ES DESCRIPTIVO Y NO LLEVA NI UNA GUIA NI UN FOLIO: lo que explica es como se usa el
+     control, no de donde sale un corte. Y no nombra ninguna marca de ecografo: la paleta es
+     propia de esta aplicacion (PR7, 23/11/2026). */
+  'sgl-num': {
+    ancho: 380,
+    tit: 'Cómo se cargan los segmentos del bull\'s eye',
+    lee: 'Con el botón apagado, al tocar un segmento cambia de color.\n'
+       + 'Con el botón encendido, al tocar un segmento se escribe su valor de strain y el '
+       + 'color se asigna solo.\n'
+       + 'Los valores van de -20 a +20; fuera de ese rango se usa el color del extremo.\n'
+       + 'Los segmentos sin dato se ven grises con un guion.'
   },
   'patrones-sgl': {
     ancho: 380,
@@ -84019,42 +84109,96 @@ function generarPDFReal(_aj) {
     const _cH = Math.max(10, box.h - 6 - _lnH - _subH - 2);
     const _n = t.partes.length, _gi = 4;
     const _pw = (box.w - (_n - 1) * _gi) / _n;
+    /* == LA COLUMNA DERECHA DE CADA DIBUJO (PR7, 23/11/2026) =================================
+       Decision de Maicol: la tabla de colores se queda ARRIBA A LA DERECHA de cada bull's eye,
+       como hoy, y el TEXTO de ese bull's eye va a la derecha de su dibujo, DEBAJO de su tabla.
+
+       /!\ UN SOLO LUGAR PARA EL TEXTO, SOLO O ACOMPANIADO, y es lo que la propia orden pide como
+       invariante: la columna derecha lleva la tabla arriba y el texto abajo en los dos casos. Con
+       dos disposiciones -el texto en el hueco entre el dibujo y la tabla cuando va solo, y debajo
+       de la tabla cuando van dos- el bloque cambiaria de lugar segun con quien comparta la franja,
+       que es justo lo que la orden prohibe. Lo que SI cambia es el ANCHO de esa columna: con una
+       sola parte la franja entera es suya y la columna sale mas holgada.
+
+       /!\ EL ANCHO ES EL MISMO PARA TODAS LAS PARTES DEL TILE, con texto o sin el, asi que los
+       dibujos no se mueven cuando uno de los dos no tiene nada que decir. */
+    const _hayTxt = t.partes.some(p => (p.lineas && p.lineas.length) || p.leyenda || p.barra);
+    const _legW = !_hayTxt ? 0 : Math.max(22, Math.min(_n === 1 ? 62 : 40, _pw * (_n === 1 ? 0.34 : 0.44)));
     t.partes.forEach((p, j) => {
       const _x0 = box.x + j * (_pw + _gi);
-      const _legW = p.leyenda ? Math.min(26, _pw * 0.36) : 0;
       const _dispo = _pw - _legW - (_legW ? 2 : 0);
       const _ar = p.ar || 1;
       let _w = _dispo, _h = _w * _ar;
       if (_h > _cH) { _h = _cH; _w = _h / _ar; }
       try { doc.addImage(p.data, 'PNG', _x0 + (_dispo - _w) / 2, _cy0 + (_cH - _h) / 2, _w, _h); }
       catch (e) { console.error('[PDF] diagrama ' + k + ':', e); return; }
-      if (p.sub) { fn(7); tc(90, 90, 90); doc.text(_sanML(p.sub), _x0, _cy0 + _cH + 3); }
-      if (p.leyenda) {
-        /* La leyenda, en columna a la derecha del dibujo. Mismo formato que la de las dianas:
-           una muestra de color por fila, o varias en la misma fila cuando la entrada trae
-           `colors` —los grupos de territorios—. Si no entran todas en la franja, se para: una
-           leyenda a medias es peor que ninguna, porque no se sabe que falta. */
-        let _lx = _x0 + _dispo + 2, _ly = _cy0 + 4;
+      let _lx = _x0 + _dispo + 2, _ly = _cy0 + 4;
+      if (p.leyenda || p.barra) {
+        /* La tabla de colores, arriba de la columna derecha del dibujo. En lista -una muestra por
+           fila, o varias en la misma fila cuando la entrada trae `colors`- o en BARRA, que es la
+           forma de la paleta de strain: ocho cuadritos pegados con su marca debajo y el gris de
+           «Sin dato». En lista, si no entran todas en la franja se para: una leyenda a medias es
+           peor que ninguna, porque no se sabe que falta. */
         fb(7); tc(TEMA[0], TEMA[1], TEMA[2]); doc.text('Ref.:', _lx, _ly); _ly += 4.4;
-        p.leyenda.forEach(m => {
-          if (_ly > _cy0 + _cH) return;
-          if (m.colors) {
-            m.colors.forEach((c2, _k2) => {
-              const r2 = c2.match(/\w\w/g).map(h => parseInt(h, 16));
-              doc.setFillColor(r2[0], r2[1], r2[2]);
-              doc.rect(_lx + _k2 * 3.6, _ly - 2.8, 3, 3, 'F');
-            });
-            fn(6.5); tc(30, 30, 30);
-            doc.text(_sanML(m.nombre), _lx + m.colors.length * 3.6 + 1.2, _ly);
-          } else {
-            const rgb = String(m.color || '#ffffff').match(/\w\w/g).map(h => parseInt(h, 16));
+        if (p.barra) {
+          const _bw = Math.max(1.4, (_legW - 0.5) / STRAIN_MARCAS.length);
+          STRAIN_MARCAS.forEach((v, i) => {
+            const rgb = String(STRAIN_PAL[i + 1].color).match(/\w\w/g).map(h => parseInt(h, 16));
             doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-            doc.setDrawColor(200, 200, 200);
-            doc.rect(_lx, _ly - 2.8, 3, 3, 'FD');
-            fn(6.5); tc(30, 30, 30); doc.text(_sanML(m.nombre), _lx + 4.2, _ly);
-          }
+            doc.setDrawColor(150, 150, 150);
+            doc.rect(_lx + i * _bw, _ly - 3, _bw, 3, 'FD');
+          });
+          fn(4.6); tc(70, 70, 70);
+          STRAIN_MARCAS.forEach((v, i) => {
+            doc.text(((v > 0 ? '+' : '') + v), _lx + i * _bw + _bw / 2, _ly + 2.6, { align:'center' });
+          });
+          _ly += 6.4;
+          const g = String(STRAIN_PAL[0].color).match(/\w\w/g).map(h => parseInt(h, 16));
+          doc.setFillColor(g[0], g[1], g[2]); doc.setDrawColor(150, 150, 150);
+          doc.rect(_lx, _ly - 2.6, 2.8, 2.8, 'FD');
+          fn(6); tc(70, 70, 70); doc.text(_sanML('Sin dato'), _lx + 3.8, _ly);
           _ly += 4.4;
+        } else {
+          p.leyenda.forEach(m => {
+            if (_ly > _cy0 + _cH) return;
+            if (m.colors) {
+              m.colors.forEach((c2, _k2) => {
+                const r2 = c2.match(/\w\w/g).map(h => parseInt(h, 16));
+                doc.setFillColor(r2[0], r2[1], r2[2]);
+                doc.rect(_lx + _k2 * 3.6, _ly - 2.8, 3, 3, 'F');
+              });
+              fn(6.5); tc(30, 30, 30);
+              doc.text(_sanML(m.nombre), _lx + m.colors.length * 3.6 + 1.2, _ly);
+            } else {
+              const rgb = String(m.color || '#ffffff').match(/\w\w/g).map(h => parseInt(h, 16));
+              doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+              doc.setDrawColor(200, 200, 200);
+              doc.rect(_lx, _ly - 2.8, 3, 3, 'FD');
+              fn(6.5); tc(30, 30, 30); doc.text(_sanML(m.nombre), _lx + 4.2, _ly);
+            }
+            _ly += 4.4;
+          });
+        }
+      }
+      /* EL BLOQUE DE TEXTO DE ESTA PARTE, con su titulo arriba. Los titulos se quedan: con los
+         dos juntos son lo que dice cual es cual. Y es TEXTO REAL -doc.text sobre lo que devuelve
+         splitTextToSize-, no una imagen: cada renglon se corta por palabra al ancho de la
+         columna, y si el texto pasa el alto del dibujo sigue bajando sin pisar nada, porque la
+         columna derecha no comparte el espacio con ningun otro dibujo. */
+      if (p.lineas && p.lineas.length) {
+        _ly += 1.2;
+        fb(6.8); tc(TEMA[0], TEMA[1], TEMA[2]);
+        doc.text(_sanML(p.sub || ''), _lx, _ly); _ly += 3.6;
+        fn(6.5); tc(60, 60, 60);
+        p.lineas.forEach(l => {
+          doc.splitTextToSize(_sanML(String(l)), Math.max(10, _legW)).forEach(r => {
+            doc.text(r, _lx, _ly); _ly += 3.1;
+          });
+          _ly += 0.6;
         });
+      } else if (p.sub) {
+        /* Sin texto, el rotulo del dibujo se queda DEBAJO del dibujo, que es donde estaba. */
+        fn(7); tc(90, 90, 90); doc.text(_sanML(p.sub), _x0, _cy0 + _cH + 3);
       }
     });
     if (_ln.length) {
@@ -84065,21 +84209,35 @@ function generarPDFReal(_aj) {
 
   if ((_incContr || _incSgl) && _hayBE) {
     const _dgP = [], _dgL = [];
+    /* /!\ EL TEXTO VIAJA POR PARTE Y EN RENGLONES, NO EN UNA LINEA UNICA AL PIE (PR7, 23/11).
+       Hasta hoy los dos textos se unian con un punto medio y se estampaban juntos debajo de los
+       dos dibujos: con las dos dianas en la misma franja, un hallazgo de motilidad y una nota de
+       strain quedaban en el mismo renglon y nada decia cual era cual. Ahora cada parte lleva su
+       propio bloque -su titulo y sus renglones- a la derecha de SU dibujo. `_dgL` se conserva
+       vacio: es el camino de la linea al pie que los otros diagramas siguen usando. */
     if (_incContr) {
       if (typeof contrRenderInforme === 'function') contrRenderInforme();
+      /* UNA ORACION POR ALTERACION, una debajo de otra, igual que en la pantalla: salen de
+         `contrGetLineasInforme`, que es la MISMA funcion de la que sale el texto del informe, y
+         ya no se pegan con un separador. El bloque «Arterias posiblemente involucradas» NO esta
+         en esa lista -lo arma `contrArteriasTexto` solo para la pantalla- y por eso no llega al
+         papel: no hace falta filtrarlo, no esta. */
       const _ctL = (typeof contrGetLineasInforme === 'function') ? contrGetLineasInforme() : [];
       _dgP.push({ data: bullseyeDataURL(id => (CONTR_MOTILIDAD[(contrEstado[id]||0)] || CONTR_MOTILIDAD[0]).color),
-                  sub: 'Motilidad', leyenda: CONTR_MOTILIDAD });
-      if (_ctL.length) _dgL.push(_ctL.join(' · '));
+                  sub: 'Motilidad', leyenda: CONTR_MOTILIDAD, lineas: _ctL.slice() });
     }
     if (_incSgl) {
       /* Negativo (AJ9-1c): el PDF y el PPT comparten este dato y lo publicaban crudo los dos. */
       const _gls = (typeof sglNegTxt === 'function') ? sglNegTxt(sv('sgl_gls'))
                  : ((typeof sv === 'function') ? sv('sgl_gls').trim() : '');
       const _nt  = (typeof sv === 'function') ? sv('sgl_notas').trim() : '';
-      _dgP.push({ data: bullseyeDataURL(id => strainColor(id)), sub: 'Strain (SGL)', leyenda: GE_STRAIN });
-      const _b = [ _gls ? ('SGL global ' + _gls + ' %') : '', _nt ].filter(Boolean).join(' · ');
-      if (_b) _dgL.push(_b);
+      /* EL SGL GLOBAL VA EN SU PROPIO RENGLON y las notas debajo, una por linea escrita, tal
+         cual. Pegados con un separador, el global quedaba cosido a la primera linea de la nota. */
+      const _lin = [];
+      if (_gls) _lin.push('SGL global: ' + _gls + ' %');
+      if (_nt) String(_nt).split('\n').forEach(function (t) { if (t.trim()) _lin.push(t.trim()); });
+      _dgP.push({ data: bullseyeDataURL(id => strainColor(id), id => strainNumTxt(id), id => strainColorTxt(id)),
+                  sub: 'Strain (SGL)', barra: true, lineas: _lin });
     }
     if (_dgP.length) _dg.contr = { partes: _dgP, linea: _dgL.join('  ·  ') };
   }
@@ -127238,6 +127396,13 @@ function guardarInforme(onDone) {
      paciente que estuviera abierto mientras el número de GLS y las notas venían del
      guardado. La combinación más engañosa posible. Mismo tratamiento que contrEstado. */
   campos['strain_sgl'] = JSON.stringify(strainEstado);
+  /* PR7: los NUMEROS por segmento y la marca de version del modelo. Van como dos claves mas de
+     `campos`, que es donde ya vivia `strain_sgl`: no son controles con id, asi que no agregan
+     ni un campo al censo del estudio ni una columna al Excel, que exporta por `LAB_XLS_MAP`.
+     Sin `strain_sgl_ver` no hay forma de distinguir un estado de CINCO pasos de uno de NUEVE
+     -los dos son numeros chicos y el 2 significa cosas distintas en cada modelo-. */
+  campos['strain_sgl_num'] = JSON.stringify(strainNum);
+  campos['strain_sgl_ver'] = STRAIN_VER;
   campos['contr_flags']    = JSON.stringify({ difusa: contrDifusa, multiple: contrMultiple, disqSep: contrDisqSep });
   /* ⚠️ LA BASE DEL INFORME VIAJA CON EL ESTUDIO, y es lo que hace que el texto escrito a mano
      sobreviva a una reapertura. `_infMerge` distingue lo manual de lo automático comparando el
@@ -135899,12 +136064,27 @@ function resetETT() {
 })();
 
 // ── Strain Patrones ──
-/* Paleta GE unificada (idéntica al bull's eye principal, GE_STRAIN):
-   Normal=#DC2626 · Hipoq. leve=#F87171 · Hipoquinesia=#FECACA · Acinesia=#93C5FD · Discinesia/aneurisma=#1D4ED8.
-   Los 8 niveles previos se colapsan a los 5 estados GE conservando las zonas de cada patrón. */
+/* LOS PATRONES DE EJEMPLO, RECOLOREADOS CON LA PALETA PROPIA (PR7, 23/11/2026).
+   /!\ LOS COLORES SE LEEN DE `STRAIN_PAL`, que es el mismo duenio que pinta el bull's eye del
+   paciente y el del papel: escritos a mano, el dia que un tramo cambie de color los patrones
+   seguirian mostrando el anterior al lado de un paciente ya repintado.
+   La FORMA y los NOMBRES de los patrones no se tocan, y no se agrega ninguna afirmacion
+   clinica: lo unico que cambia es con que tramo se pinta cada estado.
+   La correspondencia, por el significado que cada clave ya tenia:
+     N  normal                 -> tramo 1  (-20 a -15)
+     H1 hipoquinesia leve      -> tramo 2  (-15 a -10)
+     H2 hipoquinesia           -> tramo 3  (-10 a -5)
+     H3 hipoquinesia marcada   -> tramo 4  (-5 a 0)    <- recupera la distincion que la
+                                                          unificacion anterior habia colapsado
+     AC acinesia               -> tramo 5  (0 a +5)
+     D1 discinesia             -> tramo 6  (+5 a +10)
+     D2 discinesia / aneurisma -> tramo 7  (+10 a +15)
+     GR sin dato               -> gris
+   El tramo 8 no lo usa ningun patron, y es correcto: es el extremo de la rampa. */
+const _CT = i => (typeof STRAIN_PAL !== 'undefined' && STRAIN_PAL[i]) ? STRAIN_PAL[i].color : '#D4D4D0';
 const C = {
-  N:  '#DC2626', H1: '#F87171', H2: '#FECACA', H3: '#FECACA',
-  AC: '#93C5FD', D1: '#1D4ED8', D2: '#1D4ED8', GR: '#9E9E9E'
+  N:  _CT(1), H1: _CT(2), H2: _CT(3), H3: _CT(4),
+  AC: _CT(5), D1: _CT(6), D2: _CT(7), GR: _CT(0)
 };
 
 function buildBullsEyeSVG(colors, size, interactive) {
@@ -135930,14 +136110,16 @@ function buildBullsEyeSVG(colors, size, interactive) {
       const x1i = cx + rInner * Math.cos(a1), y1i = cy + rInner * Math.sin(a1);
       const x2i = cx + rInner * Math.cos(a2), y2i = cy + rInner * Math.sin(a2);
       const d = `M${x1i},${y1i} L${x1o},${y1o} A${rOuter},${rOuter} 0 0,0 ${x2o},${y2o} L${x2i},${y2i} A${rInner},${rInner} 0 0,1 ${x1i},${y1i} Z`;
-      const fill = colors[segIdx] || C.N1;
+      /* `C.N1` NO EXISTE en este objeto: con un patron corto el relleno salia `undefined`.
+         Hoy el respaldo es el gris de SIN DATO, que es lo que un segmento sin color es. */
+      const fill = colors[segIdx] || C.GR;
       const idx = segIdx;
       const intAttr = interactive ? `class="seg-interactive" data-idx="${idx}" onclick="segClick(${idx})"` : '';
       paths += `<path d="${d}" fill="${fill}" stroke="#fff" stroke-width="1.5" ${intAttr}/>`;
       segIdx++;
     }
   });
-  const apexFill = colors[16] || C.N1;
+  const apexFill = colors[16] || C.GR;
   const intAttrApex = interactive ? `class="seg-interactive" data-idx="16" onclick="segClick(16)"` : '';
   paths += `<circle cx="${cx}" cy="${cy}" r="${apexR}" fill="${apexFill}" stroke="#fff" stroke-width="1.5" ${intAttrApex}/>`;
   const labels = '';
@@ -138098,6 +138280,25 @@ function _pptDesdeFormulario(inf, tema, presentador){
       /* Referencia de colores. Cada fila es un cuadradito del color real de la escala más su
          nombre: proyectado, un bull's eye sin leyenda obliga a explicar de memoria qué es
          cada tono. Devuelve la y de abajo para que el llamador siga apilando. */
+      /* /!\ LA DE STRAIN ES UNA BARRA Y NO NUEVE FILAS, y no es estetica: con nueve filas de
+         0,17" la leyenda medía 1,53" y le comia al dibujo y al texto mas de media pulgada de los
+         dos y medio que la diapositiva tiene entre el titulo y el filete del pie. La barra mide
+         0,42" y rotula los mismos ocho rangos. */
+      const _barra = (pal, marcas, x, y0, w) => {
+        const n = marcas.length, cw = (w - 0.9) / n;
+        for (let i = 0; i < n; i++) {
+          s.addShape(P.ShapeType.rect, { x: x + i * cw, y: y0 + 0.02, w: cw, h: 0.13,
+            fill:{ color: String(pal[i + 1].color).replace('#','') }, line:{ color:'888888', width:0.4 } });
+          s.addText(_pptTxt((marcas[i] > 0 ? '+' : '') + marcas[i]),
+            { x: x + i * cw - 0.06, y: y0 + 0.15, w: cw + 0.12, h: 0.14, fontSize:6,
+              color:PPT_C.txt2, fontFace:PPT_FONT, align:'center', valign:'middle' });
+        }
+        s.addShape(P.ShapeType.rect, { x: x + w - 0.78, y: y0 + 0.02, w:0.13, h:0.13,
+          fill:{ color: String(pal[0].color).replace('#','') }, line:{ color:'888888', width:0.4 } });
+        s.addText(_pptTxt('Sin dato'), { x: x + w - 0.62, y: y0 + 0.01, w:0.62, h:0.15,
+          fontSize:7, color:PPT_C.txt2, fontFace:PPT_FONT, valign:'middle' });
+        return y0 + 0.32;
+      };
       const _leyenda = (arr, x, y0, w) => {
         let yy = y0;
         arr.forEach(m => {
@@ -138154,15 +138355,18 @@ function _pptDesdeFormulario(inf, tema, presentador){
         const cols = [];
         if (hayAlterado) cols.push({ tit:'Contractilidad segmentaria', esc:CONTR_MOTILIDAD,
                                      img:imgContr, cuerpo:_motilidad, quien:'los hallazgos de motilidad' });
-        cols.push({ tit:'Strain longitudinal (SGL)', esc:GE_STRAIN,
-                    img:_be(id => strainColor(id), 'strain'), cuerpo:_cuerpoSgl, quien:'las notas de strain' });
+        cols.push({ tit:'Strain longitudinal (SGL)', esc:null, barra:true,
+                    img:_be(id => strainColor(id), id => strainNumTxt(id), id => strainColorTxt(id)),
+                    cuerpo:_cuerpoSgl, quien:'las notas de strain' });
         // Con una sola columna se usa el ancho completo; con dos, media diapositiva cada una.
         const _n = cols.length, _cw = (_n === 2) ? cw : (W - 1);
         const _xs = (_n === 2) ? [xI, xD] : [0.5];
         /* yLeg sale del MÁXIMO de las dos escalas, no de una: las dos tienen 5 filas hoy,
-           pero GE_STRAIN es una escala clínica editable y con una fila más la sexta caía
-           debajo de donde arranca el bull's eye de la otra columna. */
-        const _filas = Math.max.apply(null, cols.map(c => c.esc.length));
+           pero la de strain es una BARRA de dos filas equivalentes y la de motilidad una lista
+           de cinco, asi que el maximo sigue decidiendo donde arranca el dibujo de las dos. */
+        /* La de strain ocupa dos filas equivalentes -la barra mas sus marcas-, asi que el alto
+           de la zona de leyenda sigue saliendo del MAXIMO y no de una de las dos. */
+        const _filas = Math.max.apply(null, cols.map(c => c.barra ? 2 : c.esc.length));
         const yLeg = yTit + 0.26 + _filas * 0.17;
         let ySz = 1.0, fsTxt = 8;
         const _cabe = ([sz, fs]) => {
@@ -138186,7 +138390,8 @@ function _pptDesdeFormulario(inf, tema, presentador){
           const x = _xs[i];
           s.addText(c.tit, { x, y:yTit, w:_cw, h:0.22, fontSize:12, bold:true,
             color:PPT_C.teal, fontFace:PPT_FONT });
-          _leyenda(c.esc, x, yTit + 0.26, _cw);
+          if (c.barra) _barra(STRAIN_PAL, STRAIN_MARCAS, x, yTit + 0.26, _cw);
+          else _leyenda(c.esc, x, yTit + 0.26, _cw);
           if (c.img) s.addImage({ data:c.img, x: x + (_cw - ySz) / 2, y: yLeg + 0.06, w:ySz, h:ySz });
           const yTxt = yLeg + 0.06 + (c.img ? ySz : 0) + 0.1;
           if (c.cuerpo) s.addText(c.cuerpo, { x, y:yTxt, w:_cw, h: Math.max(0.2, yTope - yTxt),
@@ -139465,7 +139670,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
   { const _hr = document.getElementById('hf_ritmo'); if (_hr) chkBackup['hf_ritmo'] = _hr.value; }
   // Backup de la contractilidad segmentaria del formulario actual (para restaurarla tras generar)
   const contrBackup = { contractilidad: JSON.stringify(contrEstado), contr_flags: JSON.stringify({ difusa: contrDifusa, multiple: contrMultiple, disqSep: contrDisqSep }) };
-  const strainBackup = { strain_sgl: JSON.stringify(strainEstado) };
+  /* PR7: el respaldo lleva las TRES claves. Con solo los indices, una reimpresion devolvia el
+     color y perdia los numeros, y el bull's eye del papel reimpreso saldria distinto del
+     original -que es exactamente el defecto que este respaldo vino a cerrar-. */
+  const strainBackup = { strain_sgl: JSON.stringify(strainEstado),
+                         strain_sgl_num: JSON.stringify(strainNum),
+                         strain_sgl_ver: STRAIN_VER };
   const ceBackup = {};
   ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
     const el = document.getElementById(fid);
@@ -140129,11 +140339,42 @@ function _amiloMigrarSalvedad(campos) {
 }
 window._amiloMigrarSalvedad = _amiloMigrarSalvedad;
 
+/* /!\ UN ESTUDIO GUARDADO CON LOS CINCO ESTADOS VIEJOS ABRE SIN ERROR Y SIN NUMEROS INVENTADOS
+   (PR7). Lo que decide si hay que migrar es `strain_sgl_ver`, y no la presencia de los numeros:
+   un estudio NUEVO en el que nadie escribio ninguno guarda igual su marca de version, asi que
+   mirar los numeros confundiria ese caso con un estudio viejo y lo migraria dos veces.
+   La correspondencia es `STRAIN_MIGRA`, declarada donde vive la paleta. El 0 viejo -que era
+   «Normal» en rojo y a la vez el valor por omision del segmento que nadie toco y el que dejaba
+   «Limpiar»- va a SIN DATO: es el unico lado que no afirma una evaluacion que nadie hizo.
+   A ninguno de esos segmentos se le escribe un numero: lo que el modelo viejo guardaba era un
+   color, no una medicion. */
 function _restaurarStrain(campos){
   Object.keys(strainEstado).forEach(k=> delete strainEstado[k]);
+  Object.keys(strainNum).forEach(k=> delete strainNum[k]);
+  if (typeof strainCajaCerrar === 'function') strainCajaCerrar(false);
   let segs = campos && campos.strain_sgl;
   if (typeof segs === 'string') { try { segs = JSON.parse(segs); } catch(e){ segs = null; } }
-  if (segs && typeof segs === 'object') Object.keys(segs).forEach(k=>{ strainEstado[k] = Number(segs[k]) || 0; });
+  const ver = String((campos && campos.strain_sgl_ver) || '');
+  const viejo = (ver !== STRAIN_VER);
+  if (segs && typeof segs === 'object') Object.keys(segs).forEach(k=>{
+    const n = Number(segs[k]) || 0;
+    strainEstado[k] = viejo
+      ? (STRAIN_MIGRA[Math.max(0, Math.min(STRAIN_MIGRA.length - 1, n))] || 0)
+      : Math.max(0, Math.min(STRAIN_N_TRAMOS, n));
+  });
+  if (!viejo) {
+    let nums = campos && campos.strain_sgl_num;
+    if (typeof nums === 'string') { try { nums = JSON.parse(nums); } catch(e){ nums = null; } }
+    /* El numero se repone SOLO donde el tramo guardado coincide con el que ese numero deriva.
+       Un par que no cierra -un disco editado a mano, una migracion a medias- dejaria el color
+       diciendo una cosa y el numero otra EN EL PAPEL FIRMADO, que es lo que `strainSet` existe
+       para impedir. Ante la duda se conserva el COLOR, que es lo que el medico vio. */
+    if (nums && typeof nums === 'object') Object.keys(nums).forEach(k=>{
+      const v = Number(nums[k]);
+      if (!isFinite(v)) return;
+      if ((strainEstado[k] || 0) === strainTramoDe(v)) strainNum[k] = Math.round(v * 10) / 10;
+    });
+  }
   if (typeof strainAplicarTodos === 'function') strainAplicarTodos();
 }
 window._restaurarStrain = _restaurarStrain;
@@ -142666,36 +142907,222 @@ const SGL_CUATRO = [
   {id:'anterior',centro:0},{id:'septal',centro:-90},{id:'inferior',centro:-180},{id:'lateral',centro:-270}
 ];
 
-// ══ Strain: UN SOLO bull's eye (17 seg, sin números) con escala de colores estilo General Electric ══
-const GE_STRAIN = [
-  {nombre:'Normal',                color:'#DC2626'},
-  {nombre:'Hipoquinesia leve',     color:'#F87171'},
-  {nombre:'Hipoquinesia',          color:'#FECACA'},
-  {nombre:'Acinesia',              color:'#93C5FD'},
-  {nombre:'Discinesia / aneurisma',color:'#1D4ED8'},
-];
-const strainEstado = {};
-function strainColor(id){ return (GE_STRAIN[strainEstado[id] || 0] || GE_STRAIN[0]).color; }
-function strainAplicar(id){ document.querySelectorAll('#sgl-svg-bullseye [data-strainid="'+id+'"]').forEach(el=> el.setAttribute('fill', strainColor(id))); }
-function strainAplicarTodos(){ document.querySelectorAll('#sgl-svg-bullseye [data-strainid]').forEach(el=> strainAplicar(el.getAttribute('data-strainid'))); }
-function strainCiclar(id){ strainEstado[id] = ((strainEstado[id] || 0) + 1) % GE_STRAIN.length; strainAplicar(id); }
-window.sglReset = function(){ Object.keys(strainEstado).forEach(k=> strainEstado[k]=0); strainAplicarTodos(); };
+/* El modelo de estado del bull de strain. La PALETA y las dos funciones puras viven en el
+   bloque de constantes de SGL, mucho mas arriba: los patrones de ejemplo las consumen en su
+   propia definicion y un const de nivel de script NO esta disponible desde un bloque de
+   script ANTERIOR -ni con typeof, que sobre la zona muerta tambien lanza-. */
+const strainEstado = {};   /* id -> 0..8, con 0 = sin dato */
+const strainNum = {};      /* id -> numero, SOLO donde el medico escribio uno */
+/* El texto que se dibuja DENTRO del segmento. Sin dato lleva guion; un color elegido a mano y
+   sin numero no lleva nada, porque no hay numero que publicar. */
+function strainNumTxt(id){
+  if ((strainEstado[id] || 0) === 0) return '–';
+  const v = strainNum[id];
+  if (v === null || v === undefined || !isFinite(v)) return '';
+  return String(v);
+}
+function strainColor(id){ return (STRAIN_PAL[strainEstado[id] || 0] || STRAIN_PAL[0]).color; }
+function strainColorTxt(id){ return (STRAIN_PAL[strainEstado[id] || 0] || STRAIN_PAL[0]).txt; }
+/* LA UNICA ESCRITURA. El color y el numero no pueden contradecirse porque salen de la misma
+   llamada: el tramo se DERIVA del numero cuando hay numero, y el numero se BORRA cuando el
+   tramo lo elige un toque. */
+function strainSet(id, idx, num){
+  const i = Math.max(0, Math.min(STRAIN_N_TRAMOS, Number(idx) || 0));
+  strainEstado[id] = i;
+  if (i === 0 || num === null || num === undefined || !isFinite(num)) delete strainNum[id];
+  else strainNum[id] = num;
+  strainAplicar(id);
+}
+function strainEscribir(id, txt){
+  const n = strainParseNum(txt);
+  if (n === null) { strainSet(id, 0, null); return null; }
+  strainSet(id, strainTramoDe(n), n);
+  return n;
+}
+function strainAplicar(id){
+  document.querySelectorAll('#sgl-svg-bullseye [data-strainid="' + id + '"]').forEach(function (el) {
+    if (el.tagName.toLowerCase() === 'text') {
+      el.textContent = strainNumTxt(id);
+      el.setAttribute('fill', strainColorTxt(id));
+    } else {
+      el.setAttribute('fill', strainColor(id));
+    }
+  });
+}
+function strainAplicarTodos(){
+  const vistos = {};
+  document.querySelectorAll('#sgl-svg-bullseye [data-strainid]').forEach(function (el) {
+    const id = el.getAttribute('data-strainid');
+    if (vistos[id]) return;
+    vistos[id] = 1;
+    strainAplicar(id);
+  });
+}
+/* El ciclo del boton APAGADO: sin dato, los ocho tramos y de vuelta a sin dato. Nueve estados.
+   Borra el numero a proposito: ver el aviso de strainSet. */
+function strainCiclar(id){ strainSet(id, ((strainEstado[id] || 0) + 1) % (STRAIN_N_TRAMOS + 1), null); }
+window.sglReset = function(){
+  Object.keys(strainEstado).forEach(function (k) { delete strainEstado[k]; });
+  Object.keys(strainNum).forEach(function (k) { delete strainNum[k]; });
+  strainCajaCerrar(false);
+  strainAplicarTodos();
+};
+/* Hay strain por segmento EVALUADO? Con el 0 = sin dato, «algo distinto de cero» es la misma
+   pregunta que el PDF y el PPT ya hacian con mayor que cero, asi que sus dos compuertas siguen
+   diciendo lo mismo sin cambiar una linea. */
+function strainHayDatos(){
+  return Object.keys(strainEstado).some(function (k) { return (Number(strainEstado[k]) || 0) > 0; });
+}
+
+/* /!\ EL INTERRUPTOR DE DATOS NUMERICOS VIVE SOLO EN MEMORIA, por el mismo motivo que el
+   interruptor del resumen de valvulas de PR6: no es un dato del paciente, es un modo de
+   trabajo. No va a localStorage ni al guardado del estudio, y por eso no entra al censo del
+   estudio ni a las columnas del Excel por construccion: no es un control con id guardado. */
+let strainNumModo = false;
+function strainNumModoOn(){ return !!strainNumModo; }
+function strainNumToggle(){
+  strainNumModo = !strainNumModo;
+  if (!strainNumModo) strainCajaCerrar(false);
+  strainNumBtnSync();
+}
+function strainNumBtnSync(){
+  const b = document.getElementById('sgl-num-toggle');
+  if (!b) return;
+  b.setAttribute('aria-pressed', strainNumModo ? 'true' : 'false');
+  b.classList.toggle('btn-primary', strainNumModo);
+  b.classList.toggle('btn-ghost', !strainNumModo);
+}
+
+/* LA CASILLA PARA ESCRIBIR UN VALOR. Se crea al tocar y se DESTRUYE al cerrar, y NO lleva un
+   solo id: el censo del estudio y el Excel recorren input[id] y select[id], asi que una
+   casilla con id entraria a las 457 columnas por existir y «Nuevo estudio» le escribiria el
+   valor guardado de un campo que no es del paciente. Se alcanza por data-strain-caja. */
+let _strainCaja = null;
+function strainCajaCerrar(confirmar){
+  const c = _strainCaja;
+  if (!c) return;
+  /* Se suelta ANTES de quitar el nodo: quitar un elemento enfocado dispara blur, y con la
+     referencia todavia puesta esa segunda vuelta volveria a confirmar sobre un input muerto. */
+  _strainCaja = null;
+  const v = c.input ? c.input.value : '';
+  if (c.input && c.input.parentNode) c.input.parentNode.removeChild(c.input);
+  if (confirmar) strainEscribir(c.seg, v);
+}
+function strainCajaAbrir(id, el){
+  strainCajaCerrar(true);
+  const svg = document.getElementById('sgl-svg-bullseye');
+  if (!svg || !el) return;
+  const cont = svg.parentNode;
+  if (!cont) return;
+  try { if (getComputedStyle(cont).position === 'static') cont.style.position = 'relative'; } catch (e) {}
+  const r = svg.getBoundingClientRect(), rc = cont.getBoundingClientRect();
+  const VB = 320;
+  const px = Number(el.getAttribute('data-strain-cx'));
+  const py = Number(el.getAttribute('data-strain-cy'));
+  const k = (r.width || VB) / VB;
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.setAttribute('data-strain-caja', id);
+  inp.setAttribute('aria-label', 'Valor de strain de este segmento, de -20 a +20');
+  inp.setAttribute('autocomplete', 'off');
+  const v = strainNum[id];
+  inp.value = (v === null || v === undefined || !isFinite(v)) ? '' : String(v);
+  /* 72 x 44: el piso tactil de esta casa es 44 px y la casilla se toca con el dedo en tablet. */
+  inp.style.cssText = 'position:absolute;width:72px;height:44px;min-height:44px;font-size:16px;'
+    + 'text-align:center;padding:2px 4px;border:2px solid var(--accent2);border-radius:6px;'
+    + 'background:var(--surface);color:var(--text);z-index:40;box-sizing:border-box;';
+  inp.style.left = Math.round(r.left - rc.left + (isFinite(px) ? px : VB / 2) * k - 36) + 'px';
+  inp.style.top  = Math.round(r.top  - rc.top  + (isFinite(py) ? py : VB / 2) * k - 22) + 'px';
+  inp.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); strainCajaCerrar(true); }
+    /* Escape se corta aca: el oyente generico de accesibilidad busca el dialogo visible y le
+       aprieta su boton de cerrar, asi que sin cortarlo cancelar la casilla cerraria otra cosa. */
+    else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); strainCajaCerrar(false); }
+  });
+  inp.addEventListener('blur', function () { strainCajaCerrar(true); });
+  cont.appendChild(inp);
+  _strainCaja = { seg:id, input:inp };
+  try { inp.focus(); inp.select(); } catch (e) {}
+}
+/* La UNICA puerta del gesto. Con el boton apagado cicla el color; con el boton encendido pide
+   el numero. Dos puertas dejarian el modo escrito en dos lugares. */
+function strainTocar(id, el){
+  if (strainNumModoOn()) strainCajaAbrir(id, el);
+  else strainCiclar(id);
+}
 
 function sglDibujarBullseye(){
   const svg = document.getElementById('sgl-svg-bullseye');
   if (!svg) return;
-  const cx=160, cy=160, rBE=145, rBI=98, rMI=52, rAI=18;
-  const seg = (idKey,d) => '<path class="strain-seg" data-strainid="'+idKey+'" style="cursor:pointer" fill="'+GE_STRAIN[0].color+'" stroke="#cfd6e6" stroke-width="1.2" d="'+d+'"/>';
-  let html='';
-  SGL_SEIS.forEach(w=> html += seg('basal_'+w.id, contrDescribirCuna(cx,cy,rBI,rBE,w.centro-30,w.centro+30)));
-  SGL_SEIS.forEach(w=> html += seg('mid_'+w.id, contrDescribirCuna(cx,cy,rMI,rBI,w.centro-30,w.centro+30)));
-  SGL_CUATRO.forEach(w=> html += seg('apical_'+w.id, contrDescribirCuna(cx,cy,rAI,rMI,w.centro-45,w.centro+45)));
-  html += '<circle class="strain-seg" data-strainid="apex" style="cursor:pointer" fill="'+GE_STRAIN[0].color+'" stroke="#cfd6e6" stroke-width="1.2" cx="'+cx+'" cy="'+cy+'" r="'+rAI+'"/>';
-  [rBE,rBI,rMI,rAI].forEach(r=> html += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#cfd6e6" stroke-width="0.7" opacity="0.3" pointer-events="none"/>');
+  const cx = 160, cy = 160, rBE = 145, rBI = 98, rMI = 52, rAI = 18;
+  /* El centro de una cunia, con la MISMA convencion angular que contrDescribirCuna: 0 arriba
+     y sentido horario. De aca salen el lugar del numero y el de la casilla, que es lo que los
+     mantiene en el mismo punto. */
+  const cen = function (rInt, rExt, a0, a1) {
+    const rm = (rInt + rExt) / 2, am = ((a0 + a1) / 2 - 90) * Math.PI / 180;
+    return [cx + rm * Math.cos(am), cy + rm * Math.sin(am)];
+  };
+  const seg = function (idKey, rInt, rExt, a0, a1) {
+    const c = cen(rInt, rExt, a0, a1);
+    return '<path class="strain-seg" data-strainid="' + idKey + '" data-strain-cx="' + c[0].toFixed(1)
+      + '" data-strain-cy="' + c[1].toFixed(1) + '" style="cursor:pointer" fill="' + STRAIN_PAL[0].color
+      + '" stroke="#cfd6e6" stroke-width="1.2" d="' + contrDescribirCuna(cx, cy, rInt, rExt, a0, a1) + '"/>';
+  };
+  const rot = function (idKey, rInt, rExt, a0, a1, fs) {
+    const c = cen(rInt, rExt, a0, a1);
+    return '<text data-strainid="' + idKey + '" x="' + c[0].toFixed(1) + '" y="' + c[1].toFixed(1)
+      + '" text-anchor="middle" dominant-baseline="central" font-size="' + fs + '" font-weight="700"'
+      + ' pointer-events="none" fill="' + STRAIN_PAL[0].txt + '">–</text>';
+  };
+  let html = '';
+  SGL_SEIS.forEach(function (w) { html += seg('basal_' + w.id, rBI, rBE, w.centro - 30, w.centro + 30); });
+  SGL_SEIS.forEach(function (w) { html += seg('mid_' + w.id, rMI, rBI, w.centro - 30, w.centro + 30); });
+  SGL_CUATRO.forEach(function (w) { html += seg('apical_' + w.id, rAI, rMI, w.centro - 45, w.centro + 45); });
+  html += '<circle class="strain-seg" data-strainid="apex" data-strain-cx="' + cx + '" data-strain-cy="' + cy
+       + '" style="cursor:pointer" fill="' + STRAIN_PAL[0].color + '" stroke="#cfd6e6" stroke-width="1.2" cx="'
+       + cx + '" cy="' + cy + '" r="' + rAI + '"/>';
+  [rBE, rBI, rMI, rAI].forEach(function (r) {
+    html += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#cfd6e6" stroke-width="0.7" opacity="0.3" pointer-events="none"/>';
+  });
+  /* Los numeros se emiten DESPUES de las 17 cunias: en SVG el ultimo gana, y dentro del mismo
+     paso el relleno del segmento siguiente tapa el numero del anterior en el borde comun. */
+  SGL_SEIS.forEach(function (w) { html += rot('basal_' + w.id, rBI, rBE, w.centro - 30, w.centro + 30, 13); });
+  SGL_SEIS.forEach(function (w) { html += rot('mid_' + w.id, rMI, rBI, w.centro - 30, w.centro + 30, 13); });
+  SGL_CUATRO.forEach(function (w) { html += rot('apical_' + w.id, rAI, rMI, w.centro - 45, w.centro + 45, 12); });
+  html += '<text data-strainid="apex" x="' + cx + '" y="' + cy + '" text-anchor="middle" dominant-baseline="central"'
+       + ' font-size="10" font-weight="700" pointer-events="none" fill="' + STRAIN_PAL[0].txt + '">–</text>';
   svg.innerHTML = html;
-  svg.querySelectorAll('.strain-seg').forEach(el=> el.addEventListener('click', ()=> strainCiclar(el.getAttribute('data-strainid'))));
+  svg.querySelectorAll('.strain-seg').forEach(function (el) {
+    el.addEventListener('click', function () { strainTocar(el.getAttribute('data-strainid'), el); });
+  });
   strainAplicarTodos();
 }
+/* LA BARRA DE LA LEYENDA, UN SOLO DUENIO para la pantalla y para el PDF: ocho cuadritos pegados
+   con su marca debajo, mas el cuadrito gris de «Sin dato». Con dos armadores la pantalla y el
+   papel podrian rotular los mismos colores con rangos distintos. */
+function strainLeyendaHTML(){
+  let c = '', m = '';
+  for (let i = 1; i <= STRAIN_N_TRAMOS; i++) {
+    c += '<div style="flex:1 1 0;height:14px;background:' + STRAIN_PAL[i].color + ';"></div>';
+  }
+  STRAIN_MARCAS.forEach(function (v) {
+    m += '<div style="flex:1 1 0;font-size:9px;color:var(--text2);text-align:left;">'
+       + (v > 0 ? '+' : '') + v + '</div>';
+  });
+  return '<div style="display:flex;width:100%;max-width:230px;border:1px solid #9aa0ae;border-radius:3px;overflow:hidden;">'
+    + c + '</div><div style="display:flex;width:100%;max-width:230px;margin-top:2px;">' + m + '</div>'
+    + '<div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;">'
+    + '<span style="width:14px;height:14px;border-radius:3px;background:' + STRAIN_PAL[0].color
+    + ';display:inline-block;border:1px solid #9aa0ae;"></span>Sin dato</div>';
+}
+function strainLeyendaPintar(){
+  document.querySelectorAll('[data-strain-leyenda]').forEach(function (el) {
+    el.innerHTML = strainLeyendaHTML();
+  });
+}
+/* /!\ ESTA FUNCION SE PERDIO EN EL REEMPLAZO DEL BLOQUE Y `sglOnShow` LA LLAMA: sin ella la
+   pestania SGL tiraba «sglSyncGLS is not defined» al abrirse y el bull's eye no se dibujaba.
+   Lo cazó la sonda, no la lectura. Es la misma de siempre, sin un cambio. */
 function sglSyncGLS(){
   const gls = document.getElementById('sgl_gls');
   if (!gls) return;
@@ -142703,24 +143130,63 @@ function sglSyncGLS(){
   if (vi && vi.value !== '' && (gls.value === '' )) gls.value = vi.value;
 }
 window.sglOnShow = function(){
-  sglDibujarBullseye(); sglSyncGLS();
+  sglDibujarBullseye(); sglSyncGLS(); strainNumBtnSync(); strainLeyendaPintar();
   if (typeof _pdfToggleBtnState === 'function'){
     sglPdfSync();
   }
 };
+window.strainNumTxt = strainNumTxt; window.strainColor = strainColor;
+window.strainColorTxt = strainColorTxt; window.strainSet = strainSet;
+window.strainEscribir = strainEscribir; window.strainCiclar = strainCiclar;
+window.strainHayDatos = strainHayDatos; window.strainNumModoOn = strainNumModoOn;
+window.strainNumToggle = strainNumToggle; window.strainNumBtnSync = strainNumBtnSync;
+window.strainCajaAbrir = strainCajaAbrir; window.strainCajaCerrar = strainCajaCerrar;
+window.strainTocar = strainTocar; window.strainLeyendaHTML = strainLeyendaHTML;
+window.strainLeyendaPintar = strainLeyendaPintar; window.strainAplicarTodos = strainAplicarTodos;
+/* LECTORES, y no el objeto: `strainEstado` y `strainNum` son const de nivel de script y se
+   quedan ahi. Colgarlos de window los dejaria escribibles desde cualquier parte, que es lo
+   que el comentario de `contrEstado` senniala como riesgo de arrastrar datos entre pacientes. */
+window.strainEstadoDe = id => (strainEstado[id] || 0);
+window.strainNumDe = id => (Object.prototype.hasOwnProperty.call(strainNum, id) ? strainNum[id] : null);
+window.strainNumCuantos = () => Object.keys(strainNum).length;
+window.strainSnapshot = () => ({ est: JSON.stringify(strainEstado), num: JSON.stringify(strainNum) });
 
-// ══ Renderer canvas del bull's eye (para el PDF) ══
-function bullseyeDataURL(getColor){
+/* La leyenda se pinta YA, no solo al abrir la pestania: su marcado esta por encima de este
+   bloque -asi que ya fue parseado- y los patrones de ejemplo viven en la misma pantalla.
+   `strainLeyendaPintar` es idempotente: reescribe el mismo contenido. */
+try { strainLeyendaPintar(); strainNumBtnSync(); } catch (e) {}
+/* == Renderer canvas del bull's eye (para el PDF y el PPT) ==================================
+   /!\ EL MISMO RENDERER DIBUJA LAS DOS DIANAS, y por eso los dos argumentos de texto son
+   OPCIONALES: la motilidad lo llama con uno solo y sale exactamente igual que antes. */
+function bullseyeDataURL(getColor, getTexto, getTxtColor){
   const S=320, k=2;
   const cv=document.createElement('canvas'); cv.width=S*k; cv.height=S*k;
   const c=cv.getContext('2d'); c.scale(k,k);
   const cx=160, cy=160, rBE=145, rBI=98, rMI=52, rAI=18;
   c.fillStyle='#ffffff'; c.fillRect(0,0,S,S);
-  const wedge=(rInt,rExt,a0,a1,color)=>{ const p=new Path2D(contrDescribirCuna(cx,cy,rInt,rExt,a0,a1)); c.fillStyle=color; c.fill(p); c.lineWidth=1; c.strokeStyle='#cfd6e6'; c.stroke(p); };
-  SGL_SEIS.forEach(w=> wedge(rBI,rBE,w.centro-30,w.centro+30, getColor('basal_'+w.id)));
-  SGL_SEIS.forEach(w=> wedge(rMI,rBI,w.centro-30,w.centro+30, getColor('mid_'+w.id)));
-  SGL_CUATRO.forEach(w=> wedge(rAI,rMI,w.centro-45,w.centro+45, getColor('apical_'+w.id)));
+  const _rot=[];
+  const wedge=(rInt,rExt,a0,a1,id,fs)=>{
+    const p=new Path2D(contrDescribirCuna(cx,cy,rInt,rExt,a0,a1));
+    c.fillStyle=getColor(id); c.fill(p); c.lineWidth=1; c.strokeStyle='#cfd6e6'; c.stroke(p);
+    if (typeof getTexto === 'function'){
+      const rm=(rInt+rExt)/2, am=((a0+a1)/2-90)*Math.PI/180;
+      _rot.push([String(getTexto(id)||''), cx+rm*Math.cos(am), cy+rm*Math.sin(am), id, fs]);
+    }
+  };
+  SGL_SEIS.forEach(w=> wedge(rBI,rBE,w.centro-30,w.centro+30, 'basal_'+w.id, 13));
+  SGL_SEIS.forEach(w=> wedge(rMI,rBI,w.centro-30,w.centro+30, 'mid_'+w.id, 13));
+  SGL_CUATRO.forEach(w=> wedge(rAI,rMI,w.centro-45,w.centro+45, 'apical_'+w.id, 12));
   c.beginPath(); c.arc(cx,cy,rAI,0,2*Math.PI); c.fillStyle=getColor('apex'); c.fill(); c.lineWidth=1; c.strokeStyle='#cfd6e6'; c.stroke();
+  if (typeof getTexto === 'function') _rot.push([String(getTexto('apex')||''), cx, cy, 'apex', 10]);
+  /* Los numeros se estampan DESPUES de las 17 cunias, por el mismo motivo que en el SVG: en el
+     mismo paso el relleno del segmento siguiente tapa el numero del anterior en el borde. */
+  _rot.forEach(function(t){
+    if (!t[0]) return;
+    c.fillStyle = (typeof getTxtColor === 'function') ? getTxtColor(t[3]) : '#2B2B2B';
+    c.font = '700 ' + t[4] + 'px system-ui, -apple-system, sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(t[0], t[1], t[2]);
+  });
   return cv.toDataURL('image/png');
 }
 /* ══════════════════════════════════════════════════════════════════════════════════════════
