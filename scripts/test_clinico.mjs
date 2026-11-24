@@ -162952,6 +162952,934 @@ caso('TC-1041',
   ] };
 `);
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   PR7 (23/11/2026) — LA PALETA PROPIA VIOLETA A AZUL, EL INGRESO DE DATOS NUMERICOS Y EL PDF
+   ══════════════════════════════════════════════════════════════════════════════════════════════
+   ⚠️ TODO ACCESO VA POR UN AYUDANTE CON GUARDA Y DEVUELVE UNA FORMA VACIA. Contra el arbol
+   anterior (f6d51f8, el cierre de PR6) ninguna de las funciones de PR7 existe, y un acceso pelado
+   tira ReferenceError que se lleva el caso ENTERO: la condicion sale roja y las de abajo NO LLEGAN
+   A EVALUARSE. Es lo que TC-827 tuvo que deshacer en PANT-37 y lo que TC-1030 pago en PR5.
+   ⚠️ CERO ACENTOS GRAVES Y CERO BARRAS INVERTIDAS en estos cuerpos: son templates literales, y
+   una barra invertida de una expresion regular no sobrevive -el patron llega sin ella y mide otra
+   cosa en silencio-. Los normalizadores recorren charCodeAt. */
+caso('TC-1042',
+ 'PR7: los ocho tramos de la paleta propia, sus bordes -un valor en un borde cae en el tramo de su DERECHA-, el acote de los dos extremos y el gris de SIN DATO, con su color de numero',
+`
+  /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
+     diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
+     su medicion, en vez de amontonadas al final lejos del dato que las sostiene. */
+  const R = {}; const _E = [];
+  const cond = (rot, ok, dg) => _E.push([rot, ok === true, String(dg === undefined ? '' : dg)]);
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const _pal = () => { try { return (window.STRAIN_PAL || []).map(p => p.color) } catch (e) { return [] } };
+  const _palTxt = () => { try { return (window.STRAIN_PAL || []).map(p => p.txt) } catch (e) { return [] } };
+  const _tr = v => { try { return _hay('strainTramoDe') ? strainTramoDe(v) : -1 } catch (e) { return -2 } };
+
+  R.pal = _pal().join(',');
+  R.palTxt = _palTxt().join(',');
+  R.marcas = (() => { try { return (window.STRAIN_MARCAS || []).join(',') } catch (e) { return 'NO' } })();
+  /* (A) LA PALETA: nueve entradas, el 0 es SIN DATO y los ocho tramos son los de la decision. */
+  cond('(A1) la paleta tiene NUEVE entradas: sin dato mas los ocho tramos',
+       _pal().length === 9);
+  cond('(A2) los ocho colores son los decididos, en orden de -20 a +20',
+       _pal().slice(1).join(',') === '#6A1B9A,#9B59C4,#C9A3E0,#E6D5F0,#D3E3FA,#9DBFF2,#5C8CE0,#2450C0');
+  cond('(A3) SIN DATO es el gris de la decision', _pal()[0] === '#D4D4D0');
+  cond('(A4) las ocho marcas de la leyenda son -20 -15 -10 -5 0 +5 +10 +15',
+       R.marcas === '-20,-15,-10,-5,0,5,10,15');
+  /* (B) LOS BORDES. Un valor exacto en un borde pertenece al tramo de su DERECHA. */
+  R.bordes = [-20, -15, -10, -5, 0, 5, 10, 15].map(v => v + '=' + _tr(v)).join(' ');
+  cond('(B1) -20 cae en el tramo 1', _tr(-20) === 1);
+  cond('(B2) -15 cae en el tramo 2, el de su derecha, y NO en el 1', _tr(-15) === 2);
+  cond('(B3) -0,1 cae en el tramo 4 -de -5 a 0- y no en el 5', _tr(-0.1) === 4);
+  cond('(B4) 0 cae en el tramo 5, el de su derecha', _tr(0) === 5);
+  cond('(B5) +4,9 sigue en el tramo 5', _tr(4.9) === 5);
+  cond('(B6) +5 cae en el tramo 6, el de su derecha', _tr(5) === 6);
+  cond('(B7) +20 cae en el tramo 8', _tr(20) === 8);
+  cond('(B8) los ocho bordes caen cada uno en su tramo, 1 a 8',
+       [-20, -15, -10, -5, 0, 5, 10, 15].every((v, i) => _tr(v) === i + 1));
+  /* (C) FUERA DE RANGO: se usa el color del EXTREMO y no se bloquea nada. */
+  R.fuera = [-30, -25, 25, 40].map(v => v + '=' + _tr(v)).join(' ');
+  cond('(C1) -30 usa el tramo 1, el del extremo', _tr(-30) === 1);
+  cond('(C2) +25 usa el tramo 8, el del extremo', _tr(25) === 8);
+  cond('(C3) un valor que no es numero no es ningun tramo', _tr('abc') === 0 && _tr(NaN) === 0);
+  /* (D) EL COLOR DEL NUMERO: blanco sobre los tramos 1, 2, 7 y 8; gris muy oscuro sobre 3 a 6. */
+  R.blancos = _palTxt().map((c, i) => i + ':' + c).join(' ');
+  cond('(D1) el numero va en BLANCO sobre los tramos 1, 2, 7 y 8',
+       [1, 2, 7, 8].every(i => String(_palTxt()[i]).toUpperCase() === '#FFFFFF'));
+  cond('(D2) el numero va en gris muy oscuro sobre los tramos 3, 4, 5 y 6',
+       [3, 4, 5, 6].every(i => String(_palTxt()[i]).toUpperCase() === '#2B2B2B')
+       && String(_palTxt()[0]).toUpperCase() === '#2B2B2B');
+  /* (E) CONTROL NEGATIVO: la paleta de la MOTILIDAD no se movio. Son dos bull's eye distintos y
+     pueden terminar en el MISMO PDF; repintar los dos con la misma rampa los vuelve ambiguos. */
+  /* Por su NOMBRE PELADO y no por window: CONTR_MOTILIDAD es un const de nivel de script y vive
+     en el entorno lexico global, asi que window.CONTR_MOTILIDAD es undefined y la condicion
+     medía sobre una lista VACIA -que es como leer que no hay nada que comparar-. */
+  R.motilidad = (() => { try { return CONTR_MOTILIDAD.map(m => m.color).join(',') }
+                         catch (e) { return 'NO' } })();
+  cond('(E1) la paleta de la motilidad NO contiene ningun color de la paleta de strain',
+       R.motilidad !== 'NO' && R.motilidad.length > 10
+       && !_pal().slice(1).some(c => R.motilidad.toUpperCase().indexOf(c.toUpperCase()) >= 0));
+  return { extra: _E };
+`);
+
+caso('TC-1043',
+ 'PR7: con el boton de datos numericos APAGADO los 17 segmentos arrancan SIN DATO -grises y con un guion-, un toque cicla los NUEVE estados y vuelve a sin dato, y el toque BORRA el numero que hubiera',
+`
+  /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
+     diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
+     su medicion, en vez de amontonadas al final lejos del dato que las sostiene. */
+  const R = {}; const _E = [];
+  const cond = (rot, ok, dg) => _E.push([rot, ok === true, String(dg === undefined ? '' : dg)]);
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const _abrir = () => { try {
+    const b = Array.from(document.querySelectorAll('.tab-btn')).filter(x => (x.textContent || '').indexOf('SGL') >= 0)[0];
+    if (b) b.click();
+    const h = document.querySelector('#sacc-sgl .sacc-hdr');
+    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    if (_hay('sglOnShow')) sglOnShow();
+    return !!document.getElementById('sgl-svg-bullseye');
+  } catch (e) { return false } };
+  const _seg = id => document.querySelector('#sgl-svg-bullseye [data-strainid="' + id + '"]:not(text)');
+  const _txt = id => document.querySelector('#sgl-svg-bullseye text[data-strainid="' + id + '"]');
+  const _fill = id => { const e = _seg(id); return e ? String(e.getAttribute('fill')).toUpperCase() : 'NO' };
+  const _num = id => { const e = _txt(id); return e ? e.textContent : 'NO' };
+  const _reset = () => { try { if (_hay('sglReset')) sglReset() } catch (e) {} };
+  const _toque = id => { const e = _seg(id); if (e) e.dispatchEvent(new MouseEvent('click', { bubbles:true })); };
+
+  R.abrio = _abrir();
+  cond('(DENOM) la pestania SGL abre y el bull is eye de strain se dibuja', R.abrio === true);
+  if (_hay('strainNumModoOn') && strainNumModoOn()) strainNumToggle();
+  R.modo = (() => { try { return strainNumModoOn() } catch (e) { return 'NO' } })();
+  cond('(DENOM2) el interruptor de datos numericos esta APAGADO', R.modo === false);
+  _reset();
+  const segs = Array.from(document.querySelectorAll('#sgl-svg-bullseye .strain-seg'));
+  const tx = Array.from(document.querySelectorAll('#sgl-svg-bullseye text[data-strainid]'));
+  const GRIS = (() => { try { return String(window.STRAIN_PAL[0].color).toUpperCase() } catch (e) { return 'NO' } })();
+  const GUION = String.fromCharCode(0x2013);
+  R.cuentas = segs.length + ' segmentos / ' + tx.length + ' numeros';
+  /* (A) ARRANQUE: los diecisiete SIN DATO. */
+  cond('(A1) hay 17 segmentos y 17 nodos de numero',
+       segs.length === 17 && tx.length === 17);
+  cond('(A2) los 17 arrancan GRISES, el color de SIN DATO',
+       GRIS !== 'NO' && segs.length === 17
+       && segs.every(p => String(p.getAttribute('fill')).toUpperCase() === GRIS));
+  cond('(A3) los 17 arrancan con un GUION adentro',
+       tx.length === 17 && tx.every(t => t.textContent === GUION));
+  /* (B) EL CICLO: nueve estados distintos y vuelve al primero. */
+  const vistos = [];
+  for (let i = 0; i < 10; i++) { vistos.push(_fill('basal_anterior')); _toque('basal_anterior'); }
+  R.ciclo = vistos.join(',');
+  cond('(B1) el ciclo recorre NUEVE estados distintos',
+       Array.from(new Set(vistos.slice(0, 9))).length === 9);
+  cond('(B2) el ciclo arranca en SIN DATO y sigue el orden de la paleta',
+       (() => { try { return vistos.slice(0, 9).join(',')
+         === window.STRAIN_PAL.map(p => p.color).join(',').toUpperCase() } catch (e) { return false } })());
+  cond('(B3) el decimo toque VUELVE a sin dato', vistos[9] === vistos[0]);
+  cond('(B4) con un color elegido a mano el segmento no muestra NINGUN numero',
+       (() => { _reset(); _toque('mid_anterior');
+                return _fill('mid_anterior') !== GRIS && _num('mid_anterior') === '' })());
+  /* (C) EL TOQUE BORRA EL NUMERO: el color y el numero no pueden contradecirse. */
+  _reset();
+  try { if (_hay('strainEscribir')) strainEscribir('apical_anterior', '-12'); } catch (e) {}
+  R.conNumero = _fill('apical_anterior') + ' / ' + JSON.stringify(_num('apical_anterior'));
+  _toque('apical_anterior');
+  R.trasToque = _fill('apical_anterior') + ' / ' + JSON.stringify(_num('apical_anterior'));
+  cond('(C1) el segmento tenia su numero y su color derivado antes del toque',
+       R.conNumero.indexOf('-12') >= 0 && _fill('apical_anterior') !== 'NO');
+  cond('(C2) tras el toque el numero YA NO esta', _num('apical_anterior') === '');
+  cond('(C3) y el color cambio al tramo siguiente, no quedo el del numero',
+       R.conNumero.split(' / ')[0] !== R.trasToque.split(' / ')[0]);
+  cond('(C4) el almacen de numeros quedo sin la entrada de ese segmento',
+       (() => { try { return strainNumDe('apical_anterior') === null } catch (e) { return false } })());
+  _reset();
+  return { extra: _E };
+`);
+
+caso('TC-1044',
+ 'PR7: con el boton ENCENDIDO un toque abre la casilla, el color se asigna SOLO desde el numero, acepta coma y punto y el menos tipografico, sin signo toma NEGATIVO y con un mas explicito POSITIVO, borrar vuelve a sin dato y Escape cancela',
+`
+  /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
+     diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
+     su medicion, en vez de amontonadas al final lejos del dato que las sostiene. */
+  const R = {}; const _E = [];
+  const cond = (rot, ok, dg) => _E.push([rot, ok === true, String(dg === undefined ? '' : dg)]);
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const _abrir = () => { try {
+    const b = Array.from(document.querySelectorAll('.tab-btn')).filter(x => (x.textContent || '').indexOf('SGL') >= 0)[0];
+    if (b) b.click();
+    const h = document.querySelector('#sacc-sgl .sacc-hdr');
+    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    if (_hay('sglOnShow')) sglOnShow();
+    return !!document.getElementById('sgl-svg-bullseye');
+  } catch (e) { return false } };
+  const _seg = id => document.querySelector('#sgl-svg-bullseye [data-strainid="' + id + '"]:not(text)');
+  const _txt = id => document.querySelector('#sgl-svg-bullseye text[data-strainid="' + id + '"]');
+  const _fill = id => { const e = _seg(id); return e ? String(e.getAttribute('fill')).toUpperCase() : 'NO' };
+  const _num = id => { const e = _txt(id); return e ? e.textContent : 'NO' };
+  const _caja = () => document.querySelector('[data-strain-caja]');
+  const _reset = () => { try { if (_hay('sglReset')) sglReset() } catch (e) {} };
+  const _toque = id => { const e = _seg(id); if (e) e.dispatchEvent(new MouseEvent('click', { bubbles:true })); };
+  const _pa = v => { try { return _hay('strainParseNum') ? strainParseNum(v) : 'NO' } catch (e) { return 'ERR' } };
+  const _col = v => { try { return String(window.STRAIN_PAL[strainTramoDe(v)].color).toUpperCase() } catch (e) { return 'NO' } };
+  const MENOS = String.fromCharCode(0x2212);
+  const GRIS = (() => { try { return String(window.STRAIN_PAL[0].color).toUpperCase() } catch (e) { return 'NO' } })();
+  const GUION = String.fromCharCode(0x2013);
+
+  R.abrio = _abrir();
+  cond('(DENOM) la pestania SGL abre y el bull is eye se dibuja', R.abrio === true);
+  R.btn = (() => { const b = document.getElementById('sgl-num-toggle');
+    if (!b) return 'SIN BOTON';
+    const r = b.getBoundingClientRect();
+    return (b.textContent || '').trim() + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)
+      + ' pressed=' + b.getAttribute('aria-pressed'); })();
+  cond('(A1) el boton existe, lo nombra y mide 44 px de alto',
+       R.btn !== 'SIN BOTON' && R.btn.indexOf('Ingresar datos') >= 0 && R.btn.indexOf('x44 ') >= 0);
+  cond('(A2) arranca APAGADO, con su aria-pressed en falso',
+       R.btn.indexOf('pressed=false') >= 0);
+  cond('(A3) tiene su globo al lado', !!document.querySelector('[data-vinfo="sgl-num"]'));
+  /* El texto del globo, DESCRIPTIVO y sin nombrar ninguna marca de ecografo. */
+  R.globo = (() => { try {
+    const b = document.querySelector('[data-vinfo="sgl-num"]');
+    if (!b) return 'SIN BOTON';
+    b.click();
+    const c = document.getElementById('vinfo-card');
+    const t = c ? String(c.innerText || c.textContent || '') : 'SIN TARJETA';
+    if (_hay('vInfoCerrar')) vInfoCerrar();
+    return t.replace(/\\s+/g, ' ').trim();
+  } catch (e) { return 'ERR' } })();
+  cond('(A4) el globo explica las dos mitades del gesto y el rango',
+       R.globo.indexOf('apagado') >= 0 && R.globo.indexOf('encendido') >= 0
+       && R.globo.indexOf('-20 a +20') >= 0 && R.globo.indexOf('guion') >= 0);
+  /* (B) EL MODO SE PRENDE y un toque ABRE la casilla, que NO lleva id. */
+  _reset();
+  if (_hay('strainNumModoOn') && !strainNumModoOn()) strainNumToggle();
+  R.on = (() => { try { return strainNumModoOn() } catch (e) { return 'NO' } })();
+  cond('(B1) el interruptor queda ENCENDIDO', R.on === true);
+  _toque('basal_inferior');
+  const c1 = _caja();
+  R.caja = c1 ? ((c1.id ? 'CON ID' : 'sin id') + ' ' + Math.round(c1.getBoundingClientRect().width)
+    + 'x' + Math.round(c1.getBoundingClientRect().height)) : 'NO ABRIO';
+  cond('(B2) un toque abre la casilla', !!c1);
+  cond('(B3) la casilla NO lleva id -no entra al censo del estudio ni al Excel-',
+       !!c1 && !c1.id && R.caja.indexOf('sin id') >= 0);
+  cond('(B4) la casilla tiene tamanio tactil: 44 px de alto', R.caja.indexOf('x44') >= 0);
+  /* (C) ESCRIBIR UN NUMERO: el color se asigna SOLO. */
+  if (c1) { c1.value = '-12,4'; c1.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true })); }
+  R.tras = _fill('basal_inferior') + ' / ' + _num('basal_inferior');
+  cond('(C1) al confirmar la casilla se cierra', !_caja());
+  cond('(C2) el numero se ve dentro del segmento, con un decimal',
+       _num('basal_inferior') === '-12.4');
+  cond('(C3) el color se asigno SOLO, derivado del numero por el duenio unico',
+       _fill('basal_inferior') === _col(-12.4) && _fill('basal_inferior') !== GRIS);
+  /* (D) EL SIGNO. Sin signo NEGATIVO -como el campo SGL global-, con un mas explicito POSITIVO. */
+  R.signos = ['18', '-18', '+18', MENOS + '18', '18,5', '18.5', '+2,5', '0', '', 'abc']
+    .map(v => JSON.stringify(v) + '=' + _pa(v)).join(' ');
+  cond('(D1) sin signo el valor se toma NEGATIVO', _pa('18') === -18);
+  cond('(D2) con un mas explicito se respeta el POSITIVO', _pa('+18') === 18);
+  cond('(D3) el menos tipografico vale como menos', _pa(MENOS + '18') === -18);
+  cond('(D4) la coma decimal y el punto dan el mismo numero',
+       _pa('18,5') === -18.5 && _pa('18.5') === -18.5);
+  cond('(D5) un mas con coma da el positivo con su decimal', _pa('+2,5') === 2.5);
+  cond('(D6) el cero es cero y no un negativo', _pa('0') === 0);
+  cond('(D7) lo vacio y lo que no es numero no dan numero',
+       _pa('') === null && _pa('abc') === null);
+  /* (E) LOS DOS EXTREMOS: el numero se publica tal cual y el color es el del extremo. */
+  try { strainEscribir('mid_inferior', '-30'); strainEscribir('mid_anterior', '+25'); } catch (e) {}
+  R.extremos = _fill('mid_inferior') + '/' + _num('mid_inferior') + ' · '
+             + _fill('mid_anterior') + '/' + _num('mid_anterior');
+  cond('(E1) un -30 se pinta con el color del extremo y publica su numero',
+       _num('mid_inferior') === '-30' && _fill('mid_inferior') === _col(-30));
+  cond('(E2) un +25 se pinta con el color del otro extremo y publica su numero',
+       _num('mid_anterior') === '25' && _fill('mid_anterior') === _col(25));
+  /* (F) BORRAR vuelve a SIN DATO. */
+  try { strainEscribir('mid_inferior', ''); } catch (e) {}
+  cond('(F1) borrar el numero deja el segmento SIN DATO, gris y con guion',
+       _fill('mid_inferior') === GRIS && _num('mid_inferior') === GUION);
+  /* (G) ESCAPE CANCELA: ni el color ni el numero se mueven. */
+  try { strainEscribir('apical_lateral', '-14'); } catch (e) {}
+  const antes = _fill('apical_lateral') + '/' + _num('apical_lateral');
+  _toque('apical_lateral');
+  const c2 = _caja();
+  if (c2) { c2.value = '+19'; c2.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true })); }
+  R.escape = antes + ' -> ' + _fill('apical_lateral') + '/' + _num('apical_lateral');
+  cond('(G1) la casilla se abrio sobre un segmento que ya tenia numero', !!c2);
+  cond('(G2) Escape la cierra', !_caja());
+  cond('(G3) Escape NO cambia el numero ni el color',
+       antes === (_fill('apical_lateral') + '/' + _num('apical_lateral')));
+  /* (H) APAGAR EL MODO cierra la casilla abierta y devuelve el ciclo de colores. */
+  _toque('apical_inferior');
+  const abrio3 = !!_caja();
+  try { strainNumToggle(); } catch (e) {}
+  R.apagar = abrio3 + ' -> caja=' + !!_caja() + ' modo=' + (() => { try { return strainNumModoOn() } catch (e) { return 'NO' } })();
+  cond('(H1) apagar el interruptor cierra la casilla que estuviera abierta',
+       abrio3 === true && !_caja());
+  cond('(H2) con el modo apagado un toque vuelve a ciclar el color y no abre casilla',
+       (() => { _reset(); _toque('apex'); return !_caja() && _fill('apex') !== GRIS })());
+  _reset();
+  return { extra: _E };
+`);
+
+caso('TC-1045',
+ 'PR7: el numero y el color de cada segmento se guardan con el estudio y se restauran al abrirlo, y un estudio viejo con los CINCO estados abre sin error, migrado al tramo mas cercano y SIN numeros inventados',
+`
+  /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
+     diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
+     su medicion, en vez de amontonadas al final lejos del dato que las sostiene. */
+  const R = {}; const _E = [];
+  const cond = (rot, ok, dg) => _E.push([rot, ok === true, String(dg === undefined ? '' : dg)]);
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const _abrir = () => { try {
+    const b = Array.from(document.querySelectorAll('.tab-btn')).filter(x => (x.textContent || '').indexOf('SGL') >= 0)[0];
+    if (b) b.click();
+    const h = document.querySelector('#sacc-sgl .sacc-hdr');
+    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    if (_hay('sglOnShow')) sglOnShow();
+    return !!document.getElementById('sgl-svg-bullseye');
+  } catch (e) { return false } };
+  const _seg = id => document.querySelector('#sgl-svg-bullseye [data-strainid="' + id + '"]:not(text)');
+  const _txt = id => document.querySelector('#sgl-svg-bullseye text[data-strainid="' + id + '"]');
+  const _fill = id => { const e = _seg(id); return e ? String(e.getAttribute('fill')).toUpperCase() : 'NO' };
+  const _num = id => { const e = _txt(id); return e ? e.textContent : 'NO' };
+  const _est = id => { try { return _hay('strainEstadoDe') ? strainEstadoDe(id) : -1 } catch (e) { return -2 } };
+  const _nd = id => { try { return _hay('strainNumDe') ? strainNumDe(id) : 'NO' } catch (e) { return 'ERR' } };
+  const _snap = () => { try { return _hay('strainSnapshot') ? strainSnapshot() : { est:'NO', num:'NO' } }
+                        catch (e) { return { est:'ERR', num:'ERR' } } };
+  const _rest = c => { try { if (_hay('_restaurarStrain')) _restaurarStrain(c); return 'ok' }
+                       catch (e) { return 'ERR ' + String(e && e.message || e).slice(0, 60) } };
+  const _reset = () => { try { if (_hay('sglReset')) sglReset() } catch (e) {} };
+  const _col = v => { try { return String(window.STRAIN_PAL[strainTramoDe(v)].color).toUpperCase() } catch (e) { return 'NO' } };
+  const _pal = i => { try { return String(window.STRAIN_PAL[i].color).toUpperCase() } catch (e) { return 'NO' } };
+  const GUION = String.fromCharCode(0x2013);
+
+  R.abrio = _abrir();
+  cond('(DENOM) la pestania SGL abre y el bull is eye se dibuja', R.abrio === true);
+  if (_hay('strainNumModoOn') && strainNumModoOn()) strainNumToggle();
+  /* (A) EL VIAJE DE IDA Y VUELTA por el mismo lugar donde ya vivia el estado. */
+  _reset();
+  try { strainEscribir('basal_anterior', '-18'); strainEscribir('mid_inferolateral', '+7');
+        strainSet('apex', 4, null); } catch (e) {}
+  const g = _snap();
+  R.guardado = g.est + ' || ' + g.num;
+  cond('(A1) el guardado lleva los INDICES de tramo de los tres segmentos',
+       g.est.indexOf('"basal_anterior":1') >= 0 && g.est.indexOf('"mid_inferolateral":6') >= 0
+       && g.est.indexOf('"apex":4') >= 0);
+  cond('(A2) y los NUMEROS solo de los dos que tienen uno',
+       g.num.indexOf('"basal_anterior":-18') >= 0 && g.num.indexOf('"mid_inferolateral":7') >= 0
+       && g.num.indexOf('apex') < 0);
+  _reset();
+  R.vacio = _fill('basal_anterior');
+  cond('(A3) DENOMINADOR: tras limpiar el segmento vuelve a SIN DATO', R.vacio === _pal(0));
+  R.rest = _rest({ strain_sgl: g.est, strain_sgl_num: g.num,
+                   strain_sgl_ver: (() => { try { return window.STRAIN_VER } catch (e) { return '' } })() });
+  R.trasRest = _fill('basal_anterior') + '/' + _num('basal_anterior') + ' · '
+             + _fill('mid_inferolateral') + '/' + _num('mid_inferolateral') + ' · '
+             + _fill('apex') + '/' + JSON.stringify(_num('apex'));
+  cond('(A4) la restauracion no lanza', R.rest === 'ok');
+  cond('(A5) vuelve el numero NEGATIVO con su color derivado',
+       _num('basal_anterior') === '-18' && _fill('basal_anterior') === _col(-18));
+  cond('(A6) vuelve el numero POSITIVO con su color derivado',
+       _num('mid_inferolateral') === '7' && _fill('mid_inferolateral') === _col(7));
+  cond('(A7) el segmento que solo tenia COLOR vuelve con su color y sin numero',
+       _fill('apex') === _pal(4) && _num('apex') === '');
+  /* (B) UN ESTUDIO VIEJO, de CINCO estados y sin marca de version. */
+  _reset();
+  R.viejo = _rest({ strain_sgl: '{"basal_anterior":0,"mid_anterior":1,"apical_anterior":2,"basal_inferior":3,"apex":4}' });
+  R.viejoEst = ['basal_anterior', 'mid_anterior', 'apical_anterior', 'basal_inferior', 'apex']
+    .map(k => k + '=' + _est(k)).join(' ');
+  R.viejoNums = _snap().num;
+  cond('(B1) un estudio viejo abre SIN ERROR', R.viejo === 'ok');
+  cond('(B2) los cuatro estados pintados se migran al tramo mas cercano: 1>2, 2>3, 3>5 y 4>7',
+       _est('mid_anterior') === 2 && _est('apical_anterior') === 3
+       && _est('basal_inferior') === 5 && _est('apex') === 7);
+  cond('(B3) el 0 viejo -el valor por omision del segmento que nadie toco- va a SIN DATO',
+       _est('basal_anterior') === 0 && _fill('basal_anterior') === _pal(0)
+       && _num('basal_anterior') === GUION);
+  cond('(B4) a ninguno de esos segmentos se le inventa un numero',
+       R.viejoNums === '{}' && ['mid_anterior', 'apical_anterior', 'basal_inferior', 'apex']
+         .every(k => _nd(k) === null && _num(k) === ''));
+  cond('(B5) y el estudio viejo SIGUE contando como strain evaluado',
+       (() => { try { return strainHayDatos() === true } catch (e) { return false } })());
+  /* (C) CONTROL NEGATIVO: un estudio viejo con TODO en cero no es strain evaluado. */
+  _reset();
+  _rest({ strain_sgl: '{"basal_anterior":0,"apex":0}' });
+  cond('(C1) un estudio viejo con todos los segmentos en cero NO es strain evaluado',
+       (() => { try { return strainHayDatos() === false } catch (e) { return 'NO' } })());
+  /* (D) UN PAR DESPAREJO: gana el COLOR, que es lo que el medico vio. */
+  _reset();
+  _rest({ strain_sgl: '{"basal_anterior":8}', strain_sgl_num: '{"basal_anterior":-18}',
+          strain_sgl_ver: (() => { try { return window.STRAIN_VER } catch (e) { return '' } })() });
+  R.desparejo = _est('basal_anterior') + ' ' + _fill('basal_anterior') + ' ' + JSON.stringify(_nd('basal_anterior'));
+  cond('(D1) un numero que no deriva el tramo guardado NO se repone: gana el color',
+       _est('basal_anterior') === 8 && _fill('basal_anterior') === _pal(8)
+       && _nd('basal_anterior') === null && _num('basal_anterior') === '');
+  /* (E) EL GUARDADO DE VERDAD, no el viaje por strainSnapshot. El barrido destapo el hueco:
+     ninguna condicion medía que las tres claves entraran al estudio que guarda guardarInforme,
+     asi que una mutacion que guardaba los numeros vacios SOBREVIVIA.
+     /!\ VA EN UNA FUNCION ASYNC PROPIA: el cuerpo de un caso se evalua dentro de una funcion
+     NO async, asi que un await suelto es un SyntaxError que se lleva el caso entero. Es el
+     patron que esta casa ya usa para los casos que guardan de verdad. */
+  return (async () => {
+  _reset();
+  __t.set('nombre', 'Zoraida Strain');
+  __t.set('fecha', '2026-11-24');
+  try { strainEscribir('basal_anterior', '-18'); strainEscribir('mid_inferolateral', '+7');
+        strainSet('apex', 4, null); } catch (e) {}
+  const G = await __t.guardar();
+  R.guardo = JSON.stringify(G);
+  const est = (() => { try { return (getInformes() || [])
+    .filter(i => i.estudioId === G.estudioId)[0] || null } catch (e) { return null } })();
+  const cp = (est && est.campos) ? est.campos : {};
+  R.enDisco = { sgl: String(cp.strain_sgl || 'NO'), num: String(cp.strain_sgl_num || 'NO'),
+                ver: String(cp.strain_sgl_ver || 'NO') };
+  cond('(E0) DENOMINADOR: el estudio se guardo y se encontro en el almacen',
+       G.ok === true && !!est, R.guardo);
+  cond('(E1) el estudio guardado lleva los indices de tramo',
+       R.enDisco.sgl.indexOf('"basal_anterior":1') >= 0 && R.enDisco.sgl.indexOf('"apex":4') >= 0,
+       R.enDisco.sgl);
+  cond('(E2) y lleva los NUMEROS de los dos segmentos que tienen uno',
+       R.enDisco.num.indexOf('"basal_anterior":-18') >= 0
+       && R.enDisco.num.indexOf('"mid_inferolateral":7') >= 0, R.enDisco.num);
+  cond('(E3) y la marca de version del modelo',
+       R.enDisco.ver === (() => { try { return window.STRAIN_VER } catch (e) { return '' } })(),
+       R.enDisco.ver);
+  /* Y al reabrir ese estudio los numeros vuelven: el viaje completo, de disco a dibujo. */
+  _reset();
+  _rest(cp);
+  R.reabierto = _fill('basal_anterior') + '/' + _num('basal_anterior') + ' · '
+              + _fill('mid_inferolateral') + '/' + _num('mid_inferolateral');
+  cond('(E4) al reabrir el estudio guardado los dos numeros vuelven con su color',
+       _num('basal_anterior') === '-18' && _num('mid_inferolateral') === '7'
+       && _fill('basal_anterior') === _col(-18), R.reabierto);
+  _reset();
+  return { extra: _E };
+  })();
+`);
+
+caso('TC-1046',
+ 'PR7: «Limpiar» deja los 17 segmentos SIN DATO y borra los numeros, y NO toca el campo SGL global ni los comentarios de strain',
+`
+  /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
+     diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
+     su medicion, en vez de amontonadas al final lejos del dato que las sostiene. */
+  const R = {}; const _E = [];
+  const cond = (rot, ok, dg) => _E.push([rot, ok === true, String(dg === undefined ? '' : dg)]);
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const _abrir = () => { try {
+    const b = Array.from(document.querySelectorAll('.tab-btn')).filter(x => (x.textContent || '').indexOf('SGL') >= 0)[0];
+    if (b) b.click();
+    const h = document.querySelector('#sacc-sgl .sacc-hdr');
+    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    if (_hay('sglOnShow')) sglOnShow();
+    return !!document.getElementById('sgl-svg-bullseye');
+  } catch (e) { return false } };
+  const GUION = String.fromCharCode(0x2013);
+  R.abrio = _abrir();
+  cond('(DENOM) la pestania SGL abre y el bull is eye se dibuja', R.abrio === true);
+  __t.set('sgl_gls', '-17.5');
+  __t.set('sgl_notas', 'Nota uno' + String.fromCharCode(10) + 'Nota dos');
+  try { strainEscribir('basal_anterior', '-18'); strainEscribir('mid_inferolateral', '+7');
+        strainSet('apex', 3, null); } catch (e) {}
+  /* El gris de SIN DATO, con guarda: contra el arbol anterior STRAIN_PAL no existe y un acceso
+     pelado tira TypeError que se lleva el caso ENTERO -las condiciones de abajo no llegan a
+     evaluarse y el rojo no apunta a su causa-. */
+  const _GRIS = (() => { try { return String(window.STRAIN_PAL[0].color).toUpperCase() } catch (e) { return 'NO HAY PALETA' } })();
+  const pintados = Array.from(document.querySelectorAll('#sgl-svg-bullseye .strain-seg'))
+    .filter(p => String(p.getAttribute('fill')).toUpperCase() !== _GRIS).length;
+  R.antes = pintados + ' pintados · nums=' + (() => { try { return strainSnapshot().num } catch (e) { return 'NO' } })();
+  cond('(DENOM2) la escena tiene TRES segmentos pintados y dos con numero',
+       pintados === 3 && R.antes.indexOf('-18') >= 0 && R.antes.indexOf('7') >= 0);
+  /* El boton de «Limpiar» de la pestania, no la funcion: es el gesto del medico. */
+  const btn = Array.from(document.querySelectorAll('#tab-sgl button'))
+    .filter(b => (b.textContent || '').indexOf('Limpiar') >= 0)[0];
+  R.hayBoton = !!btn;
+  cond('(A1) el boton «Limpiar» existe en la pestania', !!btn);
+  if (btn) btn.click();
+  const segs = Array.from(document.querySelectorAll('#sgl-svg-bullseye .strain-seg'));
+  const tx = Array.from(document.querySelectorAll('#sgl-svg-bullseye text[data-strainid]'));
+  R.despues = { grises: segs.filter(p => String(p.getAttribute('fill')).toUpperCase() === _GRIS).length,
+                guiones: tx.filter(t => t.textContent === GUION).length,
+                nums: (() => { try { return strainSnapshot().num } catch (e) { return 'NO' } })(),
+                gls: __t.val('sgl_gls'), notas: __t.val('sgl_notas') };
+  cond('(A2) los 17 segmentos quedan SIN DATO', R.despues.grises === 17);
+  cond('(A3) los 17 vuelven a mostrar el guion', R.despues.guiones === 17);
+  cond('(A4) el almacen de numeros queda vacio', R.despues.nums === '{}');
+  cond('(A5) NO toca el campo SGL global', R.despues.gls === '-17.5');
+  cond('(A6) NO toca los comentarios de strain',
+       String(R.despues.notas).indexOf('Nota uno') >= 0 && String(R.despues.notas).indexOf('Nota dos') >= 0);
+  cond('(A7) y deja de contar como strain evaluado',
+       (() => { try { return strainHayDatos() === false } catch (e) { return 'NO' } })());
+  return { extra: _E };
+`);
+
+caso('TC-1047',
+ 'PR7: ningun texto del usuario de SGL, del informe ni del PDF nombra la marca del ecografo, y las citas bibliograficas de amiloidosis y el nombre del pendrive -que son otro contexto- SE CONSERVAN',
+`
+  /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
+     diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
+     su medicion, en vez de amontonadas al final lejos del dato que las sostiene. */
+  const R = {}; const _E = [];
+  const cond = (rot, ok, dg) => _E.push([rot, ok === true, String(dg === undefined ? '' : dg)]);
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const _abrir = () => { try {
+    const b = Array.from(document.querySelectorAll('.tab-btn')).filter(x => (x.textContent || '').indexOf('SGL') >= 0)[0];
+    if (b) b.click();
+    const h = document.querySelector('#sacc-sgl .sacc-hdr');
+    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    if (_hay('sglOnShow')) sglOnShow();
+    /* Los dos acordeones de los patrones, que es donde vivian dos de las tres menciones. */
+    Array.from(document.querySelectorAll('#sp-root button[aria-expanded]')).forEach(b2 => {
+      try { if (b2.getAttribute('aria-expanded') !== 'true') b2.click(); } catch (e) {}
+    });
+    return !!document.getElementById('sgl-svg-bullseye');
+  } catch (e) { return false } };
+  const MARCAS = ['General Electric', 'escala GE', '(GE)'];
+  R.abrio = _abrir();
+  cond('(DENOM) la pestania SGL abre con sus acordeones desplegados', R.abrio === true);
+  /* (A) LA PANTALLA DE SGL. */
+  const z = document.getElementById('tab-sgl');
+  const t = z ? String(z.innerText || z.textContent || '') : '';
+  R.largoSgl = t.length;
+  R.hitsSgl = MARCAS.filter(m => t.indexOf(m) >= 0).join('|');
+  cond('(DENOM2) la pantalla de SGL tiene texto que leer', t.length > 1200);
+  cond('(A1) la pantalla de SGL no nombra la marca del ecografo', R.hitsSgl === '');
+  R.frase = (() => { const p = document.querySelector('#tab-sgl .sacc-body p');
+    return p ? String(p.textContent || '').trim() : 'SIN FRASE' })();
+  cond('(A2) la frase de arriba describe el gesto nuevo y los 17 segmentos',
+       R.frase.indexOf('cambiar el color del strain') >= 0
+       && R.frase.indexOf('Ingresar datos num') >= 0 && R.frase.indexOf('17 segmentos') >= 0);
+  R.tituloLeyenda = (() => {
+    const d = document.querySelector('[data-strain-leyenda="sgl"]');
+    if (!d || !d.parentNode) return 'SIN LEYENDA';
+    return String((d.parentNode.querySelector('div') || {}).textContent || '').trim(); })();
+  cond('(A3) el titulo de la leyenda dice «Referencia de colores», sin marca',
+       R.tituloLeyenda === 'Referencia de colores');
+  /* (B) LOS DOS GLOBOS de strain. */
+  R.globos = (() => { try {
+    let out = '';
+    ['sgl-num', 'patrones-sgl'].forEach(k => {
+      const b = document.querySelector('[data-vinfo="' + k + '"]');
+      if (!b) { out += k + '=SIN BOTON; '; return }
+      b.click();
+      const c = document.getElementById('vinfo-card');
+      out += k + '=' + (c ? String(c.innerText || c.textContent || '') : 'SIN TARJETA') + '; ';
+      if (_hay('vInfoCerrar')) vInfoCerrar();
+    });
+    return out.replace(/\\s+/g, ' ');
+  } catch (e) { return 'ERR' } })();
+  cond('(DENOM3) los dos globos de strain abren con texto', R.globos.length > 300);
+  /* /!\ EL GLOBO DE LOS PATRONES CONSERVA «General Electric» Y ES CORRECTO: es la salvedad
+     metodologica de Phelan 2012 -con que equipo se midio ESE estudio- y la advertencia de la
+     ASE 2025 de que el strain depende del fabricante. Es una cita bibliografica, no una
+     afirmacion sobre esta paleta, y cae del lado que la orden manda conservar. Lo que NO puede
+     quedar en ningun globo de strain es «escala GE» ni «(GE)», que son las dos formas con las
+     que esta aplicacion se atribuia la escala de la marca. */
+  cond('(B1) ningun globo de strain se atribuye la escala de la marca',
+       R.globos.indexOf('escala GE') < 0 && R.globos.indexOf('(GE)') < 0, R.globos.slice(0, 80));
+  R.globoNum = (() => { try {
+    const b = document.querySelector('[data-vinfo="sgl-num"]');
+    if (!b) return 'SIN BOTON';
+    b.click();
+    const c = document.getElementById('vinfo-card');
+    const t = c ? String(c.innerText || c.textContent || '') : 'SIN TARJETA';
+    if (_hay('vInfoCerrar')) vInfoCerrar();
+    return t.replace(/[ ]+/g, ' ').trim();
+  } catch (e) { return 'ERR' } })();
+  cond('(B2) el globo del ingreso numerico no nombra NINGUNA marca de ecografo',
+       R.globoNum.length > 100 && MARCAS.every(m => R.globoNum.indexOf(m) < 0), R.globoNum.slice(0, 60));
+  cond('(B3) CONTROL POSITIVO: el globo de los patrones SI conserva la cita de Phelan con su equipo',
+       R.globos.indexOf('General Electric') >= 0);
+  /* (C) EL INFORME Y EL PDF. */
+  [['nombre','Zoraida Pruebas'],['fecha','2026-11-23'],['edad','74'],['sexo','M'],
+   ['peso','80'],['talla','170'],['fevi','52'],['sgl_gls','-18'],
+   ['sgl_notas','Reduccion del strain en la cara anterior.']
+  ].forEach(p => __t.set(p[0], p[1]));
+  try { strainEscribir('basal_anterior', '-8'); } catch (e) {}
+  const inf = (() => { try { return __t.informe() } catch (e) { return {} } })();
+  R.informe = JSON.stringify(inf).length;
+  cond('(DENOM4) el informe se genero y tiene texto', R.informe > 200);
+  cond('(C1) el informe no nombra la marca del ecografo',
+       MARCAS.every(m => JSON.stringify(inf).indexOf(m) < 0));
+  const _pdf = () => {
+    let cap = null;
+    const J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) return null;
+    window.jspdf.jsPDF = function (o) { const d = new J(o);
+      d.save = function () { try { cap = this.output('datauristring') } catch (e) {} return this }; return d };
+    try { const e2 = document.getElementById('sgl_be_pdf'); if (e2) e2.value = '1'; } catch (e) {}
+    try { if (_hay('_pdfAjustarA4')) _pdfAjustarA4(); } catch (e) {}
+    window.jspdf.jsPDF = J;
+    try { const e2 = document.getElementById('sgl_be_pdf'); if (e2) e2.value = ''; } catch (e) {}
+    if (!cap) return null;
+    try { return atob(String(cap).split(',')[1]) } catch (e) { return null }
+  };
+  const b = _pdf();
+  R.pdfBytes = b ? b.length : 'SIN PDF';
+  cond('(DENOM5) el PDF se genero de verdad', !!b && b.length > 10000);
+  cond('(C2) el PDF no nombra la marca del ecografo en ninguno de sus textos',
+       !!b && MARCAS.every(m => b.indexOf(m) < 0));
+  /* (D) CONTROL POSITIVO: lo que es de OTRO contexto se conserva. */
+  R.amiloide = (() => { try {
+    const el = document.getElementById('ref-strain') || document.body;
+    const s = String(el.innerHTML || '');
+    return s.indexOf('General Electric') >= 0 ? 'presente' : 'ausente';
+  } catch (e) { return 'ERR' } })();
+  R.citas = (() => { try {
+    let n = 0;
+    document.querySelectorAll('td').forEach(td => {
+      if (String(td.textContent || '').indexOf('General Electric') >= 0) n++;
+    });
+    return n;
+  } catch (e) { return -1 } })();
+  cond('(D1) las citas bibliograficas de amiloidosis conservan el nombre del equipo del metodo publicado',
+       R.citas >= 2);
+  return { extra: _E };
+`);
+
+caso('TC-1048',
+ 'PR7: la leyenda es una barra de OCHO cuadritos con sus rangos mas un cuadrito gris de «Sin dato», en la pantalla -las dos: la del paciente y la de los patrones- y en el PDF, sin nombres de categoria',
+`
+  /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
+     diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
+     su medicion, en vez de amontonadas al final lejos del dato que las sostiene. */
+  const R = {}; const _E = [];
+  const cond = (rot, ok, dg) => _E.push([rot, ok === true, String(dg === undefined ? '' : dg)]);
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const _abrir = () => { try {
+    const b = Array.from(document.querySelectorAll('.tab-btn')).filter(x => (x.textContent || '').indexOf('SGL') >= 0)[0];
+    if (b) b.click();
+    const h = document.querySelector('#sacc-sgl .sacc-hdr');
+    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
+    if (_hay('sglOnShow')) sglOnShow();
+    Array.from(document.querySelectorAll('#sp-root button[aria-expanded]')).forEach(b2 => {
+      try { if (b2.getAttribute('aria-expanded') !== 'true') b2.click(); } catch (e) {}
+    });
+    return !!document.getElementById('sgl-svg-bullseye');
+  } catch (e) { return false } };
+  R.abrio = _abrir();
+  cond('(DENOM) la pestania SGL abre con sus acordeones desplegados', R.abrio === true);
+  const _ley = sel => {
+    const z = document.querySelector('[data-strain-leyenda="' + sel + '"]');
+    if (!z) return null;
+    const cuad = Array.from(z.querySelectorAll('div')).map(d => String(d.style.background || '').trim()).filter(Boolean);
+    const gris = Array.from(z.querySelectorAll('span')).map(d => String(d.style.background || '').trim()).filter(Boolean);
+    return { cuad, gris, txt: String(z.innerText || z.textContent || '').replace(/\\s+/g, ' ').trim() };
+  };
+  const A = _ley('sgl'), B = _ley('patrones');
+  R.leySgl = A ? (A.cuad.length + ' cuadritos + ' + A.gris.length + ' gris || ' + A.txt) : 'SIN LEYENDA';
+  R.leyPat = B ? (B.cuad.length + ' cuadritos + ' + B.gris.length + ' gris || ' + B.txt) : 'SIN LEYENDA';
+  cond('(A1) la leyenda del paciente existe y tiene OCHO cuadritos de color',
+       !!A && A.cuad.length === 8);
+  cond('(A2) y UN cuadrito gris de «Sin dato»',
+       !!A && A.gris.length === 1 && A.txt.indexOf('Sin dato') >= 0);
+  cond('(A3) rotula los ocho rangos: -20 -15 -10 -5 0 +5 +10 +15',
+       !!A && ['-20', '-15', '-10', '-5', '0', '+5', '+10', '+15'].every(m => A.txt.indexOf(m) >= 0));
+  cond('(A4) NO lleva nombres de categoria',
+       !!A && ['Normal', 'Hipoquinesia', 'Acinesia', 'Discinesia', 'aneurisma']
+         .every(m => A.txt.indexOf(m) < 0));
+  /* El navegador NORMALIZA el color del estilo a rgb(), asi que comparar contra el hexadecimal
+     da falso sobre una leyenda correcta: el hexadecimal se convierte antes de comparar. */
+  const _rgb = h => { const m = String(h).replace('#', '').match(/../g) || [];
+    return 'rgb(' + m.map(x => parseInt(x, 16)).join(', ') + ')' };
+  R.esperado = (() => { try { return window.STRAIN_PAL.slice(1).map(p => _rgb(p.color)).join('|') }
+                        catch (e) { return 'NO' } })();
+  R.visto = A ? A.cuad.join('|') : 'NO';
+  cond('(A5) los ocho cuadritos llevan los ocho colores de la paleta, en orden',
+       !!A && R.visto === R.esperado, R.visto);
+  cond('(B1) la leyenda de los patrones de ejemplo es la MISMA barra, del mismo duenio',
+       !!B && B.cuad.length === 8 && B.gris.length === 1 && B.txt.indexOf('Sin dato') >= 0);
+  cond('(B2) y tampoco lleva nombres de categoria',
+       !!B && ['Normal', 'Hipoquinesia', 'Acinesia', 'Discinesia']
+         .every(m => B.txt.indexOf(m) < 0));
+  /* (C) EN EL PDF: la barra se dibuja con sus ocho cuadritos y sus ocho marcas. */
+  [['nombre','Zoraida Pruebas'],['fecha','2026-11-23'],['edad','74'],['sexo','M'],
+   ['peso','80'],['talla','170'],['fevi','52'],['sgl_gls','-18']].forEach(p => __t.set(p[0], p[1]));
+  try { strainEscribir('basal_anterior', '-8'); } catch (e) {}
+  const med = () => {
+    const txts = [], rects = [];
+    const J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) return null;
+    window.jspdf.jsPDF = function (o) {
+      const d = new J(o);
+      const t0 = d.text, r0 = d.rect;
+      d.text = function (tt, x, y) { try { (Array.isArray(tt) ? tt : [tt]).forEach(s2 =>
+        txts.push({ t: String(s2), x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 })) } catch (e) {}
+        return t0.apply(this, arguments) };
+      d.rect = function (x, y, w, h) { try { rects.push({ x:Math.round(x * 10) / 10, y:Math.round(y * 10) / 10,
+        w:Math.round(w * 10) / 10, h:Math.round(h * 10) / 10 }) } catch (e) {}
+        return r0.apply(this, arguments) };
+      d.save = function () { return this };
+      return d;
+    };
+    try { const e2 = document.getElementById('sgl_be_pdf'); if (e2) e2.value = '1'; } catch (e) {}
+    try { if (_hay('_pdfAjustarA4')) _pdfAjustarA4(); } catch (e) {}
+    window.jspdf.jsPDF = J;
+    try { const e2 = document.getElementById('sgl_be_pdf'); if (e2) e2.value = ''; } catch (e) {}
+    return { txts, rects };
+  };
+  const P = med();
+  R.pdfMarcas = P ? P.txts.filter(t => ['-20', '-15', '-10', '-5', '0', '+5', '+10', '+15'].indexOf(t.t) >= 0)
+    .map(t => t.t).join(',') : 'SIN PDF';
+  R.pdfSinDato = P ? P.txts.filter(t => t.t === 'Sin dato').length : 'SIN PDF';
+  R.pdfRef = P ? P.txts.filter(t => t.t === 'Ref.:').length : 'SIN PDF';
+  cond('(DENOM2) el PDF se genero y trae la tabla de colores del bull is eye', R.pdfRef === 1);
+  cond('(C1) la barra del PDF rotula las OCHO marcas',
+       R.pdfMarcas !== 'SIN PDF' && ['-20', '-15', '-10', '-5', '0', '+5', '+10', '+15']
+         .every(m => R.pdfMarcas.split(',').indexOf(m) >= 0));
+  cond('(C2) y lleva su cuadrito de «Sin dato»', R.pdfSinDato === 1);
+  cond('(C3) el PDF NO imprime ningun nombre de categoria de la paleta vieja',
+       !!P && ['Hipoquinesia leve', 'Discinesia / aneurisma']
+         .every(m => P.txts.filter(t => t.t === m).length === 0));
+  return { extra: _E };
+`);
+
+caso('TC-1049',
+ 'PR7: los patrones de strain de ejemplo quedan recoloreados con la paleta propia -ningun color de la paleta vieja sobrevive-, conservando su forma, sus nombres y la cantidad de patrones',
+`
+  /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
+     diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
+     su medicion, en vez de amontonadas al final lejos del dato que las sostiene. */
+  const R = {}; const _E = [];
+  const cond = (rot, ok, dg) => _E.push([rot, ok === true, String(dg === undefined ? '' : dg)]);
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const _abrir = () => { try {
+    const b = Array.from(document.querySelectorAll('.tab-btn')).filter(x => (x.textContent || '').indexOf('SGL') >= 0)[0];
+    if (b) b.click();
+    if (_hay('sglOnShow')) sglOnShow();
+    Array.from(document.querySelectorAll('#sp-root button[aria-expanded]')).forEach(b2 => {
+      try { if (b2.getAttribute('aria-expanded') !== 'true') b2.click(); } catch (e) {}
+    });
+    return document.querySelectorAll('#patron-grid svg').length;
+  } catch (e) { return 0 } };
+  R.svgs = _abrir();
+  cond('(DENOM) los patrones de ejemplo se dibujaron', R.svgs >= 10);
+  const VIEJOS = ['#DC2626', '#F87171', '#FECACA', '#93C5FD', '#1D4ED8', '#9E9E9E'];
+  const fills = new Set();
+  document.querySelectorAll('#patron-grid svg path, #patron-grid svg circle, #detalle-svg path, #detalle-svg circle')
+    .forEach(p => { const f = p.getAttribute('fill'); if (f) fills.add(String(f).toUpperCase()); });
+  R.fills = Array.from(fills).sort().join(',');
+  const PAL = (() => { try { return window.STRAIN_PAL.map(p => p.color.toUpperCase()) } catch (e) { return [] } })();
+  R.fuera = Array.from(fills).filter(f => PAL.indexOf(f) < 0).join(',');
+  R.viejos = Array.from(fills).filter(f => VIEJOS.indexOf(f) >= 0).join(',');
+  cond('(DENOM2) los patrones tienen rellenos que contar', fills.size >= 5);
+  cond('(A1) NINGUN color de la paleta vieja sobrevive en los patrones', R.viejos === '');
+  cond('(A2) todos los rellenos de los patrones salen de la paleta propia', R.fuera === '');
+  cond('(A3) los patrones usan varios tramos y no uno solo', fills.size >= 5);
+  /* (B) LA FORMA Y LOS NOMBRES no se tocaron. */
+  /* La tarjeta de un patron es .patron-acc y no .patron-card: con el selector equivocado el
+     conteo daba cero sobre una grilla de quince, que se lee igual que «los patrones se perdieron». */
+  R.tarjetas = document.querySelectorAll('#patron-grid > .patron-acc').length;
+  R.nombres = Array.from(document.querySelectorAll('#patron-grid > .patron-acc'))
+    .map(c => String(c.textContent || '').replace(/[ ]+/g, ' ').trim().slice(0, 28)).slice(0, 6).join(' | ');
+  cond('(B1) la cantidad de patrones no cambio: siguen siendo quince', R.tarjetas === 15);
+  cond('(B2) cada patron conserva su nombre', R.nombres.length > 40);
+  cond('(B3) la forma del dibujo no cambio: 17 segmentos por patron',
+       (() => { const s = document.querySelector('#patron-grid svg');
+         return !!s && s.querySelectorAll('path,circle').length === 17 })());
+  /* (C) CONTROL NEGATIVO: el diagrama de MOTILIDAD sigue con su paleta. */
+  R.motSegs = document.querySelectorAll('#contr-svg-bullseye [data-contrseg]').length;
+  R.motFills = (() => { try {
+    const s = new Set();
+    document.querySelectorAll('#contr-svg-bullseye [data-contrseg]').forEach(p => {
+      const f = p.getAttribute('fill'); if (f) s.add(String(f).toUpperCase()); });
+    return Array.from(s).join(',');
+  } catch (e) { return 'ERR' } })();
+  R.motPaleta = (() => { try { return CONTR_MOTILIDAD.map(m => m.color.toUpperCase()).join(',') }
+                         catch (e) { return 'NO' } })();
+  cond('(DENOM3) el bull is eye de motilidad tiene sus 17 segmentos dibujados', R.motSegs === 17);
+  cond('(C1) el bull is eye de MOTILIDAD no usa ningun color de la paleta de strain',
+       R.motFills !== 'ERR' && R.motFills.length > 3
+       && !PAL.slice(1).some(c => R.motFills.indexOf(c) >= 0), R.motFills);
+  cond('(C2) y su paleta sigue siendo la suya, sin un color de la de strain',
+       R.motPaleta !== 'NO' && !PAL.slice(1).some(c => R.motPaleta.indexOf(c) >= 0), R.motPaleta);
+  return { extra: _E };
+`);
+
+caso('TC-1050',
+ 'PR7 (PDF): la tabla de colores queda arriba a la derecha de cada bull is eye y el TEXTO de cada uno va a la derecha de su dibujo y debajo de su tabla, con su titulo, una oracion por alteracion, el SGL global en renglon propio, sin «Arterias posiblemente involucradas» y como TEXTO REAL',
+`
+  /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
+     diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
+     su medicion, en vez de amontonadas al final lejos del dato que las sostiene. */
+  const R = {}; const _E = [];
+  const cond = (rot, ok, dg) => _E.push([rot, ok === true, String(dg === undefined ? '' : dg)]);
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const TIT = 'Contractilidad y strain longitudinal';
+  __t.limpiar();
+  [['nombre','Zoraida Pruebas'],['fecha','2026-11-23'],['edad','74'],['sexo','M'],
+   ['peso','80'],['talla','170'],['fevi','52'],['sgl_gls','-18'],
+   ['sgl_notas','Reduccion del strain en la cara anterior.' + String.fromCharCode(10) + 'Preservacion apical relativa.']
+  ].forEach(p => __t.set(p[0], p[1]));
+  try { if (_hay('contrSetSegmento')) { contrSetSegmento('basal_anterior', 1);
+    contrSetSegmento('mid_anterior', 1); contrSetSegmento('apical_anterior', 1);
+    contrSetSegmento('apex', 3); } } catch (e) {}
+  try { if (_hay('sglReset')) sglReset();
+        strainEscribir('basal_anterior', '-8'); strainEscribir('mid_anterior', '+6');
+        strainSet('apex', 1, null); } catch (e) {}
+  try { if (_hay('generarInforme')) generarInforme(); } catch (e) {}
+  try { if (_hay('contrRenderInforme')) contrRenderInforme(); } catch (e) {}
+  R.lineasMot = (() => { try { return _hay('contrGetLineasInforme') ? contrGetLineasInforme() : [] }
+                         catch (e) { return [] } })();
+  cond('(DENOM) la escena deja DOS oraciones de motilidad', R.lineasMot.length === 2);
+
+  /* Se intercepta doc.text y doc.addImage: las COORDENADAS son la unica forma de afirmar «a la
+     derecha del dibujo» y «debajo de su tabla». Y que el texto entre por doc.text es, al mismo
+     tiempo, la prueba de que es TEXTO REAL y no una imagen. */
+  const medir = (contr, sgl) => {
+    const txts = [], imgs = [];
+    const J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) return null;
+    window.jspdf.jsPDF = function (o) {
+      const d = new J(o);
+      const t0 = d.text, a0 = d.addImage;
+      d.text = function (tt, x, y) { try { (Array.isArray(tt) ? tt : [tt]).forEach(s2 =>
+        txts.push({ t:String(s2), x:Math.round(x * 10) / 10, y:Math.round(y * 10) / 10,
+                    p:d.internal.getNumberOfPages() })) } catch (e) {}
+        return t0.apply(this, arguments) };
+      d.addImage = function (dd, f, x, y, w, h) { try { imgs.push({ x:Math.round(x * 10) / 10,
+        y:Math.round(y * 10) / 10, w:Math.round(w * 10) / 10, h:Math.round(h * 10) / 10,
+        p:d.internal.getNumberOfPages() }) } catch (e) {}
+        return a0.apply(this, arguments) };
+      d.save = function () { return this };
+      return d;
+    };
+    const a = document.getElementById('contr_be_pdf'), b = document.getElementById('sgl_be_pdf');
+    if (a) a.value = contr ? '1' : '';
+    if (b) b.value = sgl ? '1' : '';
+    try { if (_hay('_pdfAjustarA4')) _pdfAjustarA4(); } catch (e) {}
+    window.jspdf.jsPDF = J;
+    if (a) a.value = ''; if (b) b.value = '';
+    const tit = txts.filter(t => t.t.indexOf(TIT) >= 0)[0];
+    /* /!\ LA FORMA VACIA TRAE TODAS LAS CLAVES. Con un objeto de una sola clave, las condiciones
+       de abajo leen D.dib.length sobre undefined y el TypeError se lleva el caso entero: contra el
+       arbol anterior el rojo no apuntaria a su causa. */
+    if (!tit) return { tile:false, hoja:0, titY:0, dib:[], refs:[], mot:null, stn:null, gls:null,
+                       hipo:[], disq:[], nota1:[], nota2:[], arterias:0, textos:0 };
+    const z = txts.filter(t => t.p === tit.p && t.y >= tit.y - 1);
+    const im = imgs.filter(i => i.p === tit.p);
+    const uno = s2 => z.filter(t => t.t === s2)[0] || null;
+    const bus = s2 => z.filter(t => t.t.indexOf(s2) >= 0);
+    return { tile:true, hoja:tit.p, titY:tit.y, dib:im,
+      refs: z.filter(t => t.t === 'Ref.:'),
+      mot: uno('Motilidad'), stn: uno('Strain (SGL)'),
+      gls: bus('SGL global:')[0] || null,
+      hipo: bus('Hipoquinesia: cara anterior'), disq: bus('ex (segmento 17)'),
+      nota1: bus('Reduccion del strain'), nota2: bus('Preservacion apical'),
+      arterias: bus('Arterias posiblemente').length,
+      textos: z.length };
+  };
+  const A = medir(true, false), B = medir(false, true), D = medir(true, true);
+  /* /!\ TODO ACCESO A UN DIBUJO O A UNA TABLA VA POR ESTOS DOS, con su forma neutra. Contra el
+     arbol anterior el tile existe pero sin partes con texto, asi que dib[0] es undefined y
+     leerle .w se lleva el caso ENTERO: el rojo no apuntaria a su causa. */
+  const _d = (o, i) => ((o && o.dib && o.dib[i]) ? o.dib[i] : { x:-1, y:-1, w:0, h:0 });
+  const _r = (o, i) => ((o && o.refs && o.refs[i]) ? o.refs[i] : { x:-1, y:-1 });
+  R.soloContr = A && A.tile ? { dib:A.dib.length, ref:A.refs.length, mot:A.mot && (A.mot.x + ',' + A.mot.y),
+    stn:!!A.stn, arterias:A.arterias } : 'SIN TILE';
+  R.soloSgl = B && B.tile ? { dib:B.dib.length, ref:B.refs.length, stn:B.stn && (B.stn.x + ',' + B.stn.y),
+    gls:B.gls && B.gls.t, mot:!!B.mot } : 'SIN TILE';
+  R.losDos = D && D.tile ? { dib:D.dib.map(i => i.x + ',' + i.y + ' ' + i.w + 'x' + i.h).join(' | '),
+    ref:D.refs.map(t => t.x + ',' + t.y).join(' | '),
+    mot:D.mot && (D.mot.x + ',' + D.mot.y), stn:D.stn && (D.stn.x + ',' + D.stn.y),
+    gls:D.gls && (D.gls.t + '@' + D.gls.x + ',' + D.gls.y), arterias:D.arterias } : 'SIN TILE';
+
+  /* (A) EL BULL IS EYE SOLO DE CONTRACTILIDAD. */
+  cond('(A1) con solo el bull is eye de motilidad la hoja trae su tile y UN dibujo',
+       !!A && A.tile === true && A.dib.length === 1);
+  cond('(A2) con su tabla de colores arriba a la DERECHA del dibujo',
+       !!A && A.refs.length === 1 && _r(A, 0).x > _d(A, 0).x + _d(A, 0).w
+       && _r(A, 0).y < _d(A, 0).y + _d(A, 0).h / 2);
+  cond('(A3) y su titulo «Motilidad» a la derecha del dibujo y DEBAJO de su tabla',
+       !!A && !!A.mot && A.mot.x >= _r(A, 0).x && A.mot.y > _r(A, 0).y);
+  cond('(A4) nada de strain aparece en ese tile', !!A && !A.stn && !A.gls);
+  /* (B) EL BULL IS EYE SOLO DE SGL. */
+  cond('(B1) con solo el bull is eye de strain la hoja trae su tile y UN dibujo',
+       !!B && B.tile === true && B.dib.length === 1);
+  cond('(B2) con su tabla arriba a la derecha y su titulo «Strain (SGL)» debajo de ella',
+       !!B && B.refs.length === 1 && !!B.stn && B.stn.x >= _r(B, 0).x && B.stn.y > _r(B, 0).y);
+  cond('(B3) el SGL global sale en SU PROPIO RENGLON, no pegado a la primera nota',
+       !!B && !!B.gls && B.gls.t === 'SGL global: -18 %');
+  cond('(B4) y las dos notas del medico salen una por renglon, tal cual',
+       !!B && !!B.gls && B.nota1.length === 1 && B.nota2.length === 1
+       && B.nota1[0].y > B.gls.y && B.nota2[0].y > B.nota1[0].y);
+  cond('(B5) nada de motilidad aparece en ese tile', !!B && !B.mot);
+  /* (C) LOS DOS JUNTOS. */
+  cond('(C1) con los dos juntos la hoja trae DOS dibujos y DOS tablas',
+       !!D && D.tile === true && D.dib.length === 2 && D.refs.length === 2);
+  cond('(C2) los dos dibujos miden lo MISMO: el espacio del texto esta reservado para los dos',
+       !!D && D.dib && D.dib.length === 2 && _d(D, 0).w === _d(D, 1).w && _d(D, 0).h === _d(D, 1).h);
+  cond('(C3) y arrancan a la misma altura, asi que ninguno se movio',
+       !!D && D.dib && D.dib.length === 2 && _d(D, 0).y === _d(D, 1).y);
+  cond('(C4) cada tabla queda arriba a la derecha de SU dibujo',
+       !!D && D.refs.length === 2 && _r(D, 0).x > _d(D, 0).x + _d(D, 0).w && _r(D, 0).x < _d(D, 1).x
+       && _r(D, 1).x > _d(D, 1).x + _d(D, 1).w);
+  cond('(C5) los DOS titulos estan presentes: con los dos juntos dicen cual es cual',
+       !!D && !!D.mot && !!D.stn);
+  cond('(C6) el texto de motilidad va con el dibujo de la izquierda y el de strain con el de la derecha',
+       !!D && !!D.mot && !!D.stn && D.mot.x === _r(D, 0).x && D.stn.x === _r(D, 1).x);
+  cond('(C7) cada titulo queda DEBAJO de su propia tabla',
+       !!D && !!D.mot && !!D.stn && D.mot.y > _r(D, 0).y && D.stn.y > _r(D, 1).y);
+  /* (D) UNA ORACION POR ALTERACION, y las mismas que la pantalla. */
+  cond('(D1) la hipoquinesia de la cara anterior sale en un renglon',
+       !!D && D.hipo.length >= 1);
+  cond('(D2) la discinesia del apex sale en OTRO renglon, debajo',
+       !!D && D.hipo.length >= 1 && D.disq.length === 1 && D.disq[0].y > D.hipo[0].y);
+  cond('(D3) los dos renglones de motilidad son textos DIBUJADOS distintos',
+       !!D && D.hipo.length >= 1 && D.disq.length >= 1 && D.hipo[0].y !== D.disq[0].y);
+  /* (E) LO QUE NO VA AL PAPEL. */
+  cond('(E1) «Arterias posiblemente involucradas» NO llega al PDF en ninguna de las tres formas',
+       !!A && !!B && !!D && A.arterias === 0 && B.arterias === 0 && D.arterias === 0);
+  cond('(E2) pero SIGUE en la pantalla',
+       (() => { const z = document.getElementById('contr-arterias');
+         return !!z && String(z.textContent || '').indexOf('Arterias posiblemente') >= 0 })());
+  /* (F) TEXTO REAL. Todo lo medido entro por doc.text; el unico addImage del tile son los
+     dibujos, que son dos con los dos juntos. */
+  cond('(F1) el texto del tile es TEXTO REAL y no una imagen: entro por doc.text',
+       !!D && D.textos > 8 && D.dib.length === 2);
+  /* (G) EL BULL IS EYE DEL PAPEL ESTAMPA LOS NUMEROS. El barrido destapo el hueco: ninguna
+     condicion lo medía, asi que una mutacion que dejaba de pasarle el texto al renderer
+     SOBREVIVIA. Se compara el PNG del dibujo con un numero cargado contra el PNG de los MISMOS
+     colores SIN numero: si el numero se estampa, los bytes tienen que diferir. */
+  const _png = () => {
+    let dat = null;
+    const J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) return null;
+    window.jspdf.jsPDF = function (o) {
+      const d = new J(o);
+      const a0 = d.addImage;
+      d.addImage = function (dd) { if (dat === null) dat = String(dd || ''); return a0.apply(this, arguments) };
+      d.save = function () { return this };
+      return d;
+    };
+    const a = document.getElementById('contr_be_pdf'), b = document.getElementById('sgl_be_pdf');
+    if (a) a.value = ''; if (b) b.value = '1';
+    try { if (_hay('_pdfAjustarA4')) _pdfAjustarA4(); } catch (e) {}
+    window.jspdf.jsPDF = J;
+    if (b) b.value = '';
+    return dat;
+  };
+  try { if (_hay('sglReset')) sglReset();
+        strainEscribir('basal_anterior', '-8'); strainEscribir('mid_anterior', '+6'); } catch (e) {}
+  const conNum = _png();
+  /* Los MISMOS tramos, puestos a mano y SIN numero: el color del dibujo es identico. */
+  try { if (_hay('sglReset')) sglReset();
+        strainSet('basal_anterior', strainTramoDe(-8), null);
+        strainSet('mid_anterior', strainTramoDe(6), null); } catch (e) {}
+  const sinNum = _png();
+  /* Y una tercera vez, otra vez sin numero: el denominador de que el renderer es determinista. */
+  const sinNum2 = _png();
+  R.png = { conNum: conNum ? conNum.length : 'NO', sinNum: sinNum ? sinNum.length : 'NO',
+            iguales: conNum === sinNum, deterministaa: sinNum === sinNum2 };
+  cond('(G0) DENOMINADOR: el bull is eye del papel se genero las tres veces',
+       !!conNum && !!sinNum && !!sinNum2 && conNum.length > 2000, JSON.stringify(R.png));
+  cond('(G1) el renderer es determinista: los mismos colores sin numero dan el MISMO dibujo',
+       sinNum === sinNum2);
+  cond('(G2) y el dibujo CON los numeros es distinto del de los mismos colores SIN numeros: el papel los estampa',
+       !!conNum && !!sinNum && conNum !== sinNum);
+  try { if (_hay('sglReset')) sglReset(); } catch (e) {}
+  try { if (_hay('contrReset')) contrReset(); } catch (e) {}
+  return { extra: _E };
+`);
+
 
 
 try {

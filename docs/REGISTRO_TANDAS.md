@@ -1,3 +1,49 @@
+## PR7 — la paleta propia del strain, el ingreso de datos numéricos y el PDF de los dos bull's eye (2026-11-23/24)
+
+**Sello** `v20261123-2232` · **md5** `d6e31de8` · **195.032** líneas · línea base `f6d51f8`.
+**Sin push.**
+
+**Commits:** `a96f532` (TAREAS 1, 2 y 3: la paleta, el ingreso numérico y el PDF) · el de
+cobertura (TC-1042 a TC-1050, el barrido de 36 mutaciones y el corredor de lotes) · el de cierre
+(TAREA 4: el sello, `PENDIENTES.md`, `CLAUDE.md`, el mapa, las fichas y la guía manual).
+
+⚠️ **LAS TRES TAREAS DE CÓDIGO SALIERON EN UN SOLO COMMIT**, y se declara: la TAREA 3 —el PDF—
+consume el renderer con números que la TAREA 2 agrega, y el renderer es el mismo que dibuja la
+pantalla, así que partirlas dejaba un commit intermedio con el papel llamando a una función de dos
+argumentos que todavía no existía. **La verificación sí es por tarea.**
+
+**Qué hizo.** La paleta del bull's eye de strain pasa a ser **propia de esta aplicación**: de
+violeta a azul, **ocho tramos de cinco puntos entre −20 y +20** más un noveno estado que no es un
+tramo, **SIN DATO**. Un valor en un borde cae en el tramo de **su derecha** y los extremos los pone
+un **acote y no un rechazo**. La pestaña SGL gana el botón **«Ingresar datos numéricos»**
+—interruptor en memoria, apagado de fábrica, con su globo—: apagado, un toque cicla los nueve
+estados y borra el número; encendido, un toque abre una casilla **sin `id`** que acepta coma o
+punto, el menos común y el tipográfico, con el **signo negativo por omisión** y el positivo con un
+`+` explícito. El número y el color de cada segmento **se guardan con el estudio** y un estudio con
+los **cinco estados viejos abre sin error y sin números inventados**. En el **PDF**, la tabla de
+colores queda arriba a la derecha de cada bull's eye y el texto de cada uno va a la derecha de su
+dibujo y **debajo de su tabla**, con su título, **una oración de motilidad por renglón** y el
+**SGL global en renglón propio**; **«Arterias posiblemente involucradas» sigue sólo en pantalla**.
+Y salen de los textos del usuario las **tres menciones** de la marca del ecógrafo que la pestaña
+SGL hacía sobre su escala.
+
+**Qué dejó pendiente.** **PR7-a** (el mapa de SGL **calculado por territorios del visor**: no se
+tocó, por orden expresa, y queda con sus colores de hoy y las tres salidas posibles),
+**PR7-b** (las dos disposiciones del texto del PDF que la orden describe no pueden ser ciertas a la
+vez), **PR7-c** (el tramo 8 no lo usa ningún patrón de ejemplo), **PR7-d** (`C.N1` no existía),
+**PR7-e** (el globo de los patrones conserva la cita de Phelan con su equipo, y es correcto),
+**PR7-f** (el 0 del modelo viejo va a sin dato, con su precio declarado), **PR7-g** (el PPT quedó
+con una barra y no estaba en la orden) y **PR7-h** (el interruptor no se apaga con «Nuevo
+estudio»).
+
+**Lo que la medición destapó y la lectura no.** `sglSyncGLS` se perdió en el reemplazo del bloque
+—la pestaña tiraba su error y el bull's eye **no se dibujaba**—; `C.N1`, el respaldo de color de
+los patrones, **no existe** en ese objeto; y el primer barrido dejó **tres** sobrevivientes: una
+mutación **equivalente** y **dos huecos reales** —que las tres claves entren al estudio que
+`guardarInforme` guarda de verdad, y que el bull's eye del papel **estampe** los números—.
+
+---
+
 ## PR6 — mover los cuadros, el resumen de válvulas, el texto «tipo Word», el noveno estilo de PDF y los cuatro contenidos de la Evidencia (2026-11-23)
 
 **Sello** `v20261123-2054` · **md5** `21cbbbf6` · **194.566** líneas · línea base `8618cd9`.

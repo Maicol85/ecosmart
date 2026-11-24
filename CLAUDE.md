@@ -117,6 +117,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar una COLUMNA del EXCEL del Laboratorio**: `LAB_XLS_MAP`, las 440 claves, los tipos, los alias de cabecera del importador o las dos columnas del G2 | `docs/mapa/excel-laboratorio.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
 | **Tocar un CORTE del SGL, el SIGNO del strain en el papel, el RÓTULO de pantalla, los TERRITORIOS coronarios con su aviso, los PATRONES del ojo de buey o el 2,9 del score de amiloidosis** | `docs/mapa/aj9-sgl-patrones.md` |
+| **Tocar la PALETA del bull's eye de strain** —los ocho tramos entre −20 y +20, el gris de SIN DATO, el borde que cae a la derecha o el color del número—, **el botón «Ingresar datos numéricos»** con su casilla y su convención de signo, **el guardado de los segmentos** con la migración de los cinco estados viejos, **las dos leyendas**, **los patrones de ejemplo recoloreados** o **la hoja del PDF con los DOS bull's eye** —la tabla arriba a la derecha y el texto debajo de ella— | `docs/mapa/pr7-paleta-strain-numeros.md` |
 | **Tocar el ENCABEZADO de un documento** —de dónde sale el nombre de la institución, la línea gris que no se imprime, el logo a la derecha, el nombre editable de la hoja del Informe—, **el EDITOR SOBRE LA HOJA de Configuración** —sus dos modos, el cuerpo como una sola zona editable, las SEIS convenciones con el «## » nuevo, lo que queda fijo, los dos cierres, «Guardar como modelo» o «Volver al texto original»—, o **los DOS DOCUMENTOS EN BLANCO**: sus dos claves fijas, su contenido mínimo, su nombre, «Vaciar», las dos casillas de firma o la firma que nunca queda sola | `docs/mapa/pant33-editor-hoja-blancos.md` |
 | **Tocar la HOJA DE UN DOCUMENTO en pantalla** —el botón en el rincón derecho, la A4 en milímetros con su cuerpo en puntos y su zoom, el pegado como texto llano, el clic en el fondo con su confirmación—, **la CONSTANCIA en tres oraciones**, **el LOGO a la izquierda con el nombre centrado**, **el cuerpo y el SALTO DE HOJA de los tres consentimientos**, **las casillas DIBUJADAS de la declaración**, **las hojas comunes sin título**, o **la CASILLA DE PPT de «Prótesis valvulares» con su diapositiva** | `docs/mapa/pant31-hoja-ppt.md` |
 | **Tocar un DOCUMENTO del Informe** —la constancia o los tres consentimientos—: el boton «Documentos», el maquetador unico con sus tipos de bloque, la justificacion palabra por palabra, la casilla dibujada, el salto de hoja del ETE, la regla de la declaracion junto a las firmas, el azul de los datos, el aviso «Actualizar con los datos», o la hoja guardada en «Imagenes»; **o la seccion «PROTESIS VALVULARES» del Laboratorio**: por que no puede llamar a ningun evaluador de protesis, de donde sale cada dato, las dos pilas del grafico, el orden de las categorias de trastorno, los dos que van aparte, o su seccion del PDF de auditoria | `docs/mapa/pant30-documentos-protesis.md` · el manual del medico en `docs/DOCUMENTOS_P30.md` |
@@ -147,7 +148,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
 | **Tocar el BUCLE DEL VIDEO de los dos PPT, los BOTONES de respuesta del panel de Evidencia, la cláusula de la IT sistémica de la TGA o la línea de la MIOCARDIOPATÍA HIPERTRÓFICA del PPT de congénitas**: el árbol de tiempo y su falla cerrada, el dueño único que prepara un mp4, la media query del piso táctil, o `mchConclusion().papel` | `docs/mapa/aj3-bucle-botones.md` |
-| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-1035.md` (TC-1035 a TC-1041), `docs/mapa/tests-fichas-971.md` (TC-971 a TC-977), `docs/mapa/tests-fichas-872.md` (TC-872 a TC-881), `docs/mapa/tests-fichas-825.md` (TC-825 a TC-831), `docs/mapa/tests-fichas-821.md` (TC-821 a TC-824), `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-1042.md` (TC-1042 a TC-1050), `docs/mapa/tests-fichas-1035.md` (TC-1035 a TC-1041), `docs/mapa/tests-fichas-971.md` (TC-971 a TC-977), `docs/mapa/tests-fichas-872.md` (TC-872 a TC-881), `docs/mapa/tests-fichas-825.md` (TC-825 a TC-831), `docs/mapa/tests-fichas-821.md` (TC-821 a TC-824), `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA** o el PDF | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar los CUATRO DIBUJOS DE MEDIDAS TEER, los CRITERIOS TEER y sus cortes, el ESPEJO de la FEVI y el DSFVI del TEER, o las DOS PROFUNDIDADES DE COAPTACIÓN sincronizadas** | `docs/mapa/mitral-teer-criterios.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
@@ -300,7 +301,36 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **14,03 MB / 194.566 líneas**, medido con `wc -c` y `wc -l` el 2026-11-23 al cierre de la tanda **PR6** (mover los cuadros, el resumen de válvulas, el texto «tipo Word», el noveno estilo de PDF y los cuatro contenidos de la Evidencia), sobre el árbol ya sellado: sello **`v20261123-2054`**, md5 **`21cbbbf6`**.
+  sin frameworks. Hoy **14,06 MB / 195.032 líneas**, medido con `wc -c` y `wc -l` el 2026-11-23 al cierre de la tanda **PR7** (la paleta propia del strain, el ingreso de datos numéricos y el PDF de los dos bull's eye), sobre el árbol ya sellado: sello **`v20261123-2232`**, md5 **`d6e31de8`**.
+  El diff de PR7 son **562 líneas agregadas y 96 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `f6d51f8` **sobre el árbol ya sellado**, de las que **383 son código
+  de verdad**, 167 comentario y 12 en blanco — las 562 cierran exacto, y el filtro lleva el estado
+  del comentario de bloque, que es lo que de verdad separa código de prosa.
+  Con **CERO** `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, **CERO** `<input>`,
+  `<select>` y `<textarea>` nuevos —ni con `id` ni sin él: la casilla de los números la crea el JS
+  y no lleva uno a propósito— y **UNA** sola aparición de `innerHTML`, que es
+  `el.innerHTML = strainLeyendaHTML()`: esa función arma su marcado **sólo con constantes del
+  archivo** —`STRAIN_PAL` y `STRAIN_MARCAS`— y no con un dato del paciente. **Semgrep queda en su
+  línea base exacta de 126.**
+  **UN solo id nuevo en el marcado** —`sgl-num-toggle`, el interruptor—; el otro que el diff
+  muestra, `eco-build-sello`, ya existía y reaparece porque el sello cambió. **No cae en ninguno de
+  los veintisiete barridos destructivos por sufijo o prefijo de id del archivo**, verificado uno
+  por uno.
+  **CERO campos guardados nuevos y las 457 columnas quietas**, y es **por construcción**: las tres
+  claves nuevas —`strain_sgl_num` y `strain_sgl_ver`, más la `strain_sgl` que ya existía— son
+  claves de `campos` y **no controles con `id`**. Medido en el navegador en los **dos** árboles con
+  la misma sonda: **812** `input[id]`, **297** `select[id]`, **29** `textarea[id]` y **381** claves
+  de `LAB_XLS_MAP`, los cuatro **idénticos**, con el detector de que son dos árboles diciendo NO en
+  el base y SÍ en el vivo.
+  **Y CERO cortes clínicos movidos**: los del SGL global (`SGL_NORMAL_MAX` y `SGL_ANORMAL_MIN`) no
+  se tocaron, la paleta de la **motilidad** no se tocó y el **mapa de SGL calculado por territorios
+  del visor** no se tocó. Lo que entra es una **paleta** —ocho colores y sus ocho rangos— que no
+  gradúa nada y no vota en ninguna cápsula.
+  ⚠️ **POR SEXAGÉSIMA TERCERA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show f6d51f8:index.html` da **194.566** líneas,
+  **14.034.109** bytes y el md5 **`21cbbbf6`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 14,03 MB / 194.566 al cierre de la tanda **PR6**, sello **`v20261123-2054`**, md5 **`21cbbbf6`**.)
   El diff de PR6 son **701 líneas agregadas y 8 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `8618cd9` **sobre el árbol ya sellado**, de las que **421 son código
   de verdad**, 262 comentario y 18 en blanco — las 701 cierran exacto, y el filtro lleva el estado
@@ -1701,7 +1731,17 @@ impecable.
 (`source.branch: main`, `path: /`, certificado aprobado). Lo que se pushea a `main` **es** lo que
 sale publicado.
 
-⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR PR6: `8618cd9`**, el cierre de la tanda **PR5** —sello
+⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR PR7: `8618cd9`**, el mismo que al cerrar PR6: **es lo
+último que Maicol pusheó**, y ni PR6 ni PR7 se pushearon. Los dos quedan en `main` local. Para
+volver atrás SIN reescribir historia:
+
+```bash
+git revert --no-commit 8618cd9..main && git commit -m "Revertir PR6 y PR7: volver al arbol de 8618cd9" && git push origin main
+```
+
+**El punto de retorno que PR6 declaró, textual, queda abajo.**
+
+⚠️ **PUNTO DE RETORNO AL CERRAR PR6: `8618cd9`**, el cierre de la tanda **PR5** —sello
 `v20261123-0743`, md5 `3ebd3272`, 193.873 líneas—. **Es lo último que Maicol pusheó**, así que es
 lo que la página sirve hoy; PR6 queda en `main` local sin pushear. Para volver atrás SIN reescribir
 historia:
@@ -1795,6 +1835,135 @@ pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PR7 (2026-11-23/24) — la paleta propia del strain, el ingreso de datos numéricos y el
+PDF de los dos bull's eye.** CUATRO tareas y DOS commits de código. Sello **`v20261123-2232`**,
+md5 **`d6e31de8`**, **195.032** líneas. Línea base **`f6d51f8`**, el cierre de PR6.
+**Sin push: lo corre Maicol.**
+
+**LA PALETA ES PROPIA DE ESTA APLICACIÓN Y NO SE PRESENTA COMO LA DE NINGUNA MARCA.** Decisión de
+Maicol del 23/11: de violeta a azul, **ocho tramos de cinco puntos entre −20 y +20**, más un noveno
+estado que **no es un tramo**: SIN DATO, gris `#D4D4D0` con un guion. Un valor en un **borde** cae
+en el tramo de **su derecha** —el −15 es del tramo 2— y lo hace el piso de la división, no un `if`
+por caso; los **extremos** los pone un **acote y no un rechazo**: un −30 y un +25 se pintan con el
+color del extremo y el número se publica tal cual. **No se bloquea el ingreso.** El número va en
+**blanco** sobre los tramos 1, 2, 7 y 8 y en **gris muy oscuro** sobre 3 a 6.
+
+**UN SOLO DUEÑO DEL COLOR Y UN SOLO DUEÑO DEL TRAMO**, leídos por **cinco** superficies: el bull's
+eye de la pantalla, el del **papel**, el del **PPT**, los **patrones de ejemplo** y las **dos
+leyendas**. ⚠️ **Y LA PALETA VIVE EN EL BLOQUE DE CONSTANTES DE SGL Y NO JUNTO AL DIBUJO, por la
+zona muerta**: los patrones de ejemplo consumen los colores **en su propia definición**, en un
+bloque de `<script>` **anterior**, y un `const` de nivel de script no está disponible desde ahí
+—**ni con `typeof`, que sobre la zona muerta también lanza**—. Con la paleta abajo, el bloque de
+los patrones abortaba entero.
+
+**EL INGRESO NUMÉRICO.** Interruptor en memoria, apagado por omisión, con su globo descriptivo.
+**Apagado**, un toque cicla los **nueve** estados —sin dato, los ocho tramos y de vuelta a sin
+dato— y **borra el número**: el color y el número no pueden contradecirse porque salen de la
+**misma escritura**, `strainSet`. **Encendido**, un toque abre una casilla que acepta **coma o
+punto**, el **menos común y el tipográfico** y un decimal; **sin signo el valor se toma NEGATIVO**
+—igual que el campo SGL global— y **con un `+` explícito se respeta el positivo**, que es lo que
+permite cargar un segmento discinético. Enter o salir confirma, **Escape cancela**.
+⚠️ **NO SE PUDO REUSAR `sglNeg`, Y ESA ES LA DIFERENCIA**: esa función hace **−|x| siempre**, así
+que un `+18` se vuelve −18 y por ese camino no habría forma de cargar un valor positivo.
+⚠️ **Y LA CASILLA NO LLEVA UN SOLO `id`**: el censo del estudio y el Excel recorren `input[id]`,
+así que una casilla con id entraría a las **457** columnas por existir y «Nuevo estudio» le
+escribiría un valor guardado. Se alcanza por `data-strain-caja` y **se destruye al cerrar**.
+
+**EL GUARDADO, CON TRES CLAVES Y CERO CONTROLES NUEVOS.** `strain_sgl` (los índices),
+`strain_sgl_num` (los números) y `strain_sgl_ver` (la marca de versión del modelo), las tres como
+claves de `campos`, que es donde ya vivía el estado. **Medido en los DOS árboles con la misma
+sonda**: **812** `input[id]`, **297** `select[id]`, **29** `textarea[id]` y **381** claves de
+`LAB_XLS_MAP`, los cuatro **idénticos**, con el detector de que son dos árboles diciendo NO en el
+base y SÍ en el vivo.
+⚠️ **LO QUE DECIDE SI HAY QUE MIGRAR ES LA MARCA DE VERSIÓN, y no la presencia de los números**: un
+estudio **nuevo** en el que nadie escribió ninguno guarda igual su marca, así que mirar los números
+confundiría ese caso con un estudio viejo y lo migraría **dos veces**.
+⚠️ **EL 0 VIEJO VA A SIN DATO Y NO A «Normal», y es la decisión de fondo.** En el modelo de cinco
+estados el 0 era a la vez «Normal» en rojo, el valor **por omisión** del segmento que nadie tocó y
+el que dejaba «Limpiar»: **indistinguible**. Mandarlo a sin dato es el único lado que no afirma una
+evaluación que nadie hizo, y **a ninguno de esos segmentos se le escribe un número**. La
+correspondencia es `1→2, 2→3, 3→5 y 4→7`. **Y el número se repone SÓLO donde el tramo guardado
+coincide con el que ese número deriva**: un par que no cierra deja el **color**, que es lo que el
+médico vio. **El respaldo de la reimpresión lleva las tres claves.**
+
+**LOS PATRONES DE EJEMPLO, RECOLOREADOS SIN TOCAR SU FORMA NI SUS NOMBRES.** `N→1, H1→2, H2→3,
+H3→4, AC→5, D1→6, D2→7` y `GR→gris`; **`H3` recupera un tramo propio** —la unificación anterior lo
+había colapsado con `H2`— y el **tramo 8 no lo usa ningún patrón**, que es correcto: es el extremo
+de la rampa. Los quince patrones siguen siendo quince, con 17 segmentos cada uno.
+⚠️ **Y `C.N1` NO EXISTE en ese objeto**: era el respaldo de color de los dos rellenos
+(`colors[segIdx] || C.N1`), así que con un patrón corto el relleno salía `undefined`. Hoy es
+`C.GR`. **Defecto preexistente** que no se disparaba porque los quince declaran sus 17 colores.
+
+**EL PDF: LA TABLA ARRIBA A LA DERECHA Y EL TEXTO DEBAJO DE ELLA.** Hasta hoy los dos textos se
+unían con un punto medio y se estampaban juntos **al pie** del tile: con las dos dianas en la misma
+franja, un hallazgo de motilidad y una nota de strain quedaban en el **mismo renglón** y nada decía
+cuál era cuál. Hoy cada parte viaja con **su propia lista de renglones** y cada bloque va en la
+**columna derecha de SU dibujo**, con su título —«Motilidad» y «Strain (SGL)»— debajo de su tabla.
+**Una oración de motilidad por renglón**, de `contrGetLineasInforme()` —la **misma** función de la
+que sale el texto del informe—, y el **SGL global en su propio renglón** con las notas del médico
+**una por línea, tal cual**. **Es texto real**, `doc.text` sobre `splitTextToSize`.
+⚠️ **«ARTERIAS POSIBLEMENTE INVOLUCRADAS» NO LLEGA AL PAPEL, y no hace falta filtrarlo**: ese
+bloque lo arma otra función, sólo para la pantalla, y **no está** en esa lista. Medido: cero en las
+tres formas, y **sigue** en la pantalla.
+⚠️ **EL ANCHO DE LA COLUMNA DERECHA ES EL MISMO PARA LAS DOS PARTES**, con texto o sin él, así que
+los dibujos no se mueven: medido, con los dos juntos salen los dos en **52 × 52 mm** y arrancan a
+la misma altura.
+⚠️ **Y LAS DOS DISPOSICIONES QUE LA ORDEN DESCRIBE NO PUEDEN SER CIERTAS A LA VEZ** —el texto «en
+el hueco entre el dibujo y la tabla» cuando va solo y «debajo de la tabla» cuando van los dos, y a
+la vez «el mismo lugar solo o acompañado»—. **Se cumplió el invariante**: la columna derecha lleva
+la tabla arriba y el texto abajo en los **dos** casos; lo que cambia es el **ancho** de esa columna
+—hasta 62 mm con una sola parte contra 40 con dos—. Declarado en **PR7-b**.
+
+**EL PPT SE TOCÓ PORQUE CONSUMÍA LA PALETA**, y quedó con una **barra** en vez de nueve filas:
+nueve filas de 0,17″ medían **1,53″** y le comían al dibujo y al texto más de media pulgada de las
+dos y media que la diapositiva tiene entre el título y el pie; la barra mide **0,42″** y rotula los
+mismos ocho rangos. El resto del PPT no se tocó. **PR7-g.**
+
+**COBERTURA: NUEVE casos nuevos, TC-1042 a TC-1050**, y los nueve caen **0/9 contra `f6d51f8`** con
+el mismo archivo de casos y sólo el `index.html` distinto, **por sus condiciones y CERO
+excepciones**. **CERO casos adaptados**: ningún caso existente afirmaba la paleta vieja ni los
+cinco estados.
+**36/36 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
+vivo **idéntico** antes y después y las **36 anclas verificadas ANTES** de correr. Al menos **dos
+por grupo**, y **cinco no revierten nada: la aplican DE MÁS**, porque las condiciones que las matan
+son **controles negativos**.
+⚠️ **EL PRIMER BARRIDO DEJÓ TRES SOBREVIVIENTES Y DIJERON COSAS DISTINTAS.** **Una estaba mal
+escrita**: agregaba un atributo que nadie lee, o sea **equivalente**; hoy ataca el **valor por
+omisión del estado**, que es lo único que decide con qué color nace un segmento que nadie tocó. Y
+**dos eran huecos REALES de cobertura**, cerrados con condiciones nuevas y sin aflojar una
+mutación: que las tres claves entren al estudio que **`guardarInforme` guarda de verdad** —el caso
+armaba el guardado con `strainSnapshot` y no pasaba por el recolector— y que **el bull's eye del
+papel estampe los números**, que se mide comparando los **bytes del PNG** con y sin número, con su
+denominador de determinismo.
+
+**VERIFICACIÓN. LA SUITE COMPLETA NO SE CORRIÓ, POR ORDEN EXPRESA.** Se corrieron los **lotes de
+riesgo** de SGL, contractilidad, PDF, informe, guardado de estudios y Configuración: los **665**
+casos cuyo cuerpo toca alguna de esas seis zonas, seleccionados por el **patrón de su propio
+cuerpo** y no a ojo (`scripts/_lotes_pr7.sh`). Los demás **no se ejecutaron**, y se declara.
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta —y
+el botón nuevo mide **44 px** de alto y la casilla **44**, medido—.
+
+⚠️ **CINCO TRAMPAS QUE ESTA TANDA PAGÓ.** (1) **La zona muerta de `const`**, arriba. (2)
+**`sglSyncGLS` se perdió en el reemplazo del bloque** y `sglOnShow` la llama: la pestaña tiraba su
+error y el bull's eye **no se dibujaba** — lo cazó la sonda, no la lectura. (3) **`CONTR_MOTILIDAD`
+no está en `window`**: una condición que lo leía por ahí medía sobre una lista **vacía**, que se
+lee igual que «no hay nada que comparar». (4) **El navegador normaliza el color del estilo a
+`rgb()`**: comparar la leyenda contra el hexadecimal daba falso sobre una leyenda correcta. (5)
+**Las secuencias `\uXXXX` quedaron convertidas al carácter real** en el archivo, así que tres
+anclas del barrido daban **x0** — que se lee igual que «no hay nada que mutar». Es la misma trampa
+que PR5 pagó al revés.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por vigésima cuarta tanda
+seguida: la orden no la pedía y el presupuesto se fue en las cuatro tareas y su verificación. Lo
+que hay que mudar hoy es todo lo anterior a **PR6**.
+
+Lo declarado, en **PR7-a** a **PR7-h**; el mapa, en `docs/mapa/pr7-paleta-strain-numeros.md`; las
+fichas, en `docs/mapa/tests-fichas-1042.md`; las sondas, en `scripts/_probe_pr7.mjs` (la pantalla)
+y `scripts/_probe_pr7pdf.mjs` (el papel), cada una con su cuerpo aparte; el barrido, en
+`scripts/_mut_pr7.py`; el corredor de lotes, en `scripts/_lotes_pr7.sh`; el insertador de los casos
+con su guardián, en `scripts/_casos_pr7.py`.
 
 **La tanda PR6 (2026-11-23) — mover los cuadros, el resumen de válvulas, el texto «tipo Word», el
 noveno estilo de PDF y los cuatro contenidos de la Evidencia.** CINCO tareas tocadas —la 0 de solo lectura y la 1 PARADA— y SEIS commits. Sello

@@ -40,6 +40,112 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## PR7 — la paleta propia del strain, el ingreso de datos numericos y el PDF (2026-11-23/24)
+
+**Mapa:** `docs/mapa/pr7-paleta-strain-numeros.md` · **Fichas:** `docs/mapa/tests-fichas-1042.md`
+· **Sondas:** `scripts/_probe_pr7.mjs` (la pantalla) y `scripts/_probe_pr7pdf.mjs` (el papel)
+· **Barrido:** `scripts/_mut_pr7.py` · **Lotes:** `scripts/_lotes_pr7.sh`
+
+### Lo que esta tanda HIZO, para que quede asentado
+
+- **Paleta propia violeta a azul, DECIDIDA POR MAICOL EL 23/11/2026.** Ocho tramos de cinco
+  puntos entre −20 y +20 mas SIN DATO; el borde cae en el tramo de su derecha y los extremos los
+  pone un acote, no un rechazo. Dueno unico `STRAIN_PAL`, leido por el bull's eye de la pantalla,
+  el del papel, el del PPT, los patrones de ejemplo y las dos leyendas. **Nunca se dice ni se
+  insinua que sea igual a la de otra marca.**
+- **Boton «Ingresar datos numericos»**, interruptor en memoria, apagado por omision, con su globo
+  `sgl-num`. Apagado, un toque cicla los nueve estados y borra el numero; encendido, un toque abre
+  una casilla sin `id` que acepta coma o punto, el menos comun y el tipografico y un decimal, con
+  el signo negativo por omision y el positivo con un mas explicito.
+- **PDF:** la tabla de colores queda arriba a la derecha de cada bull's eye y el texto de cada uno
+  va a la derecha de su dibujo y debajo de su tabla, con su titulo, una oracion de motilidad por
+  renglon y el SGL global en renglon propio. **«Arterias posiblemente involucradas» sigue solo en
+  pantalla.**
+
+### PR7-a · PENDIENTE: el mapa de SGL CALCULADO por territorios del visor
+
+**NO SE TOCO, por orden expresa de este prompt**, y queda pendiente por si el medico quiere
+unificarlo con la paleta nueva.
+
+- Vive en `_strTono(pct)` y `_STR_GRIS`, y lo dibuja `_strBullsDibujar`. Es **otro** diagrama:
+  otro modulo, otros datos y 17 segmentos coloreados **por TERRITORIO**, no por segmento.
+- **Los colores de HOY:** una rampa de intensidad **verde azulada** por la MAGNITUD del
+  acortamiento, de 0 a 30 % o mas. A 0 % da `rgb(83,250,247)` —casi blanco— y a 30 % o mas
+  `rgb(13,90,87)`. Sin dato, `#9E9E9E`. El 30 **no es un umbral clinico**: es el tope de la rampa,
+  y el numero va impreso en cada territorio.
+- **Su propio comentario explica por que NO se parece al del informe**, y el argumento sigue en
+  pie en su mitad: los dos pueden terminar en el MISMO PDF y dos escalas incompatibles sobre un
+  documento firmado es un defecto que este archivo ya documenta tres veces. Lo que **caduco** es
+  la otra mitad: aquel argumento decia «el del informe usa la paleta GE, donde NORMAL ES ROJO», y
+  desde esta tanda el normal es **violeta oscuro**, no rojo.
+- **La decision es del medico**, y son tres caminos: (1) dejarlo como esta; (2) pasarlo a la paleta
+  de ocho tramos —tiene sentido porque tambien son valores de strain, al precio de que una rampa
+  de MAGNITUD pase a ser una escala con signo, y los territorios se miden en valor absoluto;
+  (3) dejarle su rampa pero cambiarle el tono para que no se confunda con ningun tramo.
+
+### PR7-b · El texto del PDF: las dos disposiciones de la orden no pueden ser ciertas a la vez
+
+La orden describe que el texto va **en el hueco entre el dibujo y la tabla** cuando el bull's eye
+sale solo y **debajo de su tabla** cuando salen los dos, y a la vez exige que «el texto de cada
+bull's eye ocupe el mismo lugar cuando va solo y cuando va acompaniado».
+
+**Se cumplio el invariante**: la columna derecha de cada dibujo lleva la tabla arriba y el texto
+debajo **en los dos casos**. Lo que si cambia es el **ancho** de esa columna: con una sola parte la
+franja entera es suya y la columna sale mas holgada —hasta 62 mm contra 40—, asi que el texto
+envuelve menos. Medido: con el bull's eye solo el dibujo sale de 72,1 mm y la columna arranca en
+x=139 de un box que va de 9 a 201; el hueco entre el dibujo y la tabla mide 30 mm.
+
+**Si el medico prefiere la otra lectura** —el texto a la izquierda de la tabla cuando va solo—, es
+un tercer tramo en `_pdfTile` y el texto cambia de lugar segun con quien comparta la franja.
+
+### PR7-c · El tramo 8 no lo usa ningun patron de ejemplo
+
+Los quince patrones usan los tramos 1 a 7 y el gris. El 8 (+15 a +20) queda sin usar, y es
+correcto: es el extremo de la rampa y ninguno de los patrones ilustra una discinesia de ese
+tamanio. **No se invento ningun patron** para llenarlo.
+
+### PR7-d · `C.N1` no existia, y era el respaldo de color de los patrones
+
+`buildBullsEyeSVG` usaba `colors[segIdx] || C.N1` y `colors[16] || C.N1`, y **`C.N1` no existe en
+ese objeto**: con un patron que declarara menos de 17 colores el relleno salia `undefined`. Hoy el
+respaldo es `C.GR`, el gris de sin dato. **Defecto preexistente** que no se disparaba porque los
+quince patrones declaran sus 17 colores.
+
+### PR7-e · El globo de los patrones conserva «General Electric», y es correcto
+
+El globo `patrones-sgl` nombra equipos General Electric en su bloque «A tener en cuenta»: es la
+**salvedad metodologica de Phelan 2012** —con que equipo se midio ESE estudio— y la advertencia de
+la ASE 2025 de que el strain depende del fabricante. Es una **cita bibliografica**, no una
+afirmacion sobre esta paleta, y cae del lado que la orden manda conservar. Lo mismo con las dos
+filas de la tabla de amiloidosis de Referencias y con el nombre del pendrive del ecografo.
+**TC-1047 (B3) lo fija como control positivo** y (B1) exige que no quede ninguna «escala GE» ni
+ningun «(GE)», que son las dos formas con las que la aplicacion se atribuia la escala.
+
+### PR7-f · El 0 del modelo viejo va a SIN DATO, no a «Normal»
+
+En el modelo de cinco estados el 0 era a la vez «Normal» en rojo, el valor **por omision** del
+segmento que nadie toco y el que dejaba «Limpiar»: **indistinguible**. La migracion lo manda a SIN
+DATO, que es el unico lado que no afirma una evaluacion que nadie hizo. **El precio, declarado:**
+un segmento que el medico dejo explicitamente en «Normal» tocandolo cinco veces abre como sin
+dato. No hay forma de distinguirlo, y el otro lado pintaria de violeta oscuro segmentos que nadie
+evaluo.
+
+### PR7-g · El PPT quedo con una barra en vez de nueve filas, y no estaba en la orden
+
+La diapositiva de contractilidad y strain consume la misma paleta, asi que **habia que tocarla o
+quedaba con una constante que ya no existe**. Nueve filas de 0,17 pulgadas median 1,53 y le comian
+al dibujo y al texto mas de media pulgada de las dos y media que la diapositiva tiene entre el
+titulo y el filete del pie; la barra mide 0,42 y rotula los mismos ocho rangos. **El resto del PPT
+no se toco.**
+
+### PR7-h · El interruptor no se apaga con «Nuevo estudio», y es deliberado
+
+`strainNumModo` vive solo en memoria y «Nuevo estudio» no lo apaga: seguir cargando numeros es lo
+que el medico esta haciendo. Es el mismo criterio que el interruptor del resumen de valvulas de
+PR6. **La ausencia de ese gancho ES la decision**, escrita donde vive la variable.
+
+---
+
 ## P10 — la escala de velocidad de un Doppler espectral (2026-11-21)
 
 ### P10-a · ✅ LO QUE SE HIZO, y lo que hace falta para cerrar el caso del VINNO del todo
