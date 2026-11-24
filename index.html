@@ -84283,6 +84283,13 @@ function generarPDFReal(_aj) {
          -la vinieta de WinAnsi- lo atravesaria, pero eso apuesta a la codificacion del tipo de
          letra y un glifo equivocado en un informe FIRMADO es peor que un punto dibujado. Se
          dibuja un circulo lleno de 0,5 mm, que no depende de ninguna codificacion. */
+      /* ⚠️ Y EN LETRA NORMAL, NO EN LA NEGRITA CURSIVA DE LAS OTRAS OCHO. Lo encontro la sonda
+         mirando las llamadas de dibujo: `fif(8)` -que corre arriba, para todas las plantillas-
+         deja la letra en bolditalic, asi que los items heredaban la negrita del rotulo «EN SUMA:».
+         La orden pide que el narrativo salga con el MISMO formato que el copiado del informe, y
+         ahi los items son renglones de una lista llana: el unico negrita con subrayado es el
+         rotulo. Las otras ocho plantillas NO se tocan: su EN SUMA sigue saliendo como siempre. */
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8 * _FSF);
       cuadSumaItems(sumaTxt).forEach(function (it) {
         doc.splitTextToSize(_sanML(it), pgW - 10).forEach(function (ln, _k) {
           checkPage(_IL + 0.5);
@@ -144069,7 +144076,13 @@ function scRender(){
       bi.setAttribute('data-vinfo', c.info);
       bi.setAttribute('aria-expanded', 'false');
       bi.setAttribute('aria-label', 'De dónde sale este cálculo: ' + c.nom);
-      bi.setAttribute('title', 'De dónde sale este cálculo');
+      /* ⚠️ Y SIN ATRIBUTO `title`, que es la convencion de los globos de esta casa y la encontro
+         TC-500 (A3) -«ninguno de los globos de la app lleva atributo title ni al manual»-: la
+         explicacion vive en la TARJETA que el globo abre, y un title encima pone un segundo
+         cartel -el nativo del navegador- compitiendo con ella sobre el mismo boton. El aria-label
+         queda, que es lo que lee el lector de pantalla. Los otros dos botones de la celda -la
+         calculadora y la flecha- SI llevan title: no son globos, y la orden pide que los botones
+         de icono tengan su explicacion al pasar el mouse. */
       bi.textContent = '\u24d8';
       bi.addEventListener('click', function () { if (typeof vInfoClic === 'function') vInfoClic(bi) });
       bl.appendChild(bi);
@@ -187059,8 +187072,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261124-1642';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795549379154;                 /* eco-build-ms */
+const ECO_BUILD    = '20261124-1923';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795559035512;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -187146,7 +187159,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261124-1642</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261124-1923</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
