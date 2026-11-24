@@ -1,3 +1,66 @@
+## PR8 — los cuadros, el copiado con formato, el PDF Tipo Word, el SGL y la tabla de cálculos (2026-11-24)
+
+**Sello** `v20261124-1851` · **md5** `358a030a` · **195.994** líneas · línea base `d6f8326`.
+⚠️ **Es el SEGUNDO sello**: el primero, `v20261124-1642` / `87cbbdfd` / 195.987, es el del árbol con
+el que corrió el primer barrido de mutaciones; después entró el arreglo de una línea de los ítems
+del EN SUMA del estilo «Tipo Word», que salían en negrita cursiva heredada del rótulo.
+**Sin push.**
+
+**Commits:** `3811262` (TAREAS 1 a 4: los cuadros, el copiado, el PDF Tipo Word, el SGL y la
+tabla) · el de cobertura (TC-1051 a TC-1057, el barrido de 46 mutaciones, las dos sondas y el
+corredor de lotes) · el de cierre (`CLAUDE.md`, `PENDIENTES.md`, el mapa, las fichas, la guía
+manual y este registro).
+
+⚠️ **LAS CUATRO TAREAS DE CÓDIGO SALIERON EN UN SOLO COMMIT**, y se declara: la TAREA 2.4 —el PDF
+Tipo Word— consume el texto que la 2.2 reorganiza y los ítems del EN SUMA que la 2.3 define, y la
+TAREA 4 lee los números que la 3 escribe, así que partirlas dejaba commits intermedios con el papel
+llamando a funciones que todavía no existían. **La verificación sí es por tarea.**
+
+**La TAREA 5 —borrar `docs/PAUSA_MEDIR-2.md`— se hizo primero y sin commit**: el archivo **no
+estaba versionado**, así que se borró del disco. → **PR8-i**
+
+**Qué hizo.**
+
+**Los cuadros.** El interruptor del resumen de válvulas pasa a ser un **botón de icono** de 44 × 44,
+sin texto, sin `id` —se alcanza por `data-cuad-rv`— y con el texto de la casilla vieja convertido en
+su explicación al pasar el mouse; al tocarlo las tres cajas aparecen **en el momento** en la vista
+previa, debajo de un título a todo el ancho que fuerza el corte de fila, y **no entran** al orden,
+al arrastre, a la cruz ni a los quitados porque no llevan `data-cuad-id`. «Restablecer» lo apaga y
+se las lleva. **El arrastre se rehizo**: se agarra desde cualquier parte del cuadro, con umbral de
+6 px o espera de 220 ms, marca el destino con un contorno y al soltar los dos cuadros **se
+intercambian**; el asa ⠿ queda como indicador y como la única vía táctil vertical.
+**La causa del cuadro que quedaba gris**: la captura del puntero vivía en el asa y el `insertBefore`
+del gesto la soltaba, así que el `pointerup` no llegaba nunca.
+
+**El copiado y el papel.** Los dos botones copian **HTML y texto plano en el mismo copiado**, con
+tres vías y el texto llano como última red. El texto de los datos arranca cada renglón en
+mayúscula, omite los renglones que son un **mensaje**, le pone su unidad a la **PAP media**, junta
+**THP - TDE - TRIV - área** en una línea con corte por largo, reparte el **ventrículo izquierdo en
+tres grupos** y **deja de publicar el THP dos veces**. El noveno estilo de PDF se rehace: monocromo,
+sin cajas, con la **ficha del paciente en pocos renglones**, el logo sólo si está cargado, los datos
+numéricos **idénticos al texto copiado** y el EN SUMA con su **viñeta dibujada**.
+
+**El SGL.** Los diecisiete segmentos arrancan en el **tramo 1, violeta y sin números**; el ciclo
+termina en gris y vuelve al violeta; el guion sale **sólo** con el botón de números; un valor sin
+signo es negativo y con un `+` explícito se conserva positivo; borrar el número vuelve al violeta;
+con el botón apagado un segmento con número **avisa y no cambia**; y la migración manda el 0 viejo
+al tramo 1.
+
+**La tabla «Cálculos de strain».** Caja chica de consulta entre el bull's eye y los patrones, de
+cuatro columnas por tres filas: promedios de 17 y de 16, por nivel, por territorio —con el reparto
+de Contractilidad— y dos fórmulas (apical sparing relativo y FEVI/SGL). Cada celda exige todos sus
+segmentos, dice qué le falta, borra su resultado cuando cambia un número que usó, y las dos celdas
+de promedio global pueden **escribir el campo de SGL** previo aviso. **Nada de la tabla llega al
+informe, al PDF ni a los copiados.**
+
+**Qué dejó pendiente.** **PR8-a** (el punto de aviso del botón «Cuadros» no se prende por el
+resumen) · **PR8-b** (el ancho pertenece a la posición) · **PR8-c** (en táctil el arrastre vertical
+sigue saliendo del asa) · **PR8-d** (el corte de la línea mitral no llega a disparar) · **PR8-e**
+(la celda «PAP media» del cuadro del PDF sigue sin unidad) · **PR8-f** (la viñeta en el HTML y en el
+papel, no en el texto llano) · **PR8-g** (un estudio viejo todo en «Normal» ahora entra al PDF con
+su bull's eye) · **PR8-h** (la altura de la tabla la fijan los botones) · **PR8-i** (el archivo
+borrado) · **PR8-j** (con «Tipo Word» la vista previa muestra el resumen y el papel no).
+
 ## PR7 — la paleta propia del strain, el ingreso de datos numéricos y el PDF de los dos bull's eye (2026-11-23/24)
 
 **Sello** `v20261123-2232` · **md5** `d6e31de8` · **195.032** líneas · línea base `f6d51f8`.

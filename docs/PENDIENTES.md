@@ -40,6 +40,202 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## PR8 — los cuadros, el copiado con formato, el PDF Tipo Word, el SGL y la tabla de cálculos (2026-11-24)
+
+**Mapa:** `docs/mapa/pr8-cuadros-copiado-strain.md` · **Fichas:** `docs/mapa/tests-fichas-1051.md`
+· **Sondas:** `scripts/_probe_pr8.mjs` (la pantalla y el papel) y `scripts/_probe_pr8ab.mjs` (el
+A/B de los nueve estilos de PDF) · **Barrido:** `scripts/_mut_pr8.py` · **Lotes:**
+`scripts/_lotes_pr8.sh` · **Guía manual:** `docs/GUIA_PRUEBA_PR8.md`
+
+### Las fuentes de la tabla de cálculos, con su hoja y su folio
+
+Los tres textos del globo citan autor y año; los folios viven acá y no en la pantalla.
+
+| cita | documento | hoja | folio |
+|---|---|---|---|
+| el promedio de valores segmentarios equivale al global sólo con segmentos de igual longitud | **Voigt 2015** (consenso de deformación, EACVI/ASE/Industry task force) | 9 | 9 |
+| el apical sparing relativo con 18 segmentos y su corte de 1,0 | **Phelan 2012**, *Heart* 2012;98:1442–48 | 2 | 1443 |
+| el corte de 1,0 del apical sparing | ídem | 4 y 6 | 1445 y 1447 |
+| FEVI/SGL mayor de 4,1 en la diferenciación de la amiloidosis | **Nagueh 2025**, *JASE* 38(7) | 25 | 561 |
+
+⚠️ **LAS DOS FÓRMULAS SE APARTAN DE SU FUENTE Y LA APLICACIÓN LO DECLARA.** Phelan la definió con
+**18** segmentos (seis por nivel) y con un único software de análisis; acá se calcula con los
+**17** de esta aplicación —basales 1 a 6, medios 7 a 12, apicales 13 a 16, **sin** el casquete—, y
+eso es **criterio de la aplicación**, dicho en su globo. El uso del **valor absoluto** en las dos
+razones también es criterio de la aplicación. Y el **nivel apical** excluye el casquete por la
+misma razón.
+
+### PR8-a — el punto de aviso del botón «Cuadros» no se prende por el resumen de válvulas
+
+**Qué se encontró.** «Restablecer» ahora apaga el resumen de válvulas y su indicador, que es lo que
+la orden pide. Pero `cuadPersonalizado()` —el predicado del **punto** del botón «Cuadros»— **no se
+tocó**: con el resumen prendido, el PDF lleva tres cuadros que el orden de fábrica no tiene y el
+punto sigue apagado.
+
+**Qué puede causar.** Un médico que prendió el resumen en un estudio anterior lo tiene prendido
+para todos mientras la app esté abierta, y nada en el botón lo delata hasta que abre la tarjeta.
+
+**Cómo se corrige.** Una línea en `cuadPersonalizado()`: `if (cuadResumenValvOn()) return true;`.
+**No se hizo** porque PR6-b lo decidió al revés con su motivo escrito —«el punto existe porque un
+cuadro quitado y olvidado saca un estudio SIN un dato, y esto AGREGA datos»— y revertir esa
+decisión sin orden expresa es contenido de pantalla que decide el médico. Lo que sí tiene el botón
+nuevo es su propio `aria-pressed` y su color.
+
+**Queda declarado, no corregido.**
+
+### PR8-b — el ancho de un cuadro pertenece a la POSICIÓN y no al cuadro
+
+**Qué se encontró.** La orden pregunta qué pasa al intercambiar dos cuadros de anchos distintos.
+Medido: `_cuadSpans` reparte los spans **por posición** desde `cuadFilas`, así que cada cuadro toma
+el ancho de su lugar nuevo. Con once cuadros los spans son `22222222233` **antes y después** del
+intercambio; el cuadro que va a la posición 10 se ensancha y el que sale de ahí se angosta.
+
+**No es un defecto**: es la regla de acomodo que ya existía, y la orden manda usarla y no inventar
+un motor nuevo. Queda asentado porque el efecto visible es que un cuadro «cambia de tamaño» al
+moverlo, y sin esto se lee como un error.
+
+### PR8-c — en una pantalla táctil el arrastre vertical sigue saliendo del asa ⠿
+
+**Qué se encontró.** El cuadro se arrastra desde cualquier parte, con umbral de 6 px y una espera
+de 220 ms. En **táctil** eso tiene un límite declarado: `.cuad-box` lleva `touch-action:pan-y` para
+que el dedo pueda seguir desplazando la tarjeta —en celular va **un cuadro por fila**, así que con
+`touch-action:none` en la caja el dedo no podría desplazar en casi toda la superficie—, y con
+`pan-y` el navegador se queda el gesto vertical.
+
+**Consecuencia.** Con el dedo, desde el **cuerpo** del cuadro el arrastre funciona en el eje
+horizontal; para moverlo hacia arriba o hacia abajo hay que agarrarlo del **asa ⠿**, que es la
+única superficie con `touch-action:none`. Por eso el asa **no desapareció**: es la segunda vía, y
+hacerla desaparecer habría dejado el arrastre vertical del dedo sin ninguna puerta.
+
+**Cómo se corregiría.** Poner `touch-action:none` en `.cuad-box` y darle al overlay una franja
+propia para desplazar. Es una decisión de maquetado de celular y **la decide el médico**.
+
+**Queda declarado.**
+
+### PR8-d — el corte de la línea mitral no llega a disparar con datos reales
+
+**Qué se encontró.** La orden pide que el AVm por THP vaya en la misma línea del THP «si no queda
+muy larga» y en el renglón siguiente «si queda larga». El corte está implementado
+(`CW_CORTE_LARGO`, 70 caracteres, en `armar`) y **suelta la última pieza** al renglón siguiente.
+Medido con el caso normal, la línea mide **61** caracteres: con datos plausibles **no llega a
+disparar**.
+
+**Por qué queda igual.** Es una guarda, y la mutación 21 del barrido la prueba moviendo el corte.
+No se bajó el corte para que dispare: partir una línea de 61 caracteres que entra perfecta sería
+peor para el médico que pega el texto.
+
+### PR8-e — la celda «PAP media» del cuadro del PDF sigue saliendo sin su unidad
+
+**Qué se encontró.** La orden dice «la PAP media lleva su unidad (mmHg) **en el texto**», y así
+quedó: la unidad la pone la tabla de orden del texto. Pero la celda del cuadro del PDF es
+`{ lbl:'PAP media', val: sv('pap_med') }` y es **el único valor del papel que sale sin su unidad**
+—las otras cincuenta y tantos la traen puesta—.
+
+**Qué puede causar.** El cuadro del PDF publica «PAP media: 31» y el texto copiado del mismo
+estudio «PAP media: 31 mmHg».
+
+**Cómo se corrige.** Una línea en `cuadDefs`. **No se hizo** porque cambia el PDF, que esta tanda
+no tiene orden de tocar más allá del noveno estilo. **Queda declarado.**
+
+### PR8-f — la viñeta del EN SUMA va en el HTML y en el papel, y no en el texto llano
+
+**Decisión, con su motivo.** El texto llano del botón 📋 es la **red** para pegar en un sistema que
+no acepta formato, y ahí lo que se pega es lo que el médico escribió: agregarle viñetas sería
+reescribir su texto. En el **HTML** van como `<ul><li>` y en el **papel** como un círculo dibujado.
+
+⚠️ **Y EN EL PAPEL LA VIÑETA SE DIBUJA Y NO SE ESCRIBE.** El saneador de este archivo
+(`amiloSanPDF`) conserva sólo `\x20` a `\xFF` y borra todo lo demás, así que el carácter U+2022
+**desaparecía**. Escribir el byte 0x95 —la viñeta de WinAnsi— lo atravesaría, pero eso apuesta a la
+codificación del tipo de letra, y un glifo equivocado en un informe **firmado** es peor que un
+punto dibujado.
+
+### PR8-g — un estudio viejo con todos los segmentos en «Normal» ahora entra al PDF con su bull's eye
+
+**Qué se encontró.** `STRAIN_MIGRA` pasa de `[0,2,3,5,7]` a `[1,2,3,5,7]`: el 0 del modelo de cinco
+estados —que era «Normal»— va al **tramo 1**, el violeta, por orden expresa. Es coherente con el
+modelo nuevo, donde el violeta **es** un valor (de −20 a −15, o sea strain normal).
+
+**Qué puede causar.** Esos segmentos pasan a tener su clave escrita con un tramo **mayor que
+cero**, así que la compuerta del papel —`(strainEstado[k] || 0) > 0`— los cuenta como evaluados y el
+bull's eye de ese estudio viejo **entra al PDF**, donde antes no entraba.
+
+**Alcance medido.** En el modelo viejo `strainEstado` arrancaba vacío y sólo los segmentos que el
+médico tocaba quedaban guardados, y el 0 sólo se alcanzaba ciclando la rueda entera: los blobs
+guardados traen uno a cuatro valores y casi nunca un 0. El efecto práctico es chico, pero existe.
+
+**Lo que NO cambia.** Un segmento **sin tocar** en un estudio nuevo se **dibuja** violeta y **no**
+cuenta como dato: `strainEstado` sigue vacío hasta el primer toque, y eso está medido
+—`strainHayDatos()` da `false` con los diecisiete recién dibujados—.
+
+**Cómo se corregiría.** Guardar una marca de «migrado» por segmento y excluirla de la compuerta.
+**Lo decide el médico.**
+
+### PR8-h — la altura de la tabla de cálculos la fijan los botones, no el texto
+
+**Medido.** La tabla mide **265 px** de alto con los diecisiete segmentos cargados y **377** con
+los nueve renglones de «Falta:», sobre **660 px** de ancho; la tarjeta del bull's eye mide **488
+px**. El piso táctil global de este archivo le pone **44 px** de alto y de ancho a todo botón, así
+que una celda no puede medir menos que una fila de botones: por eso el nombre y el valor van en un
+renglón de 13 px y los botones en el siguiente, que es la **altura mínima posible** sin bajar ese
+piso —que es una regla de accesibilidad de la casa y no se toca por una tabla—.
+
+### PR8-j — con el estilo «Tipo Word» la vista previa muestra el resumen de válvulas y el PDF no
+
+**Qué se encontró.** La orden de PR8 dice «el PDF respeta lo que se ve en la vista previa», y así
+es en **ocho** de los nueve estilos: la vista previa y el papel leen el mismo
+`cuadResumenValvOn()`. El noveno, **«Tipo Word»**, **ignora** el resumen por la **orden expresa de
+PR6-4** —su compuerta vive en ese camino, que devuelve antes de llegar a la línea que lo dibuja—.
+Con ese estilo elegido, entonces, la vista previa muestra las tres cajas del resumen y el PDF sale
+sin ellas.
+
+**Por qué queda así.** Revertir la compuerta de «Tipo Word» es deshacer una orden expresa de la
+tanda anterior, y acoplar la vista previa al estilo de PDF elegido haría que la tarjeta de Cuadros
+—que configura **qué sale y en qué orden**— cambiara de contenido según una preferencia de
+Configuración.
+
+**Y el dato no se pierde**, que es lo que lo hace benigno: el cuerpo de «Tipo Word» **es** el texto
+de los datos numéricos, y ese texto ya publica la cuantificación de las tres válvulas —la vena
+contracta, el ORE, el volumen regurgitante, la fracción regurgitante, los DVI y las áreas— porque
+sus claves `RV|` salen del **mismo** `cuadResumenValvDefs()`. Lo que el resumen agrega en los otros
+ocho estilos es la **forma de cuadro**, no números nuevos.
+
+**Queda declarado, no corregido. Lo decide el médico.**
+
+### PR8-i — el archivo `docs/PAUSA_MEDIR-2.md`, borrado
+
+No estaba versionado en git (`git ls-files` no lo conocía), así que se borró **del disco** y no
+hubo `git rm`. Lo referenciaban **dos** textos, los dos históricos y en pasado: `CLAUDE.md` —en el
+párrafo de PR5 que declara que el árbol no estaba limpio al abrir— y este archivo, en la entrada
+**PR5-h**. Ninguno lo lee: lo nombran. Las dos menciones **se conservan**, porque son el registro
+de lo que esas dos tandas midieron. El propio archivo decía de sí mismo «**NO se commitea**» y su
+encabezado, «PAUSA CERRADA EL 2026-11-14».
+
+### PR8-k — el renglón de ayuda creció una línea y tres casos del arrastre cayeron por seis píxeles
+
+**Qué se encontró.** La TAREA 1.3 manda que el renglón de ayuda de la tarjeta de Cuadros describa
+el gesto nuevo —mantener apretado y arrastrar sobre otro cuadro, que se intercambian—, y ese texto
+pasó de **dos líneas a TRES**. Medido en la ventana de **756×469** del arnés, con la misma escena
+y el mismo script en los dos árboles: la grilla arranca en **top 128 px** contra `d6f8326` y en
+**top 145** hoy, o sea **17 px más abajo**, y el borde de abajo del **segundo** cuadro pasa de
+**y=459 a y=475**. Los cuadros miden lo mismo a los dos lados (189, 138 y 138 px).
+
+**Qué puede causar.** `TC-939`, `TC-942` y `TC-1041` sueltan el arrastre en la **esquina de abajo**
+del cuadro de destino —`rb.top + rb.height - 6`—, que a partir de esta tanda cae **seis píxeles
+fuera de la ventana**, donde `document.elementFromPoint` devuelve `null`. Los tres lo dijeron por
+su propio **denominador** —«NADA BAJO EL PUNTERO», no «no se movió»—, que es para lo que ese
+denominador existe. **No es un defecto del producto**: en una ventana de escritorio el segundo
+cuadro está entero a la vista, y el intercambio está medido en los dos sentidos.
+
+**Cómo se corrigió.** Los tres sueltan ahora en el **borde de arriba** del cuadro de destino
+(`rb.top + 8`). El gesto sigue siendo **diagonal** —a la derecha y hacia abajo, porque el destino
+está en la fila siguiente— y sigue soltando **sobre otro cuadro**, que es lo que esas condiciones
+miden. Queda escrito en los tres, con la medición al lado.
+
+⚠️ **Es la SEGUNDA vez que esta casa paga lo mismo**: PR6 mudó el interruptor del resumen de
+válvulas de arriba de la grilla al pie justamente porque ahí la empujaba 75 px y el cuadro de
+destino caía debajo del pliegue. **Un texto de ayuda que crece mueve la geometría de la ventana del
+arnés**, y los casos del arrastre son los primeros en enterarse.
+
 ## PR7 — la paleta propia del strain, el ingreso de datos numericos y el PDF (2026-11-23/24)
 
 **Mapa:** `docs/mapa/pr7-paleta-strain-numeros.md` · **Fichas:** `docs/mapa/tests-fichas-1042.md`
