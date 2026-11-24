@@ -1740,15 +1740,43 @@
   #cuad-grid > [data-cuad-span="2"] { grid-column:span 2; }
   #cuad-grid > [data-cuad-span="3"] { grid-column:span 3; }
   #cuad-grid > [data-cuad-span="6"] { grid-column:span 6; }
+  /* El CUADRO ENTERO es el asa (PR8-1.3). touch-action:pan-y y no none: el contenedor que
+     desplaza es el overlay, y en celular va un cuadro por fila, asi que con none el dedo no
+     podria desplazar la tarjeta en casi toda su superficie. Con pan-y el navegador se queda el
+     desplazamiento vertical y nosotros el resto; el asa sigue con none, asi que desde ella el
+     dedo arrastra en cualquier direccion. Medido y declarado en PENDIENTES -> PR8-c. */
   .cuad-box { border:1px solid var(--border); border-radius:10px; background:var(--bg3);
-    padding:0 0 8px; min-width:0; }
-  .cuad-box.cuad-arr { opacity:.45; }
+    padding:0 0 8px; min-width:0; cursor:grab; touch-action:pan-y; }
+  /* ATENCION: EL CUADRO QUE SE ARRASTRA NO BAJA DE .6 DE OPACIDAD. El .45 de PR6 es lo que el
+     medico vio como «gris y apagado» cuando el arrastre se cortaba solo y la clase quedaba
+     puesta; la causa real esta arriba de _cuadArrDown. Igual se sube: a .45 un cuadro con datos
+     deja de leerse, y el que se arrastra es justo el que hay que mirar. */
+  .cuad-box.cuad-arr { opacity:.6; cursor:grabbing; }
+  /* EL MARCADOR DE DESTINO. Es un CONTORNO y no un cambio de fondo: el fondo de la caja lo usan
+     las filas de datos y un relleno taparia los numeros que el medico esta mirando para decidir
+     donde suelta. Va con outline y no con border para no mover un pixel de la maqueta. */
+  .cuad-box.cuad-dest { outline:3px solid var(--accent); outline-offset:-2px; }
+  /* Mientras se arrastra: sin seleccion de texto -un arrastre sobre texto selecciona parrafos
+     enteros- y sin que el navegador se quede el gesto. */
+  #cuad-grid.cuad-arrastrando { user-select:none; -webkit-user-select:none; touch-action:none; }
+  #cuad-grid.cuad-arrastrando .cuad-box { touch-action:none; }
+  /* El titulo de la fila del resumen de valvulas en la vista previa. Ocupa las SEIS columnas, y
+     eso es lo que fuerza el corte de fila: sin el, las cajas del resumen se meterian en el hueco
+     que dejo la ultima fila de los doce y el papel -que las dibuja en sus propias filas- no
+     coincidiria con lo que la vista previa muestra. */
+  .cuad-rvtit { font-size:10px; font-weight:700; color:var(--text2); letter-spacing:.3px;
+    text-transform:uppercase; padding:6px 2px 0; border-top:1px dashed var(--border); }
+  .cuad-box.cuad-rvbox { border-style:dashed; }
   .cuad-bhdr { display:flex; align-items:center; gap:6px; padding:5px 6px 5px 8px;
     border-bottom:1px solid var(--border); }
   .cuad-btit { font-weight:700; font-size:11px; flex:1 1 0; min-width:0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   /* `touch-action:none` para que el dedo arrastre el cuadro en vez de desplazar la tarjeta: sin
      eso el navegador se queda el gesto y en celular no se puede reordenar. */
+  /* El asa QUEDA, como indicador discreto y como segunda via: desde PR8 arrastra el cuadro
+     entero, pero en una pantalla tactil el asa es la unica superficie con touch-action:none, o
+     sea la unica desde la que el dedo puede arrastrar hacia arriba y hacia abajo. Hacerla
+     desaparecer habria dejado el arrastre vertical del dedo sin ninguna puerta. */
   .cuad-grip { cursor:grab; touch-action:none; font-size:13px; color:var(--text2);
     background:none; border:0; padding:0 4px; }
   .cuad-x { background:none; border:0; color:var(--text2); font-size:13px; padding:0 4px; }
@@ -1769,6 +1797,43 @@
        y no en un estilo en línea, que le habría ganado a la media query. */
     #cuad-grid > [data-cuad-span] { grid-column:span 6; }
     #cuad-card { padding:10px 10px 14px; }
+  }
+  /* ══ LA TABLA CHICA «Calculos de strain» (PR8-4) ════════════════════════════════════════════
+     COMPACTA A PROPOSITO: letra chica, poco relleno y ancho CONTENIDO -no ocupa todo el ancho si
+     no hace falta-. Es de consulta: nada de lo que muestra entra al informe, al PDF ni a los
+     textos copiados, y no lleva una sola casilla de inclusion.
+     ⚠️ LA ALTURA LA FIJAN LOS BOTONES Y NO EL TEXTO: el piso tactil global de este archivo le
+     pone 44 px de alto y de ancho a todo boton, asi que una celda no puede medir menos que una
+     fila de botones. Por eso el nombre y el valor van en UN renglon de 13 px y los botones en el
+     siguiente, que es la altura minima posible sin bajar el piso tactil -que es una regla de
+     accesibilidad de esta casa y no se toca por una tabla-. Medido y declarado en PR8-h. */
+  .sc-caja { margin:14px auto 0; max-width:660px; background:var(--bg3);
+             border:1px solid var(--border); border-radius:8px; padding:7px 9px 8px; }
+  .sc-tit { font-size:11px; font-weight:700; color:var(--accent2); margin:0 0 5px;
+            display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .sc-nota { font-size:9.5px; color:var(--text2); margin:0 0 6px; line-height:1.4; }
+  .sc-tabla { width:100%; border-collapse:collapse; table-layout:fixed; }
+  .sc-tabla th { font-size:9.5px; font-weight:700; color:var(--text2); text-align:left;
+                 padding:1px 4px 3px; border-bottom:1px solid var(--border);
+                 text-transform:uppercase; letter-spacing:.3px; }
+  .sc-tabla td { font-size:10.5px; padding:2px 4px; vertical-align:top;
+                 border-bottom:1px solid var(--border); }
+  .sc-tabla tr:last-child td { border-bottom:0; }
+  .sc-lin { display:flex; align-items:baseline; gap:5px; }
+  .sc-nom { font-size:10px; color:var(--text2); line-height:1.3; }
+  .sc-val { font-size:12px; font-weight:700; white-space:nowrap; }
+  .sc-bot { display:flex; gap:1px; margin-top:1px; }
+  /* Los botones: 44 px de piso tactil, SIN cromo. Lo que se atenua es el peso visual y no el
+     area de toque, que es la receta que el visor y la biblioteca de esta casa ya usan. */
+  .sc-bot button { background:none; border:0; color:var(--text2); font-size:13px;
+                   line-height:1; padding:0; cursor:pointer; }
+  .sc-bot button[disabled] { opacity:.38; cursor:not-allowed; }
+  .sc-falta { font-size:9.5px; color:var(--text2); line-height:1.3; margin-top:1px; }
+  @media (max-width: 760px) {
+    /* En celular las cuatro columnas de 150 px no entran: la tabla desplaza DENTRO de su caja y
+       el documento no gana desplazamiento horizontal, que es la receta medida de PANT-25. */
+    .sc-caja { overflow-x:auto; }
+    .sc-tabla { min-width:560px; }
   }
   .frases-panel {
     position: absolute; inset: 0;                          /* la media query de móvil lo reposiciona */
@@ -6644,8 +6709,9 @@ window.cerrarSesionReal = cerrarSesionReal;
       </span>
     </div>
     <p class="cuad-nota">Estos son los cuadros de datos que salen en el PDF, con lo que hay cargado.
-      Tocá la ✕ de un cuadro para sacarlo del informe y arrastralo de la manija para cambiarlo de
-      lugar. Los números se corrigen en los campos de siempre, no acá.</p>
+      Tocá la ✕ de un cuadro para sacarlo del informe. Para cambiarlo de lugar, mantenelo apretado
+      y arrastralo sobre otro cuadro: los dos se intercambian. Los números se corrigen en los
+      campos de siempre, no acá.</p>
     <div id="cuad-grid"></div>
     <div class="cuad-franja" id="cuad-franja" hidden>
       <div class="cuad-franja-tit" id="cuad-franja-tit">Quitados del informe</div>
@@ -6672,21 +6738,18 @@ window.cerrarSesionReal = cerrarSesionReal;
           title="Copiar el informe con su EN SUMA, tal cual salen en el informe."
           aria-label="Copiar el informe con su EN SUMA, tal cual salen en el informe.">📋</button>
       </span>
-        <!-- «☐ Incluir resumen de válvulas» — DISCRETO, APAGADO DE FÁBRICA Y SOLO EN MEMORIA (PR6-2).
-             ⚠️ ES UN `<label>` QUE ENVUELVE LA CASILLA Y NO UN `for=`: así el área de toque es el
-             renglón entero —texto incluido— y no los 13 px de la casilla, que es la receta que esta
-             casa ya usó para las casillas de PPT del Laboratorio. La casilla lleva además su piso
-             táctil de 44 px por CSS, porque la regla global empareja `button, [role=button], .btn…`
-             y un `input` no es ninguno de ésos.
-             ⚠️ Y NO LLEVA `id`: el censo del estudio y el Excel recorren `input[id]` y `select[id]`,
-             así que una casilla con id entraría a las 457 columnas por existir y «Nuevo estudio» le
-             escribiría su `checked` guardado. Se alcanza por `data-cuad-rv`. -->
-        <label class="cuad-rv" data-cuad-rv>
-          <input type="checkbox" onchange="cuadResumenValvToggle(this.checked)">
-          <span>Incluir resumen de válvulas</span>
-          <small>Un cuadro por válvula con sus alteraciones, velocidades y gradientes. Vale para todos
-            los estudios mientras la app esté abierta; al cerrarla o recargarla vuelve a apagado.</small>
-      </label>
+        <!-- EL RESUMEN DE VALVULAS, AHORA UN BOTON DE ICONO (PR8-1.1). Era un label con una
+             casilla y su texto; pasa al mismo estilo discreto de los dos botones de copiar, con el
+             texto de antes convertido en su explicacion al pasar el mouse. El icono SOLO no se
+             lee, asi que el title y el aria-label lo dicen con palabras, que es la regla de esta
+             casa, y el estado lo dice aria-pressed ademas del color.
+             ATENCION: SIGUE SIN LLEVAR id, por el mismo motivo que la casilla que reemplaza: el
+             censo del estudio y el Excel recorren input[id] y select[id]. Se alcanza por
+             data-cuad-rv, que es el mismo atributo que ya tenia el label. -->
+        <button type="button" class="btn btn-ghost cuad-copia" data-cuad-rv aria-pressed="false"
+          onclick="cuadResumenValvToggle(this.getAttribute('aria-pressed') !== 'true')"
+          title="Incluir el resumen de válvulas: un cuadro por válvula con sus alteraciones, velocidades y gradientes. Vale para todos los estudios mientras la app esté abierta; al cerrarla o recargarla vuelve a apagado."
+          aria-label="Incluir el resumen de válvulas: un cuadro por válvula con sus alteraciones, velocidades y gradientes. Vale para todos los estudios mientras la app esté abierta; al cerrarla o recargarla vuelve a apagado.">🫀</button>
     </div>
   </div>
 </div>
@@ -15394,7 +15457,7 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div class="card sacc" id="sacc-sgl">
     <button type="button" class="sacc-hdr" onclick="secToggle('sgl')" aria-expanded="false"><span class="sacc-arrow">▶</span>Strain Longitudinal Global (SGL)</button>
     <div class="card-body sacc-body">
-      <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Tocá cada segmento del bull's eye para cambiar el color del strain, o activá «Ingresar datos numéricos» para escribir el valor de cada segmento. 17 segmentos.</p>
+      <p style="font-size:11px;color:var(--text2);margin:0 0 14px;">Los 17 segmentos arrancan en violeta. Tocá cada segmento del bull's eye para pasarlo al tramo siguiente —después del último queda en «Sin dato»—, o activá «Ingresar datos numéricos» para escribir el valor de cada uno.</p>
       <div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;justify-content:center;">
 
         <!-- REFERENCIA DE COLORES (izquierda) -->
@@ -15452,6 +15515,14 @@ window.cerrarSesionReal = cerrarSesionReal;
     </div>
   </div>
 
+  <!-- ═══ Cálculos de strain — tabla de consulta (PR8-4) ═══
+       SOLO DE CONSULTA. No entra al informe, al EN SUMA, al PDF, al PPT ni a los textos que
+       copian los dos botones de la tarjeta de Cuadros; no lleva casillas de inclusión y no
+       escribe ningún campo. Lo ÚNICO que sale de acá hacia la aplicación es «Usar como SGL
+       global», que escribe el campo de SGL por su camino de siempre y previo aviso.
+       El cuerpo lo pinta scRender con nodos: lo que entra son números derivados de lo que el
+       médico cargó. -->
+  <div class="sc-caja" id="sgl-calc"></div>
   <!-- ═══ Patrones de Strain — Referencia (integrado en SGL) ═══ -->
   <div style="border-top:2px solid var(--border);margin:28px 0 0"></div>
   <div style="font-size:16px;font-weight:800;margin:16px 0 12px;color:var(--text)">📊 Patrones de Strain — Referencia <button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="patrones-sgl" aria-expanded="false" style="font-size:13px;" aria-label="Informaci&oacute;n sobre de d&oacute;nde salen los patrones de strain y sus rangos de SGL" onclick="vInfoClic(this)">&#9432;</button></div>
@@ -32535,7 +32606,16 @@ const STRAIN_MIN = -20, STRAIN_PASO = 5;
 const STRAIN_MARCAS = Object.freeze([-20, -15, -10, -5, 0, 5, 10, 15]);
 /* Estado viejo de cinco pasos -> tramo nuevo. El 0 va a SIN DATO; ver el aviso de arriba.
    1 Hipoquinesia leve -> 2  ·  2 Hipoquinesia -> 3  ·  3 Acinesia -> 5  ·  4 Discinesia -> 7 */
-const STRAIN_MIGRA = Object.freeze([0, 2, 3, 5, 7]);
+const STRAIN_MIGRA = Object.freeze([1, 2, 3, 5, 7]);
+/* EL TRAMO POR OMISION DE UN SEGMENTO QUE NADIE TOCO (PR8-3.1). Es el 1 -el violeta-, por orden
+   expresa del medico: el bull's eye arranca violeta y sin numeros, y SIN DATO deja de ser el
+   arranque para pasar a ser un estado al que se llega ciclando, al final de los ocho tramos.
+   ⚠️ ESTO NO ESCRIBE strainEstado: el objeto sigue vacio hasta que el medico toca un segmento, y
+   es lo que mantiene en pie la compuerta del papel -«hay strain por segmento EVALUADO» pregunta
+   por un estado MAYOR QUE CERO sobre las claves que existen-. Un segmento sin tocar se DIBUJA
+   violeta y no cuenta como dato; uno que el medico dejo en violeta a proposito tiene su clave
+   escrita y si cuenta. Declarado en PENDIENTES -> PR8-g. */
+const STRAIN_DEF = 1;
 /* La version del modelo guardado. Sin esta marca no hay forma de distinguir un strain_sgl de
    cinco pasos de uno de nueve: los dos son numeros chicos y el 2 significa cosas distintas. */
 const STRAIN_VER = '2';
@@ -32568,6 +32648,7 @@ function strainParseNum(txt){
 }
 window.STRAIN_PAL = STRAIN_PAL; window.STRAIN_MARCAS = STRAIN_MARCAS;
 window.STRAIN_MIGRA = STRAIN_MIGRA; window.STRAIN_VER = STRAIN_VER;
+window.STRAIN_DEF = STRAIN_DEF;
 window.STRAIN_N_TRAMOS = STRAIN_N_TRAMOS;
 window.strainTramoDe = strainTramoDe; window.strainParseNum = strainParseNum;
 
@@ -53147,14 +53228,62 @@ const VINFO = Object.freeze({
   /* /!\ ES DESCRIPTIVO Y NO LLEVA NI UNA GUIA NI UN FOLIO: lo que explica es como se usa el
      control, no de donde sale un corte. Y no nombra ninguna marca de ecografo: la paleta es
      propia de esta aplicacion (PR7, 23/11/2026). */
+  /* LOS CINCO TEXTOS DE LA TABLA DE CALCULOS (PR8-4.4). Citan autor y anio porque un globo es el
+     unico lugar de esta aplicacion donde se cita; los folios viven en docs/PENDIENTES.md. */
+  'sc-prom': {
+    ancho: 380,
+    tit: 'Promedio de los valores por segmento',
+    lee: 'Promedio simple de los valores cargados por segmento.\n'
+       + 'Puede diferir del SGL global que entrega el equipo.\n'
+       + 'Voigt 2015 describe que el promedio de valores segmentarios equivale al global solo si '
+       + 'los segmentos tienen igual longitud.'
+  },
+  'sc-niv': {
+    ancho: 380,
+    tit: 'Promedio por nivel',
+    lee: 'Promedio simple de los valores cargados en los segmentos de ese nivel.\n'
+       + 'El nivel apical usa los cuatro segmentos apicales y NO incluye el casquete: es '
+       + 'criterio de la aplicación.\n'
+       + 'Puede diferir del SGL global que entrega el equipo.'
+  },
+  'sc-terr': {
+    ancho: 380,
+    tit: 'Promedio por territorio coronario',
+    lee: 'Promedio de los segmentos asignados a ese territorio en la aplicación; la distribución '
+       + 'coronaria varía entre pacientes.'
+  },
+  'sc-asr': {
+    ancho: 400,
+    tit: 'Apical sparing relativo',
+    lee: 'Promedio apical dividido por la suma del promedio basal y el promedio medio.\n'
+       + 'Phelan 2012 lo definió con 18 segmentos (seis por nivel) y propuso un valor de corte '
+       + 'de 1,0 en pacientes con amiloidosis cardíaca y con hipertrofia de otras causas, con un '
+       + 'único software de análisis.\n'
+       + 'Aquí se calcula con los 17 segmentos: basales 1 a 6, medios 7 a 12, apicales 13 a 16, '
+       + 'sin el casquete; es criterio de la aplicación.\n'
+       + 'Se usan valores absolutos.'
+  },
+  'sc-fsgl': {
+    ancho: 400,
+    tit: 'FEVI sobre SGL',
+    lee: 'FEVI dividida por el valor absoluto del SGL global.\n'
+       + 'Nagueh 2025 cita un valor mayor de 4,1 en la diferenciación de la amiloidosis cardíaca '
+       + 'respecto de otras causas de hipertrofia.\n'
+       + 'Se calcula con la FEVI cargada en la aplicación y el SGL global del campo; el uso del '
+       + 'valor absoluto es criterio de la aplicación.'
+  },
   'sgl-num': {
     ancho: 380,
     tit: 'Cómo se cargan los segmentos del bull\'s eye',
-    lee: 'Con el botón apagado, al tocar un segmento cambia de color.\n'
+    lee: 'Los diecisiete segmentos arrancan en el primer tramo, en violeta, y sin números.\n'
+       + 'Con el botón apagado, al tocar un segmento pasa al tramo siguiente; después del '
+       + 'octavo queda en gris, «Sin dato», y el toque siguiente vuelve al primero.\n'
        + 'Con el botón encendido, al tocar un segmento se escribe su valor de strain y el '
-       + 'color se asigna solo.\n'
+       + 'color se asigna solo. Un valor sin signo se toma como negativo; con un «+» adelante '
+       + 'se conserva positivo.\n'
        + 'Los valores van de -20 a +20; fuera de ese rango se usa el color del extremo.\n'
-       + 'Los segmentos sin dato se ven grises con un guion.'
+       + 'Borrar el número y confirmar devuelve el segmento al violeta del arranque.\n'
+       + 'El guion aparece sólo con el botón encendido, en los segmentos que no tienen número.'
   },
   'patrones-sgl': {
     ancho: 380,
@@ -81180,12 +81309,28 @@ const CW_NO_MEDIDA = Object.freeze(['Morf.', 'IM', 'IAo', 'IT', 'EA grado', 'EM 
    entran, repartidos por la tabla de abajo. */
 const CW_CUAD_FUERA = Object.freeze(['otros']);
 
+/* ══ LO QUE NO ES UNA MEDIDA SINO UN MENSAJE (PR8-2.2) ════════════════════════════════════════
+   Varias celdas de los cuadros no publican un numero cuando no se puede calcular: publican el
+   MOTIVO -«no corresponde» por la insuficiencia aortica severa, «no evaluable», «no valido»-.
+   En un cuadro del papel eso explica un hueco; en el texto que el medico pega en el sistema del
+   sanatorio es un renglon que dice una frase donde se espera un valor. La orden manda omitirlos.
+   ⚠️ SE COMPARA EN MINUSCULAS Y SIN TILDES: los motivos salen de tres duenos distintos y uno de
+   ellos escribe «no valido» y otro «no válido». */
+const CW_MENSAJES = Object.freeze(['no corresponde', 'no evaluable', 'no valido', 'no se pudo',
+                                   'revisar los valores', 'sin datos suficientes']);
+function _cwEsMensaje(s) {
+  const t = String(s == null ? '' : s).toLowerCase()
+    .replace(/[\u00e1\u00e0]/g, 'a').replace(/[\u00e9\u00e8]/g, 'e').replace(/[\u00ed]/g, 'i')
+    .replace(/[\u00f3]/g, 'o').replace(/[\u00fa\u00fc]/g, 'u');
+  return CW_MENSAJES.some(function (m) { return t.indexOf(m) >= 0 });
+}
 /* Una pieza «Etiqueta: valor». Se omite SOLA sin valor, así que el texto nunca publica un rótulo
    pelado ni un «—». La unidad ya viene dentro del valor que armó el cuadro. */
 function _cwPz(lbl, val) {
   if (val == null) return null;
   const s = String(val).trim();
   if (!s || s === '—' || s === '-') return null;
+  if (_cwEsMensaje(s)) return null;
   return lbl ? (lbl + ': ' + s) : s;
 }
 /* Una línea: las piezas separadas por « - », como la planilla de papel del médico. Sin piezas
@@ -81240,6 +81385,17 @@ function _cwIndiceValv() {
    el cuadro usa —así las abreviaturas siguen siendo las de la aplicación y no las de un ejemplo—.
    ⚠️ LAS SECCIONES VAN EN ESTE ORDEN Y NO EN EL DE `cuadDefs()`: la orden lo fija expresamente
    —Aorta, AI, VI, VD, AD y VCI, y después DOPPLER—, y no coincide con el orden de los cuadros. */
+/* ⚠️ ESTOS DOS SE DECLARAN ANTES DE CW_SECS Y NO AL LADO DE CW_DOPPLER_TIT, Y ES LA ZONA MUERTA
+   DE UN const: CW_SECS los CONSUME dentro de su literal, asi que con la declaracion mas abajo el
+   literal se evalua con el centinela todavia sin inicializar y el bloque de script ENTERO aborta
+   ahi -las funciones declaradas siguen existiendo por el izado, pero todos los const de abajo
+   quedan en zona muerta y ningun window.X = X vuelve a correr-. Lo cazo la sonda con catorce
+   errores de pagina que parecian de otros modulos, no la lectura. Es la misma trampa que PR7 pago
+   con la paleta del strain.
+   El centinela de la LINEA EN BLANCO dentro de una seccion, y el largo a partir del cual una
+   linea suelta su ultima pieza al renglon siguiente. */
+const CW_BLANCO = '--';
+const CW_CORTE_LARGO = 70;
 const CW_SECS = Object.freeze([
   { tit:'Aorta', lineas:[
       [['SV','ao|SV'], ['ST','ao|ST'], ['Ao asc','ao|Ao asc'],
@@ -81250,14 +81406,20 @@ const CW_SECS = Object.freeze([
   { tit:'Ventrículo izquierdo', lineas:[
       [['SIV','viest|SIV'], ['DDVI','viest|DDVI'], ['DSVI','viest|DSVI'], ['PP','viest|PP']],
       [['FEVI','visis|FEVI'], ['FA','visis|FA'], ['SGL','visis|SGL']],
-      [['Masa idx','visis|Masa idx'], ['RWT','visis|RWT']],
-      [['Geometría','visis|Geometria']],
       /* ⚠️ ESTE RENGLÓN Y EL SIGUIENTE NO ESTÁN EN LA LISTA DE LA ORDEN, y entran por la REGLA DE
          COMPLETITUD: son campos numéricos que HOY salen en los cuadros del PDF -los dos volúmenes
          indexados y el volumen latido en «VI - Estructura» y «VI - Función sistólica», y el gasto
          cardíaco entero en su propio cuadro- y la orden manda ubicarlos en el renglón más afín de
          su sección y listarlos en el reporte. El gasto cardíaco es el gasto del VENTRÍCULO
          IZQUIERDO, así que su sección afín es ésta. Listados en PR6-e. */
+      /* ⚠️ LOS TRES GRUPOS DEL VENTRICULO IZQUIERDO, SEPARADOS POR UNA LINEA EN BLANCO (PR8-2.2).
+         El separador es el centinela CW_BLANCO y lo resuelve armar: sale SOLO si hay un renglon
+         con datos antes Y otro despues, asi que un paciente sin masa indexada no deja dos lineas
+         en blanco pegadas ni una al final. */
+      CW_BLANCO,
+      [['Masa idx','visis|Masa idx'], ['RWT','visis|RWT']],
+      [['Geometría','visis|Geometria']],
+      CW_BLANCO,
       [['VDFVI idx','viest|VDFVI idx'], ['VSFVI idx','viest|VSFVI idx'],
        ['Vol. latido','visis|Vol. lat.']],
       [['Vol. sistólico','gc|Vol. sistól.'], ['VLI','gc|VLI'],
@@ -81303,6 +81465,13 @@ function _cwVal(clave, ix, ixv, CX) {
     if (clave === 'CW|volr') { try { return _cuadMetTxt(_imMetodoPdfPartes('volr-val', 'vr_cont', ' ml', 1)); } catch (e) { return null; } }
     if (clave === 'CW|fr')   { try { return _cuadMetTxt(_imMetodoPdfPartes('freg-val', 'im_fr_cont', '%', 0)); } catch (e) { return null; } }
     if (clave === 'CW|avm')  { return _cwAvmTxt(); }
+    /* ⚠️ LA FRASE QUE ESTABA REPETIDA, Y COMO QUEDO. Hasta PR7 la mitral publicaba DOS renglones
+       con el mismo numero: «area: 2.32 cm2 (THP)» -el area por el metodo elegido, que rotula cual
+       fue- y «AVm por THP: 2.32 cm2» -el mismo valor sin decir de donde sale-. Queda UNO: el que
+       dice el metodo, y viaja en la MISMA linea del THP. La clave vm|AVm THP ya no se nombra en
+       ninguna tabla de orden, asi que la completitud la declara usada a mano mas abajo.
+       No hace falta un resolvedor propio: con el area en esa linea, el AVm por THP numerico ES
+       ese valor. */
     return null;
   }
   return ix[clave];
@@ -81337,18 +81506,47 @@ function cuadTextoSecs() {
   const ix = _cwIndice(), ixv = _cwIndiceValv();
   let CX = null;
   try { CX = cuadCtx(); } catch (e) { CX = null; }
+  /* Una pieza: resuelve la clave y le pone la unidad si el grupo la declara. La TERCERA posicion
+     es la unidad, y es OPCIONAL: la necesitan los valores crudos de cuadCtx -el AVA- y la PAP
+     media, porque los de los cuadros ya la traen puesta adentro.
+     ⚠️ LA UNIDAD NO SE DUPLICA: si el valor ya la trae, no se la agrega otra vez. */
+  const pieza = function (par) {
+    const v = _cwVal(par[1], ix, ixv, CX);
+    let val = v;
+    if (v != null && par[2] && String(v).indexOf(String(par[2]).trim()) < 0) val = String(v) + par[2];
+    return _cwPz(par[0], val);
+  };
   const armar = function (sec) {
     const lineas = [];
     (sec.lineas || []).forEach(function (grupo) {
-      const l = _cwLinea(grupo.map(function (par) {
-        /* La TERCERA posicion es la unidad, y es OPCIONAL: solo la necesitan los valores crudos
-           de `cuadCtx` -el AVA-, porque los de los cuadros ya la traen puesta adentro. */
-        const v = _cwVal(par[1], ix, ixv, CX);
-        return _cwPz(par[0], (v != null && par[2]) ? (String(v) + par[2]) : v);
-      }));
-      if (l) lineas.push(l);
+      /* EL SEPARADOR. Se anota como un hueco y se resuelve al final: ver el filtro de abajo. */
+      if (grupo === CW_BLANCO) { lineas.push(CW_BLANCO); return; }
+      const g = Array.isArray(grupo) ? grupo : (grupo.p || []);
+      const corte = Array.isArray(grupo) ? 0 : (grupo.corte || 0);
+      const pz = g.map(pieza).filter(function (p) { return p != null && String(p).trim() !== '' });
+      if (!pz.length) return;
+      /* ⚠️ EL SEPARADOR LO PONE `_cwLinea` Y NO UN `join` ESCRITO ACA, aunque el resultado sea el
+         mismo: con el separador en dos lugares, el dia que cambie -- la orden ya lo fijo una vez
+         en « - » -- una de las dos formas quedaria vieja. Y el corte de abajo junta sus dos
+         pedazos por la MISMA funcion, por lo mismo. */
+      const junta = _cwLinea(pz);
+      /* ⚠️ EL CORTE SUELTA LA ULTIMA PIEZA, NO PARTE LA LINEA AL MEDIO: lo que se mide es el
+         largo de la linea entera, y lo que baja al renglon siguiente es la pieza que la hizo
+         pasar el corte. Con una sola pieza no hay nada que bajar. */
+      if (corte && junta.length > corte && pz.length > 1) {
+        lineas.push(_cwLinea(pz.slice(0, pz.length - 1)));
+        lineas.push(pz[pz.length - 1]);
+      } else lineas.push(junta);
     });
-    return lineas.length ? { tit: sec.tit, lineas: lineas } : null;
+    /* El separador sale SOLO entre dos renglones con datos. Sin esto, una seccion cuyo grupo del
+       medio no tenga nada cargado dejaria dos lineas en blanco seguidas o una al final. */
+    const out = [];
+    lineas.forEach(function (l) {
+      if (l !== CW_BLANCO) { out.push(l); return; }
+      if (out.length && out[out.length - 1] !== '') out.push('');
+    });
+    while (out.length && out[out.length - 1] === '') out.pop();
+    return out.length ? { tit: sec.tit, lineas: out } : null;
   };
   const out = [];
   CW_SECS.forEach(function (s) { const a = armar(s); if (a) out.push(a); });
@@ -81365,11 +81563,21 @@ window.cuadTextoSecs = cuadTextoSecs;
 /* El texto llano. Un titulo por seccion y debajo sus lineas, una por renglon. El noveno estilo
    de PDF consume `cuadTextoSecs()` directo para poder poner los titulos en negrita y subrayados;
    los dos botones de copiar consumen ESTA, que es la misma cosa en texto plano. */
+/* La MAYUSCULA INICIAL de un renglon (PR8-2.2). Se pone al armar la salida y no en la tabla de
+   orden: los rotulos de ahi son los de la aplicacion -«onda E», «e' septal», «area AD»- y
+   cambiarlos a mano habria dejado dos juegos de nombres para los mismos campos. */
+function _cwCap(l) {
+  const t = String(l == null ? '' : l);
+  return t ? (t.charAt(0).toUpperCase() + t.slice(1)) : t;
+}
 function cuadTexto() {
   const partes = [];
-  cuadTextoSecs().forEach(function (s) {
+  const secs = cuadTextoSecs();
+  secs.forEach(function (s, i) {
     partes.push(s.tit + ':');
-    (s.lineas || []).forEach(function (l) { partes.push('  ' + l); });
+    (s.lineas || []).forEach(function (l) { partes.push(l === '' ? '' : ('  ' + _cwCap(l))); });
+    /* UNA LINEA EN BLANCO ENTRE SECCIONES, no despues de la ultima. */
+    if (i < secs.length - 1) partes.push('');
   });
   return partes.join('\n');
 }
@@ -81387,9 +81595,15 @@ function cuadTextoFaltan() {
   const usadas = Object.create(null);
   const anotar = function (secs) {
     secs.forEach(function (s) { (s.lineas || []).forEach(function (g) {
-      g.forEach(function (par) { usadas[par[1]] = true; }); }); });
+      if (g === CW_BLANCO) return;
+      const arr = Array.isArray(g) ? g : (g.p || []);
+      arr.forEach(function (par) { usadas[par[1]] = true; }); }); });
   };
   anotar(CW_SECS); anotar(CW_SECS_DOP);
+  /* ⚠️ vm|AVm THP SE DECLARA USADA A MANO, y es la unica. Desde PR8 entra por el resolvedor
+     CW|avmThp -que la omite cuando ya esta publicada por el renglon del area-, asi que su clave
+     de cuadro ya no aparece en ninguna tabla de orden y la completitud la leeria como olvidada. */
+  usadas['vm|AVm THP'] = true;
   const ix = _cwIndice();
   return Object.keys(ix).filter(function (k) { return !usadas[k]; });
 }
@@ -81398,8 +81612,14 @@ window.cuadTextoFaltan = cuadTextoFaltan;
 const CW_SECS_DOP = Object.freeze([
   { tit:'Válvula mitral', lineas:[
       [['onda E','vm|Onda E'], ['onda A','vm|Onda A'], ['E/A','vm|E/A']],
-      [['THP','vm|THP'], ['área','CW|avm']],
-      [['TDE','vm|TDE'], ['TRIV','vm|TRIV']],
+      /* ⚠️ LA LINEA MITRAL: THP - TDE - TRIV, y el AVm por THP en la MISMA linea si no queda
+         larga (PR8-2.2). El corte lo decide armar con CW_CORTE_LARGO: si la linea armada pasa
+         de ese largo, la ULTIMA pieza baja al renglon siguiente. Un corte por numero de piezas
+         no serviria: «THP: 95 ms» y «THP: no se pudo verificar» no miden lo mismo.
+         ⚠️ Y EL AVm POR THP ENTRA POR CW|avmThp, QUE LO OMITE CUANDO YA ESTA PUBLICADO: ver el
+         aviso de ese resolvedor. Era la frase repetida que la orden manda mostrar una sola vez. */
+      { p:[['THP','vm|THP'], ['TDE','vm|TDE'], ['TRIV','vm|TRIV'], ['área','CW|avm']],
+        corte:CW_CORTE_LARGO },
       [["e' septal","dti|e' septal"], ["e' lateral","dti|e' lateral"],
        ["e' promedio","dti|e' prom."], ["E/e'","dti|E/e'"]],
       /* Completitud: los cinco de la VENA PULMONAR salen hoy en la sub-columna derecha del
@@ -81413,7 +81633,7 @@ const CW_SECS_DOP = Object.freeze([
        ['volumen regurgitante','CW|volr'], ['FR','CW|fr']],
       /* El AVm por THP es OTRA cosa que el area de la linea de arriba -esa es la del metodo
          elegido- y el cuadro mitral la publica aparte, asi que la completitud la exige. */
-      [['DVI','RV|rv_vm|DVI'], ['AVm por THP','vm|AVm THP']] ] },
+      [['DVI','RV|rv_vm|DVI']] ] },
   { tit:'Válvula aórtica', lineas:[
       [['V.Max','va|V. máx Ao'], ['G.Max','va|G. máx'], ['G.medio','va|G. medio']],
       [['Ø TSVI','ao|Ø TSVI'], ['VTI-TSVI','va|VTI TSVI'], ['VTI-VAo','va|VTI Vao']],
@@ -81433,7 +81653,12 @@ const CW_SECS_DOP = Object.freeze([
        ['V.Max Td de IP','CW|ipVtd'], ['PDAP por IP','trip|PAPd (IP)']],
       /* Completitud: la PAP media consignada y el DVI de la prótesis pulmonar salen hoy en el
          cuadro «Tricúspide / Pulmonar». */
-      [['PAP media','trip|PAP media'], ['DVI VP','trip|DVI VP']],
+      /* ⚠️ LA UNIDAD LA PONE ESTE TEXTO Y NO EL CUADRO, y queda declarado: la celda del cuadro
+         es { lbl:'PAP media', val: sv('pap_med') }, el unico valor del papel que sale sin su
+         unidad. Ponersela al cuadro cambiaria el PDF, que esta tanda no tiene orden de tocar;
+         ponersela aca cumple la orden -«la PAP media lleva su unidad en el texto»- sin mover una
+         linea del papel. En PENDIENTES -> PR8-e. */
+      [['PAP media','trip|PAP media',' mmHg'], ['DVI VP','trip|DVI VP']],
       [['vena contracta','RV|rv_vt|VC IT'], ['DVI','RV|rv_vt|DVI']] ] }
 ]);
 /* ══ LA FILA DE VÁLVULAS, REUSADA Y NO REESCRITA (PR6-2, 23/11/2026) ══════════════════════════
@@ -81570,6 +81795,7 @@ window.cuadPersonalizado = cuadPersonalizado; window.cuadBtnSync = cuadBtnSync;
 function cuadAbrir() {
   const ov = document.getElementById('cuad-ov');
   if (!ov) return;
+  cuadRvBtnSync();
   cuadPintar();
   ov.hidden = false;
   /* El foco al botón de cerrar, que es lo que `indicAbrir` hace con su tarjeta: sin esto el foco
@@ -81603,9 +81829,39 @@ function _cuadSpans(n) {
   cuadFilas(n).forEach(k => { for (let i = 0; i < k; i++) out.push(6 / k) });
   return out;
 }
+/* EL CUERPO DE UNA CAJA, UN SOLO ARMADOR. Lo usan los doce cuadros y las tres cajas del resumen
+   de valvulas de la vista previa: con dos armadores, la fila del resumen podria mostrar las
+   mismas filas con otra forma que los doce. */
+function _cuadCuerpoEn(box, d) {
+  /* Las dos sub-columnas se listan una detrás de la otra: en la tarjeta la caja es angosta y
+     partirla en dos dejaría dos palabras por renglón. El PAPEL sí las parte, y eso no es una
+     divergencia de contenido: son las mismas filas en el mismo orden. */
+  [d.items, d.items2].forEach(arr => (arr || []).forEach(it => {
+    if (it.val == null || String(it.val).trim() === '') return;
+    const r = document.createElement('div'); r.className = 'cuad-brow';
+    if (it.lbl) { const b = document.createElement('b'); b.textContent = it.lbl; r.appendChild(b);
+      r.appendChild(document.createTextNode((it.ref ? ' (' + it.ref + ')' : '') + ': ' + it.val)); }
+    else { r.appendChild(document.createTextNode(String(it.val))); }
+    box.appendChild(r);
+  }));
+  (d.lineas || []).forEach(l => {
+    if (!l || l.txt == null || String(l.txt).trim() === '') return;
+    const p = document.createElement('div');
+    p.className = 'cuad-blin' + (l.azul ? ' cuad-az' : '');
+    p.textContent = l.txt; box.appendChild(p);
+  });
+  if (d.nota) { const p = document.createElement('div'); p.className = 'cuad-bnota';
+    p.textContent = d.nota; box.appendChild(p); }
+}
 function cuadPintar() {
   const g = document.getElementById('cuad-grid');
   if (!g) return;
+  /* ATENCION: EL OYENTE DEL ARRASTRE VA EN LA GRILLA Y SE REGISTRA UNA SOLA VEZ, y las dos cosas
+     importan. Delegado, porque las cajas se destruyen en cada repintado y un oyente por caja hay
+     que volver a colgarlo; en la GRILLA, porque es el unico nodo de este arbol que NO se mueve
+     -ver el aviso de _cuadArrDown-. La marca en el nodo evita que se apilen doce copias. */
+  if (!g.__cuadArrOn) { g.addEventListener('pointerdown', _cuadArrDown); g.__cuadArrOn = 1; }
+  _cuadArrLimpiar();
   while (g.firstChild) g.removeChild(g.firstChild);
   const defs = cuadDefs();
   const porId = Object.create(null); defs.forEach(d => { porId[d.id] = d });
@@ -81624,7 +81880,6 @@ function cuadPintar() {
     grip.textContent = '⠿';
     grip.setAttribute('aria-label', 'Mover el cuadro ' + d.titulo);
     grip.setAttribute('title', 'Arrastrar para cambiarlo de lugar');
-    grip.addEventListener('pointerdown', _cuadArrDown);
     const tit = document.createElement('div'); tit.className = 'cuad-btit';
     tit.textContent = d.titulo; tit.setAttribute('title', d.titulo);
     const x = document.createElement('button');
@@ -81634,25 +81889,7 @@ function cuadPintar() {
     x.addEventListener('click', () => cuadQuitar(id));
     hdr.appendChild(grip); hdr.appendChild(tit); hdr.appendChild(x);
     box.appendChild(hdr);
-    /* Las dos sub-columnas se listan una detrás de la otra: en la tarjeta la caja es angosta y
-       partirla en dos dejaría dos palabras por renglón. El PAPEL sí las parte, y eso no es una
-       divergencia de contenido: son las mismas filas en el mismo orden. */
-    [d.items, d.items2].forEach(arr => (arr || []).forEach(it => {
-      if (it.val == null || String(it.val).trim() === '') return;
-      const r = document.createElement('div'); r.className = 'cuad-brow';
-      if (it.lbl) { const b = document.createElement('b'); b.textContent = it.lbl; r.appendChild(b);
-        r.appendChild(document.createTextNode((it.ref ? ' (' + it.ref + ')' : '') + ': ' + it.val)); }
-      else { r.appendChild(document.createTextNode(String(it.val))); }
-      box.appendChild(r);
-    }));
-    (d.lineas || []).forEach(l => {
-      if (!l || l.txt == null || String(l.txt).trim() === '') return;
-      const p = document.createElement('div');
-      p.className = 'cuad-blin' + (l.azul ? ' cuad-az' : '');
-      p.textContent = l.txt; box.appendChild(p);
-    });
-    if (d.nota) { const p = document.createElement('div'); p.className = 'cuad-bnota';
-      p.textContent = d.nota; box.appendChild(p); }
+    _cuadCuerpoEn(box, d);
     g.appendChild(box);
   });
   if (!vis.length) {
@@ -81660,6 +81897,39 @@ function cuadPintar() {
     p.setAttribute('data-cuad-span', '6');
     p.textContent = 'Todavía no hay datos cargados: el PDF no publica ningún cuadro.';
     g.appendChild(p);
+  }
+  /* ══ EL RESUMEN DE VALVULAS, EN LA VISTA PREVIA (PR8-1.1) ════════════════════════════════════
+     Hasta PR7 el interruptor solo movia lo que el PDF publicaba, asi que el medico lo prendia y
+     la tarjeta no cambiaba en nada: lo unico que podia hacer era generar el PDF para ver si le
+     habia hecho algo. Ahora las cajas aparecen aca en el momento.
+     ATENCION: LAS CAJAS DEL RESUMEN NO LLEVAN data-cuad-id, y eso es lo que las deja fuera del
+     arrastre, de la cruz, del orden y de los quitados POR CONSTRUCCION y no por una guarda: todo
+     eso se selecciona por ese atributo. El resumen es una INCLUSION, no uno de los doce.
+     ATENCION: SALEN DEL MISMO cuadResumenValvDefs() QUE EL PAPEL y con el mismo reparto de
+     cuadFilas, asi que la vista previa no puede prometer una disposicion que el PDF no respeta. */
+  if (cuadResumenValvOn()) {
+    let rv = [];
+    try { rv = cuadResumenValvDefs() } catch (e) { rv = [] }
+    rv = rv.filter(d => d && cuadConDatos(d));
+    if (rv.length) {
+      const t = document.createElement('div');
+      t.className = 'cuad-rvtit'; t.setAttribute('data-cuad-span', '6');
+      t.textContent = 'Resumen de válvulas';
+      g.appendChild(t);
+      const sp = _cuadSpans(rv.length);
+      rv.forEach((d, i) => {
+        const box = document.createElement('div');
+        box.className = 'cuad-box cuad-rvbox';
+        box.setAttribute('data-cuad-rv-id', d.id);
+        box.setAttribute('data-cuad-span', String(sp[i]));
+        const hdr = document.createElement('div'); hdr.className = 'cuad-bhdr';
+        const tit = document.createElement('div'); tit.className = 'cuad-btit';
+        tit.textContent = d.titulo; tit.setAttribute('title', d.titulo);
+        hdr.appendChild(tit); box.appendChild(hdr);
+        _cuadCuerpoEn(box, d);
+        g.appendChild(box);
+      });
+    }
   }
   /* La franja de los quitados. Se recupera con UN toque, y el chip dice el nombre del cuadro: con
      un número o un ícono el médico no sabe qué está reponiendo. */
@@ -81684,7 +81954,18 @@ function cuadPintar() {
 window.cuadPintar = cuadPintar;
 function cuadQuitar(id) { if (_cuadQuit.indexOf(id) < 0) _cuadQuit.push(id); cuadPintar(); }
 function cuadRecuperar(id) { _cuadQuit = _cuadQuit.filter(x => x !== id); cuadPintar(); }
-function cuadRestablecer() { cuadReset(); cuadPintar(); }
+/* RESTABLECER APAGA TAMBIEN EL RESUMEN DE VALVULAS Y SU INDICADOR (PR8-1.2). Hasta PR7 ese
+   boton restablecia el ORDEN y los QUITADOS y el interruptor quedaba prendido, asi que
+   «Restablecer» dejaba el PDF con tres cuadros que el orden de fabrica no tiene.
+   ATENCION: SE APAGA ACA Y NO EN cuadReset, a proposito: cuadReset es el reseteo PURO del orden
+   y de los quitados y lo llaman tambien las pruebas para armar su escena. Lo que la orden pide es
+   que lo apague el BOTON. */
+function cuadRestablecer() {
+  cuadReset();
+  _cuadResumenValv = false;
+  cuadRvBtnSync();
+  cuadPintar();
+}
 /* El interruptor del resumen de valvulas. NO repinta la grilla: el resumen no es uno de los doce
    cuadros y no se muestra en la tarjeta —lo que la tarjeta configura es el ORDEN y los QUITADOS—.
    Lo unico que mueve es lo que el PDF publica, y eso se mide generando el PDF. */
@@ -81700,7 +81981,7 @@ function cuadRestablecer() { cuadReset(); cuadPintar(); }
    conector, que esta tanda tiene prohibido tocar. Lo que se repite son ocho lineas de API del
    navegador, no un criterio clinico ni un dato. Declarado en PENDIENTES -> PR6-f.
    ⚠️ EL AVISO ES MINIMO Y NO DICE EL TEXTO: lo copiado son los datos de un paciente. */
-function _cuadCopiar(txt, queCosa) {
+function _cuadCopiar(txt, queCosa, html) {
   const t = String(txt == null ? '' : txt);
   if (!t.trim()) { if (typeof toast === 'function') toast('No hay nada que copiar.'); return false; }
   const ok = function () { if (typeof toast === 'function') toast('\u2705 Copiado'); };
@@ -81742,6 +82023,50 @@ function _cuadCopiar(txt, queCosa) {
       return true;
     } catch (e) { if (typeof toast === 'function') toast('\u26a0\ufe0f No se pudo copiar.'); return false; }
   };
+  /* ══ EL COPIADO CON FORMATO (PR8-2.1) ═══════════════════════════════════════════════════════
+     LOS DOS FORMATOS VIAJAN EN EL MISMO COPIADO, y no es un detalle: el portapapeles del sistema
+     guarda un solo contenido con varias representaciones, asi que escribir primero el HTML y
+     despues el texto plano DEJA SOLO EL SEGUNDO. Word pega la representacion rica y el sistema
+     del sanatorio la llana, del mismo copiado.
+     ⚠️ TRES VIAS, EN ESTE ORDEN, Y LAS DOS PRIMERAS CONSERVAN EL FORMATO:
+       1. ClipboardItem con las dos representaciones. Exige contexto seguro.
+       2. Un nodo editable fuera de pantalla con el HTML adentro, seleccionado, y execCommand:
+          el navegador arma el las dos representaciones solo. Anda con file:// , que es como esta
+          aplicacion se abre.
+       3. El textarea de siempre, que copia SOLO texto llano. Es la red: la orden dice que si el
+          navegador no permite el formato se copie el texto sin romper nada.
+     ⚠️ Y SI FALLAN LAS TRES SE DICE y se deja el texto seleccionable, que es lo que ya hacia. */
+  const porNodoRico = function () {
+    if (!html) return false;
+    try {
+      const d = document.createElement('div');
+      d.setAttribute('data-cuad-copia-rica', '');
+      d.setAttribute('contenteditable', 'true');
+      d.style.cssText = 'position:fixed;top:-3000px;left:-3000px;opacity:0;white-space:pre-wrap;';
+      d.innerHTML = html;
+      document.body.appendChild(d);
+      const sel = window.getSelection(); const rg = document.createRange();
+      rg.selectNodeContents(d); sel.removeAllRanges(); sel.addRange(rg);
+      const bien = document.execCommand && document.execCommand('copy');
+      sel.removeAllRanges();
+      document.body.removeChild(d);
+      return !!bien;
+    } catch (e) { return false; }
+  };
+  if (html && navigator.clipboard && navigator.clipboard.write
+      && typeof window.ClipboardItem === 'function') {
+    try {
+      const it = new window.ClipboardItem({
+        'text/html':  new Blob([html], { type:'text/html' }),
+        'text/plain': new Blob([t],    { type:'text/plain' })
+      });
+      navigator.clipboard.write([it]).then(ok).catch(function () {
+        if (porNodoRico()) ok(); else if (porTextarea()) ok(); else aMano();
+      });
+      return true;
+    } catch (e) { /* cae a las vias de abajo */ }
+  }
+  if (porNodoRico()) { ok(); return true; }
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(t).then(ok)
       .catch(function () { if (porTextarea()) ok(); else aMano(); });
@@ -81752,9 +82077,40 @@ function _cuadCopiar(txt, queCosa) {
 }
 window._cuadCopiar = _cuadCopiar;
 
-/* (1) LOS DATOS NUMERICOS. Sin datos del paciente: `cuadTexto()` no toca el nombre, la edad ni el
+/* ══ EL HTML, DEL MISMO ARMADOR QUE EL TEXTO Y QUE EL PAPEL ══════════════════════════════════
+   cuadTextoSecs() es el unico dueno: de el salen el texto llano, este HTML y el cuerpo del PDF
+   Tipo Word. Con tres armadores, los tres podrian decir cosas distintas del mismo estudio.
+   El escape es obligatorio: los valores traen los nombres y las notas que el medico escribio. */
+function _cwEscHtml(t) {
+  return String(t == null ? '' : t)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+/* Un parrafo con margen cero: Word respeta el margen del parrafo y sin esto cada renglon queda
+   separado por una linea entera. Las lineas EN BLANCO del texto son parrafos con un espacio
+   duro, que es lo que Word conserva al pegar. */
+function _cwP(t, estilo) {
+  return '<p style="margin:0;' + (estilo || '') + '">' + t + '</p>';
+}
+function cuadTextoHTML() {
+  const secs = cuadTextoSecs();
+  if (!secs.length) return '';
+  const p = ['<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#000;">'];
+  secs.forEach(function (s, i) {
+    /* DOPPLER en negrita Y SUBRAYADO; las demas secciones solo en negrita. */
+    const t = _cwEscHtml(s.tit);
+    p.push(_cwP(s.tit === CW_DOPPLER_TIT ? ('<b><u>' + t + '</u></b>') : ('<b>' + t + '</b>')));
+    (s.lineas || []).forEach(function (l) {
+      p.push(l === '' ? _cwP('&nbsp;') : _cwP(_cwEscHtml(_cwCap(l))));
+    });
+    if (i < secs.length - 1) p.push(_cwP('&nbsp;'));
+  });
+  p.push('</div>');
+  return p.join('');
+}
+window.cuadTextoHTML = cuadTextoHTML;
+/* (1) LOS DATOS NUMERICOS. Sin datos del paciente: cuadTexto() no toca el nombre, la edad ni el
    documento, y el censo de lo que publica son los rotulos de los cuadros. */
-function cuadCopiarDatos() { return _cuadCopiar(cuadTexto(), 'datos'); }
+function cuadCopiarDatos() { return _cuadCopiar(cuadTexto(), 'datos', cuadTextoHTML()); }
 window.cuadCopiarDatos = cuadCopiarDatos;
 
 /* (2) EL INFORME CON SU EN SUMA, tal cual salen en el informe. Con el EN SUMA vacio va SOLO el
@@ -81768,64 +82124,199 @@ function cuadInformeTexto() {
   return inf + '\n\nEN SUMA:\n' + suma;
 }
 window.cuadInformeTexto = cuadInformeTexto;
-function cuadCopiarInforme() { return _cuadCopiar(cuadInformeTexto(), 'informe'); }
+/* Las DOS piezas del informe, para que el texto, el HTML y el PDF Tipo Word salgan de una sola
+   lectura del formulario. */
+function cuadInformePartes() {
+  return {
+    inf:  String((document.getElementById('informe_texto') || {}).value || '').trim(),
+    suma: String((document.getElementById('en_suma') || {}).value || '').trim()
+  };
+}
+window.cuadInformePartes = cuadInformePartes;
+/* Los ITEMS del EN SUMA: un renglon no vacio es un item, y se le saca la vinieta que el medico
+   pueda haber escrito a mano para no ponerle dos. */
+function cuadSumaItems(suma) {
+  return String(suma == null ? '' : suma).split(/\r?\n/)
+    .map(function (l) { return String(l).trim().replace(/^[\u2022\u00b7*-]\s*/, '') })
+    .filter(function (l) { return l !== '' });
+}
+window.cuadSumaItems = cuadSumaItems;
+/* EL INFORME CON FORMATO. «INFORME» y «EN SUMA:» en negrita y subrayados, y cada item del EN
+   SUMA con su vinieta.
+   ⚠️ LA VINIETA VA EN EL HTML Y EN EL PAPEL, Y NO EN EL TEXTO LLANO: el texto llano es la red
+   para pegar en un sistema que no acepta formato, y ahi lo que se pega es lo que el medico
+   escribio. Declarado en PENDIENTES -> PR8-f. */
+function cuadInformeHTML() {
+  const q = cuadInformePartes();
+  if (!q.inf && !q.suma) return '';
+  const p = ['<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#000;">'];
+  if (q.inf) {
+    p.push(_cwP('<b><u>INFORME</u></b>'));
+    String(q.inf).split(/\r?\n/).forEach(function (l) {
+      p.push(l.trim() === '' ? _cwP('&nbsp;') : _cwP(_cwEscHtml(l)));
+    });
+  }
+  if (q.suma) {
+    if (q.inf) p.push(_cwP('&nbsp;'));
+    p.push(_cwP('<b><u>EN SUMA:</u></b>'));
+    p.push('<ul style="margin:0 0 0 18px;padding:0;">');
+    cuadSumaItems(q.suma).forEach(function (l) {
+      p.push('<li style="margin:0;">' + _cwEscHtml(l) + '</li>');
+    });
+    p.push('</ul>');
+  }
+  p.push('</div>');
+  return p.join('');
+}
+window.cuadInformeHTML = cuadInformeHTML;
+function cuadCopiarInforme() { return _cuadCopiar(cuadInformeTexto(), 'informe', cuadInformeHTML()); }
 window.cuadCopiarInforme = cuadCopiarInforme;
 
-function cuadResumenValvToggle(on) { _cuadResumenValv = (on === true); }
+/* EL INTERRUPTOR. Repinta la grilla -el resumen ya se ve en la vista previa- y pone al dia su
+   propio boton. Solo repinta con la tarjeta ABIERTA: cerrada, cuadPintar trabajaria sobre una
+   grilla que nadie mira y, peor, le pediria las definiciones al formulario en cada cambio. */
+function cuadResumenValvToggle(on) {
+  _cuadResumenValv = (on === true);
+  cuadRvBtnSync();
+  const ov = document.getElementById('cuad-ov');
+  if (ov && !ov.hidden) cuadPintar();
+}
+/* EL ESTADO DEL BOTON NO VIVE SOLO EN EL COLOR: aria-pressed lo dice en los dos estados, que es
+   lo que lo deja disponible para un lector de pantalla y para quien no distingue el color. Se
+   busca por data-cuad-rv y no por un id: el boton no tiene ninguno, por el mismo motivo por el
+   que la casilla que reemplaza tampoco lo tenia. */
+function cuadRvBtnSync() {
+  const b = document.querySelector('[data-cuad-rv]');
+  if (!b) return;
+  const on = cuadResumenValvOn();
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.classList.toggle('btn-primary', on);
+  b.classList.toggle('btn-ghost', !on);
+}
 window.cuadResumenValvToggle = cuadResumenValvToggle;
+window.cuadRvBtnSync = cuadRvBtnSync;
 window.cuadQuitar = cuadQuitar; window.cuadRecuperar = cuadRecuperar;
 window.cuadRestablecer = cuadRestablecer;
-/* ══ EL ARRASTRE, CON EVENTOS DE PUNTERO ══════════════════════════════════════════════════════
-   `pointerdown` / `pointermove` / `pointerup` y no `dragstart`: el arrastre nativo de HTML no
-   existe con el dedo, y la orden pide que funcione en celular y tablet. La manija lleva
-   `touch-action:none` para que el navegador no se quede el gesto.
-   ⚠️ SE MUEVE EL NODO Y SE REPINTA AL SOLTAR, no en cada movimiento: repintar destruiría la manija
-   que tiene capturado el puntero y el arrastre se cortaría solo al primer píxel. El orden se
-   COMMITEA leyendo el DOM en el `pointerup`. */
-let _cuadArrEl = null;
+/* ══ EL ARRASTRE (PR8-1.3) — DESDE CUALQUIER PARTE DEL CUADRO, CON INTERCAMBIO AL SOLTAR ══════
+   ⚠️ LA CAUSA DEL CUADRO QUE QUEDABA GRIS Y NO SE PODIA VOLVER A MOVER, QUE ES LO QUE EL MEDICO
+   REPORTO, Y NO ES UN DESCUIDO DE LIMPIEZA: SON LOS EVENTOS DE PUNTERO.
+   La version de PR6 colgaba pointermove y pointerup DEL ASA y le daba a esa misma asa la captura
+   del puntero. Y movia el nodo en vivo, con insertBefore sobre la caja. Insertar un nodo que ya
+   tiene padre es, en el estandar del DOM, QUITARLO y volver a insertarlo; y la captura del
+   puntero se SUELTA cuando el nodo que la tiene sale del documento. El asa es descendiente de la
+   caja que se movia, asi que el PRIMER insertBefore del gesto le soltaba la captura: desde ahi el
+   pointerup ya no llegaba al asa, _cuadArrUp no corria NUNCA, la clase cuad-arr -opacidad .45-
+   se quedaba puesta y el orden no se commiteaba ni se repintaba. Exactamente el sintoma: el
+   cuadro se movia, quedaba apagado y no respondia mas.
+   Y no lo veian las pruebas porque despachan los eventos DIRECTAMENTE sobre el asa: ahi el
+   pointerup llega porque es el nodo de destino del despacho, con captura o sin ella.
+   SE CIERRA POR TRES LADOS A LA VEZ:
+     1. move y up se escuchan en el DOCUMENTO, que no se mueve;
+     2. la captura se pide sobre la GRILLA, que es el unico nodo de este arbol que no se mueve;
+     3. durante el gesto NO SE MUEVE NINGUN NODO -lo que se mueve es una clase de marcador- y el
+        orden se escribe una sola vez, al soltar.
+   ⚠️ Y LA LIMPIEZA VA ADEMAS EN cuadPintar, que es la red: cualquier camino que repinte la grilla
+   deja las clases y los oyentes en cero, asi que un gesto interrumpido no puede sobrevivir a un
+   repintado. */
+const CUAD_ARR_UMBRAL = 6;     /* px de movimiento que distinguen un arrastre de un clic */
+const CUAD_ARR_ESPERA = 220;   /* ms de apretado quieto que tambien lo inician */
+let _cuadArr = null;           /* {el, id, x0, y0, pid, activo, dest, timer} */
+function _cuadArrLimpiar() {
+  if (_cuadArr && _cuadArr.timer) { try { clearTimeout(_cuadArr.timer) } catch (e) {} }
+  _cuadArr = null;
+  document.removeEventListener('pointermove', _cuadArrMove, true);
+  document.removeEventListener('pointerup', _cuadArrUp, true);
+  document.removeEventListener('pointercancel', _cuadArrUp, true);
+  const g = document.getElementById('cuad-grid');
+  if (!g) return;
+  g.classList.remove('cuad-arrastrando');
+  Array.prototype.forEach.call(g.querySelectorAll('.cuad-arr'), n => n.classList.remove('cuad-arr'));
+  Array.prototype.forEach.call(g.querySelectorAll('.cuad-dest'), n => n.classList.remove('cuad-dest'));
+}
+/* El gesto empieza en cualquier parte de la caja. La CRUZ queda afuera: ahi el gesto es quitar, y
+   un umbral de arrastre sobre el boton de quitar le comeria el clic al medico. */
 function _cuadArrDown(ev) {
-  const box = ev.currentTarget.parentNode && ev.currentTarget.parentNode.parentNode;
-  if (!box || !box.getAttribute || !box.getAttribute('data-cuad-id')) return;
-  _cuadArrEl = box;
-  box.classList.add('cuad-arr');
-  try { ev.currentTarget.setPointerCapture(ev.pointerId) } catch (e) {}
-  ev.currentTarget.addEventListener('pointermove', _cuadArrMove);
-  ev.currentTarget.addEventListener('pointerup', _cuadArrUp);
-  ev.currentTarget.addEventListener('pointercancel', _cuadArrUp);
-  ev.preventDefault();
+  if (ev.button !== undefined && ev.button !== 0) return;
+  const t = ev.target;
+  if (!t || !t.closest) return;
+  if (t.closest('.cuad-x') || t.closest('.cuad-chip')) return;
+  const box = t.closest('#cuad-grid > [data-cuad-id]');
+  if (!box) return;
+  _cuadArrLimpiar();
+  _cuadArr = { el: box, id: box.getAttribute('data-cuad-id'), x0: ev.clientX, y0: ev.clientY,
+               pid: (ev.pointerId === undefined ? null : ev.pointerId), activo: false,
+               dest: null, timer: null };
+  _cuadArr.timer = setTimeout(function () {
+    if (_cuadArr && !_cuadArr.activo) _cuadArrIniciar();
+  }, CUAD_ARR_ESPERA);
+  document.addEventListener('pointermove', _cuadArrMove, true);
+  document.addEventListener('pointerup', _cuadArrUp, true);
+  document.addEventListener('pointercancel', _cuadArrUp, true);
+}
+function _cuadArrIniciar() {
+  if (!_cuadArr || _cuadArr.activo) return;
+  _cuadArr.activo = true;
+  if (_cuadArr.timer) { try { clearTimeout(_cuadArr.timer) } catch (e) {} _cuadArr.timer = null; }
+  try { _cuadArr.el.classList.add('cuad-arr') } catch (e) {}
+  const g = document.getElementById('cuad-grid');
+  if (!g) return;
+  g.classList.add('cuad-arrastrando');
+  if (_cuadArr.pid !== null) { try { g.setPointerCapture(_cuadArr.pid) } catch (e) {} }
+}
+/* El destino se resuelve por elementFromPoint y se MARCA con una clase. No se mueve nada: ver el
+   aviso de arriba. */
+function _cuadArrSobre(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const o = (el && el.closest) ? el.closest('#cuad-grid > [data-cuad-id]') : null;
+  return (o && _cuadArr && o !== _cuadArr.el) ? o : null;
 }
 function _cuadArrMove(ev) {
-  if (!_cuadArrEl) return;
+  if (!_cuadArr) return;
+  if (!_cuadArr.activo) {
+    const d = Math.max(Math.abs(ev.clientX - _cuadArr.x0), Math.abs(ev.clientY - _cuadArr.y0));
+    if (d < CUAD_ARR_UMBRAL) return;
+    _cuadArrIniciar();
+  }
+  if (ev.cancelable) { try { ev.preventDefault() } catch (e) {} }
   const g = document.getElementById('cuad-grid'); if (!g) return;
-  const el = document.elementFromPoint(ev.clientX, ev.clientY);
-  const over = (el && el.closest) ? el.closest('#cuad-grid > [data-cuad-id]') : null;
-  if (!over || over === _cuadArrEl) return;
-  const r = over.getBoundingClientRect();
-  /* ⚠️ EL EJE SE DECIDE POR LA POSICIÓN DE LOS DOS CUADROS Y NO POR LA FORMA DE UNO. La primera
-     versión miraba si el cuadro era más ancho que alto: en celular, donde va uno por fila y mide
-     todo el ancho, eso daba «más ancho» y el gesto se ordenaba por el eje horizontal, o sea por el
-     eje que ahí no ordena nada. Si los dos se superponen verticalmente están en la MISMA fila y
-     manda la x; si no, están uno debajo del otro y manda la y. */
-  const ra = _cuadArrEl.getBoundingClientRect();
-  const solape = Math.min(ra.bottom, r.bottom) - Math.max(ra.top, r.top);
-  const mismaFila = solape > Math.min(ra.height, r.height) * 0.5;
-  const antes = mismaFila
-    ? (ev.clientX < r.left + r.width / 2)
-    : (ev.clientY < r.top + r.height / 2);
-  g.insertBefore(_cuadArrEl, antes ? over : over.nextSibling);
+  Array.prototype.forEach.call(g.querySelectorAll('.cuad-dest'), n => n.classList.remove('cuad-dest'));
+  const o = _cuadArrSobre(ev.clientX, ev.clientY);
+  if (o) o.classList.add('cuad-dest');
+  _cuadArr.dest = o ? o.getAttribute('data-cuad-id') : null;
 }
 function _cuadArrUp(ev) {
-  const t = ev.currentTarget;
-  if (t) { t.removeEventListener('pointermove', _cuadArrMove);
-           t.removeEventListener('pointerup', _cuadArrUp);
-           t.removeEventListener('pointercancel', _cuadArrUp);
-           try { t.releasePointerCapture(ev.pointerId) } catch (e) {} }
-  if (!_cuadArrEl) return;
-  _cuadArrEl.classList.remove('cuad-arr');
-  _cuadArrEl = null;
-  cuadOrdenDesdeDOM();
+  if (!_cuadArr) return;
+  const g = document.getElementById('cuad-grid');
+  if (g && _cuadArr.pid !== null) { try { g.releasePointerCapture(_cuadArr.pid) } catch (e) {} }
+  const activo = _cuadArr.activo, a = _cuadArr.id;
+  let b = _cuadArr.dest;
+  /* ⚠️ EL DESTINO SE VUELVE A RESOLVER EN EL pointerup, y hace falta: un gesto de UN SOLO
+     movimiento -el del dedo rapido, y el de las pruebas- puede llegar con el destino todavia sin
+     anotar si ese movimiento fue el que cruzo el umbral. */
+  if (activo && !b) { const o = _cuadArrSobre(ev.clientX, ev.clientY);
+                      if (o) b = o.getAttribute('data-cuad-id'); }
+  _cuadArrLimpiar();
+  if (activo && a && b && a !== b) { cuadIntercambiar(a, b); return; }
   cuadPintar();
 }
+/* ══ EL INTERCAMBIO ═══════════════════════════════════════════════════════════════════════════
+   Soltar sobre otro cuadro los INTERCAMBIA de lugar, que es lo que la orden pide. Con dos cuadros
+   VECINOS el resultado es el mismo que el de insertar uno despues del otro -por eso las pruebas
+   del arrastre de PR6 y de CUADROS siguen midiendo lo mismo-, y con dos lejanos es otra cosa: el
+   de destino va al lugar del que se arrastro en vez de correrse una posicion.
+   ⚠️ EL ANCHO PERTENECE A LA POSICION Y NO AL CUADRO, y es la regla de acomodo que ya existia:
+   _cuadSpans reparte los spans por POSICION desde cuadFilas, asi que al intercambiar dos cuadros
+   de anchos distintos cada uno toma el ancho de su lugar nuevo. No se inventa ningun motor.
+   Declarado en PENDIENTES -> PR8-b. */
+function cuadIntercambiar(a, b) {
+  const o = cuadOrdenVigente().slice();
+  const ia = o.indexOf(a), ib = o.indexOf(b);
+  if (ia < 0 || ib < 0 || ia === ib) { cuadPintar(); return; }
+  o[ia] = b; o[ib] = a;
+  _cuadOrden = o;
+  cuadPintar();
+}
+window.cuadIntercambiar = cuadIntercambiar;
 /* ⚠️ LOS QUITADOS CONSERVAN SU LUGAR. La grilla sólo tiene los cuadros visibles, así que el orden
    nuevo son los del DOM más los quitados en el lugar relativo que tenían: sin esto, quitar un
    cuadro y arrastrar otro mandaba el quitado al final y al recuperarlo aparecía donde no estaba. */
@@ -82133,6 +82624,26 @@ function generarPDFReal(_aj) {
        como código vivo ni las borre creyendo que sobran. */
     firmaSerif:true, firmaMonoMatr:true, firmaCirculo:null, firmaCierre:false
   };
+  /* ══ PLANTILLA 9 · TIPO WORD (PR8-2.4) ══════════════════════════════════════════════════════
+     NEGRO SOBRE BLANCO Y SIN UNA SOLA CAJA, que es lo que la orden pide con todas las letras.
+     Hasta PR7 este estilo no tenia perfil propio y caia en el del Clasico: su encabezado salia
+     con la banda de color del tema, la barra de INFORME con su relleno de color y el EN SUMA en
+     el color de acento. Lo que lo deja monocromo NO es una lista de excepciones repartida por el
+     emisor: es este perfil, que es el unico lugar donde esas decisiones viven. Con los rellenos
+     en null, drawBar imprime el titulo en negro y drawTablaCompacta no dibuja ni borde exterior
+     ni divisores -y en este estilo ademas no se la llama para los cuadros-.
+     ⚠️ barSubray ES LA CLAVE NUEVA: el titulo va en negrita Y SUBRAYADO, que es lo que el
+     copiado del informe hace con INFORME y con EN SUMA. Sin ella un titulo negro sobre blanco
+     sin banda y sin linea no se distingue del cuerpo. */
+  _TBL_ESTILOS.tipoword = {
+    serif:false, hdrFill:null, hdrText:[0,0,0], hdrUpper:false, hdrTrack:0,
+    zebra:null, lblCol:[0,0,0], valCol:[0,0,0], rowPad:1.5,
+    bordeExt:null, sepHdr:null, divH:null, divV:null,
+    barFill:null, barText:[0,0,0], barSerif:false, barUpper:true, barLinea:null, barSubray:true,
+    infBorde:null, infFondo:null, infSerif:false, infCol:[0,0,0], sumaCol:[0,0,0],
+    tituloInforme:'INFORME', tituloSuma:'EN SUMA:',
+    firmaSerif:false, firmaMonoMatr:false, firmaCirculo:null, firmaCierre:false
+  };
   /* ── PLANTILLA 5 · COMPACTO ──
      La compacidad sale del padding y del alto de fila, NO de bajar el cuerpo de letra ni de
      reagrupar secciones: las celdas ya están a 7 pt (que impresos son ~7,5) y el número de
@@ -82426,6 +82937,14 @@ function generarPDFReal(_aj) {
     if (_TBL.barSerif) { doc.setFont('times','bold'); doc.setFontSize(8.5 * _FS); } else fb(8.5);
     { const bt = _C(_TBL.barText); tc(bt[0],bt[1],bt[2]); }
     doc.text(_t, bx, y + _BAR_PAD + _BAR_CAP);
+    /* EL SUBRAYADO DEL TITULO (PR8-2.4). Es un rectangulo fino del ancho del TEXTO MEDIDO -no del
+       ancho de la caja-, que es lo que lo hace parecer subrayado y no una barra de seccion. Es la
+       misma receta que el cuerpo de este estilo ya usaba para sus titulos de seccion. */
+    if (_TBL.barSubray) {
+      let _bw = 0; try { _bw = doc.getTextWidth(_t) } catch (_eb) { _bw = 0 }
+      if (_bw > 0) { const bc = _C(_TBL.barText); if (bc) fc(bc[0], bc[1], bc[2]);
+                     doc.rect(bx, y + _BAR_PAD + _BAR_CAP + 0.9, _bw, 0.35, 'F'); }
+    }
     // Línea fina bajo el título: la única decoración de la plantilla sin banda de color.
     if (_TBL.barLinea) {
       { const bl = _C(_TBL.barLinea); dc(bl[0],bl[1],bl[2]); } doc.setLineWidth(0.3);
@@ -83012,6 +83531,35 @@ function generarPDFReal(_aj) {
     return _hdrCajaPaciente(hdrH + 4, TEMA);
   }
 
+  /* ─── PLANTILLA 9 · TIPO WORD ───────────────────────────────────────────────────────────────
+     LA FICHA DEL PACIENTE EN POCOS RENGLONES Y SIN CUADROS (PR8-2.4). Son los MISMOS datos de
+     identificacion que las otras ocho plantillas publican -salen de pRows, el unico lugar donde
+     se resuelven-, puestos como renglones de texto en vez de una grilla con bordes.
+     ⚠️ TODO EN NEGRO Y EL LOGO SOLO SI ESTA CARGADO: _hdrDibujarLogo ya no dibuja nada cuando no
+     hay logo, asi que la condicion no se escribe aca. No hay banda, no hay trazo de ECG y no hay
+     linea de separacion: la orden dice sin cuadros ni recuadros.
+     ⚠️ EL SIMBOLO DEL SEXO ENTRA POR _tSexo, el mismo dibujante que usa la caja del paciente: ese
+     glifo no existe en WinAnsi y escribirlo con doc.text convierte la cadena entera a UTF-16. */
+  function _hdrTipoWord() {
+    let yy = 11;
+    _hdrDibujarLogo(210 - mL, 7, 15, 34);
+    fb(13); tc(0,0,0);
+    doc.text(_sanML(_hdrTitulo), mL, yy);
+    yy += 5.4;
+    if (_hdrLine) { fn(9.5); tc(0,0,0); doc.text(_sanML(_hdrLine), mL, yy); yy += 5.0; }
+    yy += 1.4;
+    fn(8.5); tc(0,0,0);
+    (pRows || []).forEach(function (row) {
+      const pz = (row || []).filter(function (c) { return c && c.val })
+        .map(function (c) { return _sanML(c.lbl) + ': ' + _sanML(String(c.val)) });
+      if (!pz.length) return;
+      doc.splitTextToSize(pz.join('   \u00b7   '), pgW).forEach(function (ln) {
+        _tSexo(ln, mL, yy); yy += 4.3;
+      });
+    });
+    return yy + 2.2;
+  }
+
   // ─── PLANTILLA 2 · MODERNO ───────────────────────────────────────────────
   function _hdrModerno() {
     /* ERA `[198,40,40]` CABLEADO, Y ÉSA ERA LA MITAD DEL PDF QUE NO OBEDECÍA (2026-09-18).
@@ -83411,7 +83959,7 @@ function generarPDFReal(_aj) {
   /* «Tipo Word» usa el encabezado CLÁSICO, por orden expresa —«mismo encabezado, pie y firma que
      usan los otros estilos»—. Se apunta a la misma función y no se escribe una copia: así el día
      que el clásico cambie, este estilo cambia con él. Lo que ese estilo reemplaza es el CUERPO. */
-  _PLANTILLAS_FN.tipoword = _hdrClasico;
+  _PLANTILLAS_FN.tipoword = _hdrTipoWord;
   // `_plantillaId` se lee arriba, junto a TEMA: lo usan el encabezado Y las tablas.
 
   /* La `y` que devuelve la plantilla se VALIDA, no se confía. Es el único acoplamiento entre el
@@ -83526,15 +84074,24 @@ function generarPDFReal(_aj) {
         { const tcol = _C(_TBL.lblCol); if (tcol) tc(tcol[0], tcol[1], tcol[2]); }
         const _tit = _sanML(s.tit);
         doc.text(_tit, mL + 2, y);
-        { let _w = 0; try { _w = doc.getTextWidth(_tit); } catch (_e2) { _w = 0; }
-          if (_w > 0) doc.rect(mL + 2, y + 0.9, _w, 0.35, 'F'); }
+        /* ⚠️ EL SUBRAYADO VA SOLO EN DOPPLER, igual que en el copiado: la orden distingue
+           «titulos de seccion en negrita» de «DOPPLER en negrita y subrayado». Hasta PR7 lo
+           llevaban los nueve titulos, asi que el papel y el portapapeles se contradecian. */
+        if (typeof CW_DOPPLER_TIT !== 'undefined' && s.tit === CW_DOPPLER_TIT) {
+          let _w = 0; try { _w = doc.getTextWidth(_tit); } catch (_e2) { _w = 0; }
+          if (_w > 0) doc.rect(mL + 2, y + 0.9, _w, 0.35, 'F');
+        }
         y += _IL;
         /* Las líneas: tipografía del cuerpo, una por renglón. */
         if (_TBL.infSerif) { doc.setFont('times', 'normal'); doc.setFontSize(8.5 * _FS); }
         else { doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5 * _FS); }
         { const ccol = _C(_TBL.infCol); if (ccol) tc(ccol[0], ccol[1], ccol[2]); }
         (s.lineas || []).forEach(function (l) {
-          const _ls = doc.splitTextToSize(_sanML(l), pgW - 8);
+          /* LA LINEA EN BLANCO del texto -los tres grupos del ventriculo izquierdo- es aire, no
+             un renglon vacio estampado. */
+          if (l === '') { y += _IL * 0.6; return; }
+          const _ls = doc.splitTextToSize(
+            _sanML(typeof _cwCap === 'function' ? _cwCap(l) : l), pgW - 8);
           _ls.forEach(function (ln, _k) {
             checkPage(_IL + 0.5);
             doc.text(ln, mL + (_k ? 8 : 4), y);
@@ -83715,8 +84272,29 @@ function generarPDFReal(_aj) {
     if (_TBL.infSerif) { doc.setFont('times','bolditalic'); doc.setFontSize(8 * _FSF); } else fif(8);
     const _sc = _C(_TBL.sumaCol);
     tc(_sc[0],_sc[1],_sc[2]);
+    /* ⚠️ EN «Tipo Word» CADA ITEM DEL EN SUMA LLEVA SU VINIETA, igual que el copiado del informe,
+       y en las otras ocho plantillas NO se toca una linea: el papel de esas ocho sigue estampando
+       el texto del medico tal cual. La vinieta se saca antes de ponerla, asi que un EN SUMA que
+       ya la traiga escrita a mano no sale con dos. */
+    if (_plantillaId === 'tipoword' && typeof cuadSumaItems === 'function') {
+      /* ⚠️ LA VINIETA SE DIBUJA Y NO SE ESCRIBE, Y LO ENCONTRO LA SONDA: el saneador de este
+         archivo deja pasar solo \x20 a \xFF -todo lo demas se borra-, asi que el caracter de
+         vinieta U+2022 desaparecia y los items salian sin nada adelante. Escribir el byte 0x95
+         -la vinieta de WinAnsi- lo atravesaria, pero eso apuesta a la codificacion del tipo de
+         letra y un glifo equivocado en un informe FIRMADO es peor que un punto dibujado. Se
+         dibuja un circulo lleno de 0,5 mm, que no depende de ninguna codificacion. */
+      cuadSumaItems(sumaTxt).forEach(function (it) {
+        doc.splitTextToSize(_sanML(it), pgW - 10).forEach(function (ln, _k) {
+          checkPage(_IL + 0.5);
+          if (!_k) { const sc = _C(_TBL.sumaCol); if (sc) fc(sc[0], sc[1], sc[2]);
+                     doc.circle(mL + 3.1, y - 0.85, 0.5, 'F'); }
+          doc.text(ln, mL + 6, y); y += _IL;
+        });
+      });
+    } else {
     const sL = doc.splitTextToSize(_sanML(sumaTxt), pgW-4);
     sL.forEach(l=>{ checkPage(_IL+0.5); doc.text(l,mL+2,y); y+=_IL; });
+    }
     y += _aire(3);
   }
 
@@ -140343,9 +140921,13 @@ window._amiloMigrarSalvedad = _amiloMigrarSalvedad;
    (PR7). Lo que decide si hay que migrar es `strain_sgl_ver`, y no la presencia de los numeros:
    un estudio NUEVO en el que nadie escribio ninguno guarda igual su marca de version, asi que
    mirar los numeros confundiria ese caso con un estudio viejo y lo migraria dos veces.
-   La correspondencia es `STRAIN_MIGRA`, declarada donde vive la paleta. El 0 viejo -que era
-   «Normal» en rojo y a la vez el valor por omision del segmento que nadie toco y el que dejaba
-   «Limpiar»- va a SIN DATO: es el unico lado que no afirma una evaluacion que nadie hizo.
+   La correspondencia es STRAIN_MIGRA, declarada donde vive la paleta.
+   /!\ EL 0 VIEJO VA AL TRAMO 1 -EL VIOLETA- DESDE PR8, Y ANTES IBA A SIN DATO. Es orden expresa
+   del medico y es coherente con el modelo nuevo: el violeta ES un valor -de -20 a -15, o sea
+   strain normal-, asi que un estudio viejo cuyos segmentos decian «Normal» se lee violeta y no
+   gris. Lo que cuesta, declarado en PENDIENTES -> PR8-g: esos segmentos pasan a tener su clave
+   escrita con un tramo mayor que cero, asi que la compuerta del papel los cuenta como evaluados
+   y el bull's eye de ese estudio viejo entra al PDF, donde antes no entraba.
    A ninguno de esos segmentos se le escribe un numero: lo que el modelo viejo guardaba era un
    color, no una medicion. */
 function _restaurarStrain(campos){
@@ -142913,16 +143495,35 @@ const SGL_CUATRO = [
    script ANTERIOR -ni con typeof, que sobre la zona muerta tambien lanza-. */
 const strainEstado = {};   /* id -> 0..8, con 0 = sin dato */
 const strainNum = {};      /* id -> numero, SOLO donde el medico escribio uno */
-/* El texto que se dibuja DENTRO del segmento. Sin dato lleva guion; un color elegido a mano y
-   sin numero no lleva nada, porque no hay numero que publicar. */
+/* EL TRAMO VIGENTE DE UN SEGMENTO, con el por omision aplicado. Un segmento sin clave escrita
+   vale STRAIN_DEF; uno con la clave en 0 es SIN DATO de verdad -el medico lo eligio ciclando- y
+   tiene que seguir dando 0. Por eso no alcanza con un «or»: el 0 es un valor. */
+function strainIdx(id){
+  const e = strainEstado[id];
+  if (e === undefined || e === null || e === '') return STRAIN_DEF;
+  const n = Number(e);
+  return isFinite(n) ? Math.max(0, Math.min(STRAIN_N_TRAMOS, n)) : STRAIN_DEF;
+}
+/* El texto que se dibuja DENTRO del segmento, EN EL PAPEL Y EN EL PPT: el numero con su signo, o
+   nada. El signo mas se escribe porque la escala lateral es asi y porque un +8 sin signo se
+   leeria como un -8, que es el valor contrario (PR8-3.5).
+   ⚠️ ESTA NO PONE EL GUION, y es la mitad del asunto: el guion es una ayuda de la ENTRADA DE
+   DATOS -ver strainNumTxtPantalla-, y en el papel firmado un guion dentro de un segmento no le
+   dice nada a quien lo lee. Las dos superficies del papel -el PDF y el PPT- consumen esta. */
 function strainNumTxt(id){
-  if ((strainEstado[id] || 0) === 0) return '–';
   const v = strainNum[id];
   if (v === null || v === undefined || !isFinite(v)) return '';
-  return String(v);
+  return (v > 0 ? '+' : '') + String(v);
 }
-function strainColor(id){ return (STRAIN_PAL[strainEstado[id] || 0] || STRAIN_PAL[0]).color; }
-function strainColorTxt(id){ return (STRAIN_PAL[strainEstado[id] || 0] || STRAIN_PAL[0]).txt; }
+/* La de PANTALLA: el numero, o el guion SOLO si el boton de datos numericos esta encendido y ese
+   segmento no tiene numero (PR8-3.4). */
+function strainNumTxtPantalla(id){
+  const t = strainNumTxt(id);
+  if (t) return t;
+  return strainNumModoOn() ? '–' : '';
+}
+function strainColor(id){ return (STRAIN_PAL[strainIdx(id)] || STRAIN_PAL[STRAIN_DEF]).color; }
+function strainColorTxt(id){ return (STRAIN_PAL[strainIdx(id)] || STRAIN_PAL[STRAIN_DEF]).txt; }
 /* LA UNICA ESCRITURA. El color y el numero no pueden contradecirse porque salen de la misma
    llamada: el tramo se DERIVA del numero cuando hay numero, y el numero se BORRA cuando el
    tramo lo elige un toque. */
@@ -142932,17 +143533,24 @@ function strainSet(id, idx, num){
   if (i === 0 || num === null || num === undefined || !isFinite(num)) delete strainNum[id];
   else strainNum[id] = num;
   strainAplicar(id);
+  /* La tabla de calculos se repinta en cada escritura: de ahi cuelga que un boton se apague al
+     faltar un numero y que un resultado se borre cuando cambia un numero que uso (PR8-4.3). */
+  if (typeof scRender === 'function') scRender();
 }
+/* ⚠️ BORRAR EL NUMERO Y CONFIRMAR DEVUELVE EL SEGMENTO A VIOLETA Y NO A SIN DATO (PR8-3.6). Lo
+   que el medico hace al borrar es deshacer lo que escribio, y lo que habia antes de escribir es
+   el violeta de arranque. Mandarlo a gris convertia un borrado en una afirmacion nueva -«de este
+   segmento no hay dato»- que nadie hizo. SIN DATO se elige ciclando, con el boton apagado. */
 function strainEscribir(id, txt){
   const n = strainParseNum(txt);
-  if (n === null) { strainSet(id, 0, null); return null; }
+  if (n === null) { strainSet(id, STRAIN_DEF, null); return null; }
   strainSet(id, strainTramoDe(n), n);
   return n;
 }
 function strainAplicar(id){
   document.querySelectorAll('#sgl-svg-bullseye [data-strainid="' + id + '"]').forEach(function (el) {
     if (el.tagName.toLowerCase() === 'text') {
-      el.textContent = strainNumTxt(id);
+      el.textContent = strainNumTxtPantalla(id);
       el.setAttribute('fill', strainColorTxt(id));
     } else {
       el.setAttribute('fill', strainColor(id));
@@ -142958,14 +143566,23 @@ function strainAplicarTodos(){
     strainAplicar(id);
   });
 }
-/* El ciclo del boton APAGADO: sin dato, los ocho tramos y de vuelta a sin dato. Nueve estados.
+/* EL CICLO (PR8-3.2): tramo 1, 2 ... 8, despues SIN DATO y de vuelta al 1. Nueve estados, con el
+   violeta como arranque y el gris al final en vez de al principio.
    Borra el numero a proposito: ver el aviso de strainSet. */
-function strainCiclar(id){ strainSet(id, ((strainEstado[id] || 0) + 1) % (STRAIN_N_TRAMOS + 1), null); }
+function strainCiclar(id){
+  const a = strainIdx(id);
+  const sig = (a === 0) ? 1 : (a >= STRAIN_N_TRAMOS ? 0 : a + 1);
+  strainSet(id, sig, null);
+}
 window.sglReset = function(){
   Object.keys(strainEstado).forEach(function (k) { delete strainEstado[k]; });
   Object.keys(strainNum).forEach(function (k) { delete strainNum[k]; });
   strainCajaCerrar(false);
   strainAplicarTodos();
+  /* «Limpiar» deja los diecisiete en violeta y sin numeros, asi que los resultados de la tabla no
+     tienen insumos: se van con ellos. */
+  _scRes = Object.create(null);
+  if (typeof scRender === 'function') scRender();
 };
 /* Hay strain por segmento EVALUADO? Con el 0 = sin dato, «algo distinto de cero» es la misma
    pregunta que el PDF y el PPT ya hacian con mayor que cero, asi que sus dos compuertas siguen
@@ -142984,6 +143601,9 @@ function strainNumToggle(){
   strainNumModo = !strainNumModo;
   if (!strainNumModo) strainCajaCerrar(false);
   strainNumBtnSync();
+  /* El guion de los segmentos sin numero aparece y desaparece con el boton (PR8-3.4), asi que el
+     bull's eye hay que repintarlo: el texto de cada segmento depende del modo. */
+  if (typeof strainAplicarTodos === 'function') strainAplicarTodos();
 }
 function strainNumBtnSync(){
   const b = document.getElementById('sgl-num-toggle');
@@ -142998,6 +143618,15 @@ function strainNumBtnSync(){
    casilla con id entraria a las 457 columnas por existir y «Nuevo estudio» le escribiria el
    valor guardado de un campo que no es del paciente. Se alcanza por data-strain-caja. */
 let _strainCaja = null;
+/* Esconde o repone el texto de UN segmento del bull's eye. Se usa mientras la casilla esta
+   abierta: ver el aviso de strainCajaAbrir. */
+function _strainOcultarRot(id, ocultar){
+  document.querySelectorAll('#sgl-svg-bullseye text[data-strainid]').forEach(function (t) {
+    if (t.getAttribute('data-strainid') !== id) return;
+    if (ocultar) t.setAttribute('visibility', 'hidden');
+    else t.removeAttribute('visibility');
+  });
+}
 function strainCajaCerrar(confirmar){
   const c = _strainCaja;
   if (!c) return;
@@ -143006,7 +143635,9 @@ function strainCajaCerrar(confirmar){
   _strainCaja = null;
   const v = c.input ? c.input.value : '';
   if (c.input && c.input.parentNode) c.input.parentNode.removeChild(c.input);
+  try { _strainOcultarRot(c.seg, false); } catch (e) {}
   if (confirmar) strainEscribir(c.seg, v);
+  else if (typeof strainAplicar === 'function') strainAplicar(c.seg);
 }
 function strainCajaAbrir(id, el){
   strainCajaCerrar(true);
@@ -143042,13 +143673,30 @@ function strainCajaAbrir(id, el){
   inp.addEventListener('blur', function () { strainCajaCerrar(true); });
   cont.appendChild(inp);
   _strainCaja = { seg:id, input:inp };
+  /* ⚠️ SE ESCONDE EL TEXTO DEL SEGMENTO MIENTRAS LA CASILLA ESTA ABIERTA (PR8-3.6). La casilla se
+     dibuja encima del centro del segmento, pero es un nodo HTML sobre un SVG: con el fondo
+     translucido o con un borde fino el numero viejo se lee POR DEBAJO del que se esta escribiendo,
+     y el medico no sabe cual de los dos esta editando. Se esconde por atributo y se repone al
+     cerrar -strainAplicar lo redibuja con su valor nuevo-. */
+  try { _strainOcultarRot(id, true); } catch (e) {}
   try { inp.focus(); inp.select(); } catch (e) {}
 }
-/* La UNICA puerta del gesto. Con el boton apagado cicla el color; con el boton encendido pide
-   el numero. Dos puertas dejarian el modo escrito en dos lugares. */
+/* El aviso del segmento que tiene un numero, con el boton de numeros apagado (PR8-3.7). Vive en
+   una constante porque lo dicen el gesto y su prueba. */
+const STRAIN_AVISO_NUM = 'Este segmento tiene un número. Activá «Ingresar datos numéricos» para cambiarlo o borrarlo';
+/* La UNICA puerta del gesto. Con el boton encendido pide el numero; apagado cicla el color.
+   ⚠️ Y CON EL BOTON APAGADO UN SEGMENTO QUE TIENE NUMERO NO CAMBIA DE COLOR (PR8-3.7): ciclarlo
+   borraria el numero -es lo que strainSet hace a proposito para que el color y el numero no se
+   contradigan-, o sea una perdida de dato en silencio por un toque. Se avisa y no se toca nada.
+   Dos puertas dejarian el modo escrito en dos lugares. */
 function strainTocar(id, el){
-  if (strainNumModoOn()) strainCajaAbrir(id, el);
-  else strainCiclar(id);
+  if (strainNumModoOn()) { strainCajaAbrir(id, el); return; }
+  const v = strainNum[id];
+  if (v !== null && v !== undefined && isFinite(v)) {
+    if (typeof toast === 'function') toast(STRAIN_AVISO_NUM + '.');
+    return;
+  }
+  strainCiclar(id);
 }
 
 function sglDibujarBullseye(){
@@ -143065,21 +143713,21 @@ function sglDibujarBullseye(){
   const seg = function (idKey, rInt, rExt, a0, a1) {
     const c = cen(rInt, rExt, a0, a1);
     return '<path class="strain-seg" data-strainid="' + idKey + '" data-strain-cx="' + c[0].toFixed(1)
-      + '" data-strain-cy="' + c[1].toFixed(1) + '" style="cursor:pointer" fill="' + STRAIN_PAL[0].color
+      + '" data-strain-cy="' + c[1].toFixed(1) + '" style="cursor:pointer" fill="' + STRAIN_PAL[STRAIN_DEF].color
       + '" stroke="#cfd6e6" stroke-width="1.2" d="' + contrDescribirCuna(cx, cy, rInt, rExt, a0, a1) + '"/>';
   };
   const rot = function (idKey, rInt, rExt, a0, a1, fs) {
     const c = cen(rInt, rExt, a0, a1);
     return '<text data-strainid="' + idKey + '" x="' + c[0].toFixed(1) + '" y="' + c[1].toFixed(1)
       + '" text-anchor="middle" dominant-baseline="central" font-size="' + fs + '" font-weight="700"'
-      + ' pointer-events="none" fill="' + STRAIN_PAL[0].txt + '">–</text>';
+      + ' pointer-events="none" fill="' + STRAIN_PAL[STRAIN_DEF].txt + '"></text>';
   };
   let html = '';
   SGL_SEIS.forEach(function (w) { html += seg('basal_' + w.id, rBI, rBE, w.centro - 30, w.centro + 30); });
   SGL_SEIS.forEach(function (w) { html += seg('mid_' + w.id, rMI, rBI, w.centro - 30, w.centro + 30); });
   SGL_CUATRO.forEach(function (w) { html += seg('apical_' + w.id, rAI, rMI, w.centro - 45, w.centro + 45); });
   html += '<circle class="strain-seg" data-strainid="apex" data-strain-cx="' + cx + '" data-strain-cy="' + cy
-       + '" style="cursor:pointer" fill="' + STRAIN_PAL[0].color + '" stroke="#cfd6e6" stroke-width="1.2" cx="'
+       + '" style="cursor:pointer" fill="' + STRAIN_PAL[STRAIN_DEF].color + '" stroke="#cfd6e6" stroke-width="1.2" cx="'
        + cx + '" cy="' + cy + '" r="' + rAI + '"/>';
   [rBE, rBI, rMI, rAI].forEach(function (r) {
     html += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#cfd6e6" stroke-width="0.7" opacity="0.3" pointer-events="none"/>';
@@ -143090,7 +143738,7 @@ function sglDibujarBullseye(){
   SGL_SEIS.forEach(function (w) { html += rot('mid_' + w.id, rMI, rBI, w.centro - 30, w.centro + 30, 13); });
   SGL_CUATRO.forEach(function (w) { html += rot('apical_' + w.id, rAI, rMI, w.centro - 45, w.centro + 45, 12); });
   html += '<text data-strainid="apex" x="' + cx + '" y="' + cy + '" text-anchor="middle" dominant-baseline="central"'
-       + ' font-size="10" font-weight="700" pointer-events="none" fill="' + STRAIN_PAL[0].txt + '">–</text>';
+       + ' font-size="10" font-weight="700" pointer-events="none" fill="' + STRAIN_PAL[STRAIN_DEF].txt + '"></text>';
   svg.innerHTML = html;
   svg.querySelectorAll('.strain-seg').forEach(function (el) {
     el.addEventListener('click', function () { strainTocar(el.getAttribute('data-strainid'), el); });
@@ -143131,11 +143779,318 @@ function sglSyncGLS(){
 }
 window.sglOnShow = function(){
   sglDibujarBullseye(); sglSyncGLS(); strainNumBtnSync(); strainLeyendaPintar();
+  if (typeof scRender === 'function') scRender();
   if (typeof _pdfToggleBtnState === 'function'){
     sglPdfSync();
   }
 };
+
+/* ══ LA TABLA «CALCULOS DE STRAIN» (PR8-4) ═════════════════════════════════════════════════════
+   SOLO DE CONSULTA. No entra al informe, al EN SUMA, al PDF, al PPT, al Excel ni a los textos que
+   copian los dos botones de la tarjeta de Cuadros; no lleva casillas de inclusion, no escribe un
+   solo campo del estudio y sus resultados NO se guardan. Lo UNICO que sale de aca hacia la
+   aplicacion es «Usar como SGL global».
+
+   ⚠️ LOS SEGMENTOS Y LOS TERRITORIOS SALEN DE LOS DUENOS DE CONTRACTILIDAD, no de una lista
+   escrita aca: LV3D_SEG_ID es la numeracion AHA 1..17, LV3D_SEG_NOMBRE son los nombres que el
+   medico lee, y CONTR_TERRITORIO con CONTR_TERRITORIO_NOMBRE son el reparto por arteria. Con una
+   segunda lista, el dia que una arteria cambie de segmentos esta tabla promediaria otra cosa que
+   el bull's eye de contractilidad pinta. Los tres viven en un bloque de script ANTERIOR, asi que
+   desde aca se alcanzan por su nombre.
+   ⚠️ EL NIVEL APICAL SON LOS CUATRO SEGMENTOS APICALES Y NO INCLUYE EL CASQUETE (17). Es criterio
+   de la aplicacion y lo dice su globo. */
+const SC_N = 17;
+/* Los indices 1..17 de cada grupo. El apical es 13..16: el 17 queda afuera a proposito. */
+const SC_GRUPOS = Object.freeze({
+  g17:   [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],
+  g16:   [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+  basal: [1,2,3,4,5,6],
+  medio: [7,8,9,10,11,12],
+  apical:[13,14,15,16]
+});
+function _scId(i){
+  try { return LV3D_SEG_ID[i] } catch (e) { return null }
+}
+function _scNom(i){
+  try { return LV3D_SEG_NOMBRE[i] || ('segmento ' + i) } catch (e) { return 'segmento ' + i }
+}
+/* Los indices de un territorio, derivados del dueno. */
+function _scTerr(sig){
+  const out = [];
+  for (let i = 1; i <= SC_N; i++) {
+    const id = _scId(i); if (!id) continue;
+    let col = null, nom = null;
+    try { col = CONTR_TERRITORIO[id]; nom = CONTR_TERRITORIO_NOMBRE[col]; } catch (e) {}
+    if (nom === sig) out.push(i);
+  }
+  return out;
+}
+/* El numero cargado de un segmento, o null. */
+function _scNum(i){
+  const id = _scId(i); if (!id) return null;
+  const v = strainNum[id];
+  return (v === null || v === undefined || !isFinite(v)) ? null : Number(v);
+}
+/* Los que FALTAN de un grupo, por su nombre de pantalla. Cada celda exige TODOS sus segmentos. */
+function _scFaltan(idx){
+  return (idx || []).filter(function (i) { return _scNum(i) === null });
+}
+function _scFaltanTxt(idx){
+  const f = _scFaltan(idx);
+  if (!f.length) return '';
+  const nn = f.map(function (i) { return _scNom(i) + ' (' + i + ')' });
+  return 'Falta: ' + (nn.length > 3 ? (nn.slice(0,3).join(', ') + ' y ' + (nn.length-3) + ' más')
+                                    : nn.join(', '));
+}
+/* El promedio CON SIGNO de un grupo completo. Sin el grupo completo devuelve null: la orden dice
+   que cada celda exige todos sus segmentos. */
+function scPromedio(idx){
+  if (!idx || !idx.length || _scFaltan(idx).length) return null;
+  let t = 0;
+  idx.forEach(function (i) { t += _scNum(i) });
+  return t / idx.length;
+}
+/* Apical sparing relativo = |prom apical| / (|prom basal| + |prom medio|). */
+function scApicalSparing(){
+  const a = scPromedio(SC_GRUPOS.apical), b = scPromedio(SC_GRUPOS.basal),
+        m = scPromedio(SC_GRUPOS.medio);
+  if (a === null || b === null || m === null) return null;
+  const den = Math.abs(b) + Math.abs(m);
+  if (!(den > 0)) return null;
+  return Math.abs(a) / den;
+}
+/* La FEVI de la aplicacion y el SGL global del campo, sin volver a tipearlos. */
+function _scFevi(){ try { const n = v('fevi'); return (n === null || !isFinite(n)) ? null : n } catch (e) { return null } }
+function _scSglCampo(){
+  try {
+    let n = v('sgl_gls');
+    if (n === null || !isFinite(n)) n = v('sgl');
+    return (n === null || !isFinite(n)) ? null : n;
+  } catch (e) { return null }
+}
+/* FEVI / |SGL global|. */
+function scFeviSobreSgl(){
+  const f = _scFevi(), g = _scSglCampo();
+  if (f === null || g === null) return null;
+  const d = Math.abs(g);
+  if (!(d > 0)) return null;
+  return f / d;
+}
+/* El formato: un decimal para los promedios, dos para las razones, y COMA decimal. */
+function _scN(x, dec){
+  if (x === null || x === undefined || !isFinite(x)) return '';
+  return (Math.round(x * Math.pow(10, dec)) / Math.pow(10, dec)).toFixed(dec).replace('.', ',');
+}
+/* ══ LAS DOCE CELDAS, EN UN SOLO LUGAR ════════════════════════════════════════════════════════
+   Cuatro columnas por tres filas. Una celda en null es un hueco: la orden deja vacias la tercera
+   de «Globales» y la tercera de «Formulas». */
+const SC_COLS = Object.freeze([
+  { tit:'Globales', cel:[
+      { k:'g17', nom:'Promedio 17 seg', tipo:'prom', grupo:'g17', usar:true, info:'sc-prom' },
+      { k:'g16', nom:'Promedio 16 seg (sin ápice)', tipo:'prom', grupo:'g16', usar:true, info:'sc-prom' },
+      null ] },
+  { tit:'Por nivel', cel:[
+      { k:'basal',  nom:'Basal (1-6)',    tipo:'prom', grupo:'basal',  info:'sc-niv' },
+      { k:'medio',  nom:'Medio (7-12)',   tipo:'prom', grupo:'medio',  info:'sc-niv' },
+      { k:'apical', nom:'Apical (13-16)', tipo:'prom', grupo:'apical', info:'sc-niv' } ] },
+  { tit:'Por territorio', cel:[
+      { k:'DA', nom:'DA', tipo:'prom', terr:'DA', info:'sc-terr' },
+      { k:'CD', nom:'CD', tipo:'prom', terr:'CD', info:'sc-terr' },
+      { k:'CX', nom:'CX', tipo:'prom', terr:'CX', info:'sc-terr' } ] },
+  { tit:'Fórmulas', cel:[
+      { k:'asr',  nom:'Apical sparing relativo', tipo:'asr',  info:'sc-asr' },
+      { k:'fsgl', nom:'FEVI / SGL',              tipo:'fsgl', info:'sc-fsgl' },
+      null ] }
+]);
+/* Los indices que una celda necesita. */
+function _scIdxDe(c){
+  if (!c) return [];
+  if (c.terr) return _scTerr(c.terr);
+  if (c.grupo) return (SC_GRUPOS[c.grupo] || []).slice();
+  if (c.tipo === 'asr') return SC_GRUPOS.g16.slice();
+  return [];
+}
+/* ══ LO QUE LE FALTA A UNA CELDA, Y POR QUE ═══════════════════════════════════════════════════
+   Devuelve la cadena que se ve en el boton apagado Y en el renglon chico de la celda. Vacia
+   quiere decir que la celda se puede calcular. */
+function scMotivo(c){
+  if (!c) return '';
+  if (c.tipo === 'fsgl') {
+    const f = _scFevi(), g = _scSglCampo();
+    if (f === null && g === null) return 'Falta: FEVI y SGL global';
+    if (f === null) return 'Falta: FEVI';
+    if (g === null) return 'Falta: SGL global';
+    if (!(Math.abs(g) > 0)) return 'Falta: un SGL global distinto de cero';
+    return '';
+  }
+  return _scFaltanTxt(_scIdxDe(c));
+}
+/* La FIRMA de los insumos de una celda. De ella cuelga el borrado del resultado: si uno de los
+   numeros que esa celda uso cambia, la firma cambia y el resultado se va. */
+function _scFirma(c){
+  if (!c) return '';
+  if (c.tipo === 'fsgl') return 'f=' + String(_scFevi()) + ';g=' + String(_scSglCampo());
+  return _scIdxDe(c).map(function (i) { return i + ':' + String(_scNum(i)) }).join(',');
+}
+/* El valor de una celda, ya formateado. */
+function scValor(c){
+  if (!c) return null;
+  if (c.tipo === 'asr')  { const x = scApicalSparing();  return x === null ? null : _scN(x, 2) }
+  if (c.tipo === 'fsgl') { const x = scFeviSobreSgl();   return x === null ? null : _scN(x, 2) }
+  const x = scPromedio(_scIdxDe(c));
+  return x === null ? null : (_scN(x, 1) + ' %');
+}
+/* El valor CRUDO, para «Usar como SGL global»: ahi hace falta el numero y no su texto. */
+function scValorCrudo(c){
+  if (!c || c.tipo !== 'prom') return null;
+  return scPromedio(_scIdxDe(c));
+}
+/* ══ LOS RESULTADOS: EN MEMORIA Y NADA MAS ════════════════════════════════════════════════════
+   No van a localStorage, no entran al estudio y no sobreviven a una recarga. Y se BORRAN cuando
+   cambia un numero que esa celda uso: ver _scFirma. */
+let _scRes = Object.create(null);
+function scCalcular(k){
+  const c = _scCel(k); if (!c) return;
+  if (scMotivo(c)) return;                /* el boton esta apagado, pero la guarda va igual */
+  const val = scValor(c);
+  if (val === null) return;
+  _scRes[k] = { val: val, firma: _scFirma(c) };
+  scRender();
+}
+function _scCel(k){
+  let out = null;
+  SC_COLS.forEach(function (col) { (col.cel || []).forEach(function (c) { if (c && c.k === k) out = c }) });
+  return out;
+}
+/* Tira los resultados cuya firma ya no cierra. Lo llama scRender, asi que alcanza con repintar. */
+function _scPurgar(){
+  Object.keys(_scRes).forEach(function (k) {
+    const c = _scCel(k);
+    if (!c || _scRes[k].firma !== _scFirma(c)) delete _scRes[k];
+  });
+}
+window.scLimpiarRes = function(){ _scRes = Object.create(null); scRender(); };
+/* ══ «USAR COMO SGL GLOBAL» ═══════════════════════════════════════════════════════════════════
+   Escribe el campo por SU CAMINO NORMAL -se le despacha un evento de entrada, asi que corren el
+   espejo con el campo de AI/VI y calcSGL igual que si el medico lo hubiera tipeado-.
+   ⚠️ EL SIGNO NO SE DUPLICA: el promedio de valores negativos YA es negativo, asi que se escribe
+   tal cual. Pasarlo por sglNeg -que hace menos valor absoluto siempre- daria lo mismo con un
+   promedio negativo y DARIA VUELTA uno positivo, que es un dato que el medico puede haber
+   cargado a proposito.
+   ⚠️ Y EL CAMPO ES type=number: el valor se escribe con PUNTO decimal. Con la coma el campo queda
+   vacio y el espejo copia el vacio. */
+function scUsarComoSGL(k){
+  const c = _scCel(k);
+  if (!c || !c.usar) return;
+  const n = scValorCrudo(c);
+  if (n === null) return;
+  const val = String(Math.round(n * 10) / 10);
+  const el = document.getElementById('sgl_gls') || document.getElementById('sgl');
+  if (!el) return;
+  const hay = String(el.value == null ? '' : el.value).trim() !== '';
+  const escribir = function () {
+    el.value = val;
+    try { el.dispatchEvent(new Event('input', { bubbles: true })) } catch (e) {}
+    try { el.dispatchEvent(new Event('change', { bubbles: true })) } catch (e) {}
+    if (typeof toast === 'function') toast('SGL global: ' + val.replace('.', ',') + ' %');
+  };
+  if (!hay) { escribir(); return; }
+  /* CON EL CAMPO YA CARGADO SE PREGUNTA, con el cartel propio de esta casa. */
+  if (typeof preguntaProp === 'function') {
+    preguntaProp('Reemplazar el SGL global',
+      ['El campo de SGL global ya tiene el valor ' + String(el.value).trim() + ' %.',
+       'Si seguís, pasa a ' + val.replace('.', ',') + ' %.'],
+      'Reemplazar', '').then(function (r) { if (r) escribir(); });
+    return;
+  }
+  if (confirm('El SGL global ya tiene un valor. ¿Reemplazarlo por ' + val.replace('.', ',') + ' %?')) escribir();
+}
+window.scUsarComoSGL = scUsarComoSGL;
+window.scCalcular = scCalcular;
+/* ══ EL DIBUJO. Con nodos, y lo que entra son numeros derivados. ══════════════════════════════ */
+function _scBoton(ico, titulo, fn, apagado, motivo){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = ico;
+  const t = apagado ? (titulo + (motivo ? (' — ' + motivo) : '')) : titulo;
+  b.setAttribute('title', t);
+  b.setAttribute('aria-label', t);
+  if (apagado) { b.disabled = true; b.setAttribute('aria-disabled', 'true'); }
+  else b.addEventListener('click', fn);
+  return b;
+}
+function scRender(){
+  const raiz = document.getElementById('sgl-calc');
+  if (!raiz) return;
+  _scPurgar();
+  while (raiz.firstChild) raiz.removeChild(raiz.firstChild);
+  const h = document.createElement('div'); h.className = 'sc-tit';
+  h.appendChild(document.createTextNode('🧮 Cálculos de strain'));
+  raiz.appendChild(h);
+  const n = document.createElement('p'); n.className = 'sc-nota';
+  n.textContent = 'De consulta: no entra al informe ni al PDF. Cada cálculo necesita todos sus '
+                + 'segmentos con número cargado.';
+  raiz.appendChild(n);
+  const tb = document.createElement('table'); tb.className = 'sc-tabla';
+  const th = document.createElement('thead'); const tr0 = document.createElement('tr');
+  SC_COLS.forEach(function (col) {
+    const c = document.createElement('th'); c.textContent = col.tit; tr0.appendChild(c);
+  });
+  th.appendChild(tr0); tb.appendChild(th);
+  const tbody = document.createElement('tbody');
+  for (let f = 0; f < 3; f++) {
+    const tr = document.createElement('tr');
+    SC_COLS.forEach(function (col) {
+      const td = document.createElement('td');
+      const c = (col.cel || [])[f];
+      if (!c) { td.appendChild(document.createTextNode('')); tr.appendChild(td); return; }
+      const motivo = scMotivo(c);
+      const res = _scRes[c.k];
+      const lin = document.createElement('div'); lin.className = 'sc-lin';
+      const nom = document.createElement('span'); nom.className = 'sc-nom'; nom.textContent = c.nom;
+      lin.appendChild(nom);
+      if (res) { const vv = document.createElement('b'); vv.className = 'sc-val';
+                 vv.textContent = res.val; lin.appendChild(vv); }
+      td.appendChild(lin);
+      const bl = document.createElement('div'); bl.className = 'sc-bot';
+      bl.appendChild(_scBoton('🧮', 'Calcular', function () { scCalcular(c.k) }, !!motivo, motivo));
+      if (c.usar) {
+        const sinRes = !res;
+        bl.appendChild(_scBoton('⬆️', 'Usar como SGL global',
+          function () { scUsarComoSGL(c.k) }, sinRes,
+          sinRes ? 'primero hay que calcularlo' : ''));
+      }
+      const bi = document.createElement('button');
+      /* ATENCION: CON vinfo-btn-44 Y NO SOLO vinfo-btn. Un vinfo-btn pelado mide 15x11 px en
+         escritorio -su propia hoja lo declara- y check_mobile.js lo cuenta como toque chico de
+         severidad ALTA: diez globos nuevos habrian movido la linea base del celular en diez. Con
+         la clase de 44 px miden lo que el dedo toca y el barrido no suma ninguno. */
+      bi.type = 'button'; bi.className = 'vinfo-btn vinfo-btn-44';
+      bi.setAttribute('data-vinfo', c.info);
+      bi.setAttribute('aria-expanded', 'false');
+      bi.setAttribute('aria-label', 'De dónde sale este cálculo: ' + c.nom);
+      bi.setAttribute('title', 'De dónde sale este cálculo');
+      bi.textContent = '\u24d8';
+      bi.addEventListener('click', function () { if (typeof vInfoClic === 'function') vInfoClic(bi) });
+      bl.appendChild(bi);
+      td.appendChild(bl);
+      if (motivo) { const fa = document.createElement('div'); fa.className = 'sc-falta';
+                    fa.textContent = motivo; td.appendChild(fa); }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+  tb.appendChild(tbody);
+  raiz.appendChild(tb);
+}
+window.scRender = scRender;
+window.scPromedio = scPromedio; window.scApicalSparing = scApicalSparing;
+window.scFeviSobreSgl = scFeviSobreSgl; window.scMotivo = scMotivo;
+window.scValor = scValor; window.SC_GRUPOS = SC_GRUPOS; window.SC_COLS = SC_COLS;
+window._scTerr = _scTerr;
 window.strainNumTxt = strainNumTxt; window.strainColor = strainColor;
+window.strainNumTxtPantalla = strainNumTxtPantalla; window.strainIdx = strainIdx;
+window.STRAIN_AVISO_NUM = STRAIN_AVISO_NUM;
 window.strainColorTxt = strainColorTxt; window.strainSet = strainSet;
 window.strainEscribir = strainEscribir; window.strainCiclar = strainCiclar;
 window.strainHayDatos = strainHayDatos; window.strainNumModoOn = strainNumModoOn;
@@ -186104,8 +187059,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261123-2232';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795483942447;                 /* eco-build-ms */
+const ECO_BUILD    = '20261124-1642';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795549379154;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -186191,7 +187146,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261123-2232</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261124-1642</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
