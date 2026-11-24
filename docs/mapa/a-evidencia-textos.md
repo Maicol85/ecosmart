@@ -151,3 +151,18 @@ confirma en el DOM.
 
 **Las dos formas que NO están en la lista, y por qué, en
 `docs/mapa/pant22-evidencia-sectores.md` § 5.**
+
+
+---
+
+## Las cuatro notas que PR6 le agregó a la estenosis aórtica (2026-11-23)
+
+Los cuatro contenidos que la decisión de Maicol del 23/11 mandó a la Evidencia —el score de calcio
+por TAC en la rama paradojal, la medición incorrecta del tracto de salida, el repaso de las
+integrales velocidad-tiempo y la discordancia de grado—, con su guía, su hoja y su folio, viven en
+**`docs/mapa/pr6-word-resumen-valvulas.md`** §7. Las fuentes literales y las dos reglas de folio
+comprobadas, en `docs/fuentes/FUENTES.md` → «La tanda PR6».
+
+En la misma tarea salió del informe, del EN SUMA y del PDF la frase «Revisar el diámetro del tracto
+de salida y el trazado de las integrales velocidad-tiempo.» de la línea de discordancia de grado.
+**La descripción queda entera** y **el aviso de pantalla no se tocó**.

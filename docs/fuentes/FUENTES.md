@@ -12699,6 +12699,94 @@ globo lo dice con autor y año, y sin folios en pantalla.
 
 ---
 
+## La tanda PR6 (2026-11-23) — los cuatro contenidos de la Evidencia de estenosis aórtica
+
+Las cuatro cosas que la decisión de Maicol del 23/11 manda a la Evidencia, **leídas en los PDF de
+la biblioteca con el folio comprobado en el pie o el encabezado impreso de CADA hoja**, no deducido
+de dos. Van en el arreglo `notas` de `_indEA`, con redacción descriptiva y cada fuente en su propia
+oración, por la regla fija del 2026-11-04.
+
+### Las dos reglas de folio, comprobadas
+
+| documento | archivo | regla | comprobado en |
+|---|---|---|---|
+| **ACC/AHA 2020 de valvulopatías** (Otto) | `04_Valvulopatias/AHA 2020 Valvulopatias.pdf` | `folio = «e» + (hoja 1-based + 71)` | el **pie** impreso: hoja 19 → «e90 February 2, 2021», hoja 21 → «e92», hoja 25 → «e96» |
+| **ESC/EACTS 2025 de valvulopatías** (Praz) | `04_Valvulopatias/2025 ESC:EACTS Guidelines for the management of valvular heart Disease. .pdf` | `folio = hoja 1-based + 4634` | el **encabezado** impreso: hoja 29 → «ESC Guidelines 4663», hoja 30 → «4664 ESC Guidelines», hoja 32 → «4666», hoja 36 → «4670» |
+
+⚠️ **LA ESC/EACTS 2021 DE VALVULOPATÍAS NO ESTÁ EN LA BIBLIOTECA**, y la orden la nombraba.
+Buscada por nombre y por año en **todo** `EcoSmart_Biblioteca_Fuentes`: la de valvulopatías que hay
+es la **2025**, en dos copias, y la que lleva los folios impresos es la de la tabla de arriba —cuya
+regla coincide con la que `CLAUDE.md` ya declara para `ehaf194.pdf`—. Se citó ésa. Ver **PR6-g**.
+
+⚠️ **DE LA ASE/EAE 2009 DE ESTENOSIS VALVULAR NATIVA (Baumgartner) NO SE CITÓ NADA**, y la orden
+también la nombraba. Su PDF tiene las dos columnas **entrelazadas** en la extracción de texto —«the
+lvot diameter is emeasuredatbaselineandthesamediameterisused»—, así que no se pudo leer una oración
+completa con su folio sin renderizar hoja por hoja. **Esta casa no cita lo que no leyó.** Los cuatro
+contenidos quedaron igual sostenidos por las otras dos. Ver **PR6-g**.
+
+### Los cuatro contenidos, con su cita
+
+**1 · El score de calcio por TAC en la rama paradojal** (flujo bajo, gradiente bajo, FEVI
+conservada).
+
+- **ACC/AHA 2020, hoja 19, folio e90** — recomendación 5 de la sección 3.2, literal: «In patients
+  with suspected low-flow, low-gradient severe AS with normal or reduced LVEF (stages D2 and D3),
+  measurement of aortic valve calcium score by CT imaging is reasonable to further define
+  severity.» **Clase 2a · Nivel B-NR.** El estadio **D3** es el de FEVI normal, o sea la rama
+  paradojal.
+- **ESC/EACTS 2025, hoja 30, folio 4664** — nota **c** de la **Figura 6** («Integrative imaging
+  assessment of patients with aortic stenosis»), literal: «Available evidence refers to patients
+  with preserved LVEF. […] Depending on symptoms, integrated assessment complemented by CCT AV
+  calcium scoring may be pursued.»
+
+**Los dos umbrales**, que la nota de la calcificación de esa sección ya publicaba y que en esta
+tanda **ganan su folio**: **ESC/EACTS 2025, hoja 32, folio 4666** — nota **c** de la **Figura 7**,
+literal: «AVCS >2000 in men, >1200 in women.» ⚠️ **No se repiten en las notas nuevas**: dos cifras
+del mismo corte en la misma sección es cómo una se queda vieja.
+
+**2 · La medición incorrecta del tracto de salida como causa de gradiente bajo con flujo normal.**
+
+- **ESC/EACTS 2025, hoja 36, folio 4670** — nota **c** de su tabla de recomendaciones de estenosis
+  aórtica, literal: «Explanations (such as measurement errors, uncontrolled blood pressure, and
+  conditions lowering the stroke volume) other than severe AS for a small AVA but low gradient
+  despite preserved LVEF are frequent and must be carefully excluded.»
+- **ACC/AHA 2020, hoja 21, folio e92**, literal: «the outflow tract–to–aortic velocity ratio is
+  independent of body size and eliminates potential errors in calculated valve area related to
+  measurement of LV outflow tract diameter or area.»
+
+**3 · El repaso de las integrales velocidad-tiempo cuando hay FEVI reducida sin bajo flujo.**
+
+- **ESC/EACTS 2025, hoja 30, folio 4664** — nota **a** de la Figura 6, literal: «In particular,
+  verify LVOT diameter and multiwindow Doppler interrogation.» Es el **primer nodo** de la
+  evaluación integrada, el que confirma las mediciones, y es el que aplica cuando los parámetros
+  ecocardiográficos discordan.
+
+**4 · La discordancia de grado** —cuando el grado de la pastilla no coincide con las mediciones—.
+
+- **ESC/EACTS 2025, hoja 30, folio 4664** — la misma nota **a**.
+- **ESC/EACTS 2025, hoja 29, folio 4663**, literal: «Aortic stenosis may be further categorized
+  according to flow state based on stroke volume index (SVi) when there is discordance between
+  echocardiographic parameters (Figure 6).»
+
+⚠️ **LAS CUATRO FORMAS DISCORDANTES QUE ESA GUÍA ENUMERA** (hoja 29, folio 4663) son: bajo flujo /
+bajo gradiente con FEVI reducida; bajo flujo / bajo gradiente con FEVI conservada; **flujo normal**
+/ bajo gradiente con FEVI conservada; y alto gradiente discordante. **No se escribió en la
+aplicación que una forma de la app quede fuera de esa lista**, por la regla fija del 2026-11-04: lo
+que cada nota dice es lo que la fuente dice, en su propia oración.
+
+### Cambios de evidencia
+
+| qué | antes | después |
+|---|---|---|
+| Evidencia de estenosis aórtica, `notas` | cinco notas, **ninguna con cita** | **nueve** notas, **cuatro con cita** —las de PR6— |
+| la nota de la calcificación por tomografía | sus dos umbrales **sin folio** | los mismos umbrales **con hoja 32, folio 4666**; el texto clínico, intacto |
+| bibliografía `ahaVc2020` | folios de la **mitral** (e113, e116, e121, e124) | los mismos **más** los de la **aórtica**: hoja 19 → e90 y hoja 21 → e92 |
+| informe, EN SUMA y PDF, línea de discordancia de grado | «… que corresponderían a estenosis severa. **Revisar el diámetro del tracto de salida y el trazado de las integrales velocidad-tiempo.**» | «… que corresponderían a estenosis severa.» — la descripción entera, sin la indicación |
+
+**Ningún corte, umbral ni fórmula se movió.**
+
+---
+
 ## La tanda PR5 (2026-11-23) — lo releído en los PDF de la biblioteca
 
 Tres documentos releídos por esta sesión, **cada folio comprobado por su regla además de por su

@@ -1,3 +1,41 @@
+## PR6 — mover los cuadros, el resumen de válvulas, el texto «tipo Word», el noveno estilo de PDF y los cuatro contenidos de la Evidencia (2026-11-23)
+
+**Sello** `v20261123-2054` · **md5** `21cbbbf6` · **194.566** líneas · línea base `8618cd9`.
+**Sin push.**
+
+**Commits:** `cf6e48a` (TAREA 2, el interruptor del resumen de válvulas) · `cfd814d` (TAREA 3, el
+texto «tipo Word» y los dos botones de copiar) · `33bf3fd` (TAREA 4, el noveno estilo de PDF) ·
+`506f937` (TAREA 5, los cuatro contenidos de la Evidencia y la frase retirada del papel) ·
+`356392e` (cobertura: TC-1035 a TC-1041) · el de cierre (TAREA 6: el sello, `PENDIENTES.md`,
+`CLAUDE.md`, el mapa, las fichas y las fuentes).
+
+**Qué hizo.** La tarjeta de Cuadros gana un **interruptor «Incluir resumen de válvulas»** —apagado
+de fábrica, sólo en memoria— que reusa las tres secciones de válvula que la tanda CUADROS había
+retirado del papel, y **dos botones de copiar**: uno con los datos numéricos del estudio y otro con
+el informe y su EN SUMA. Esos datos los arma `cuadTexto()`, el **texto «tipo Word»**, que toma sus
+valores del **índice de `cuadDefs()`** —sin una segunda derivación— y de ahí sale también el
+**noveno estilo de PDF**, «Tipo Word», que reemplaza los doce cuadros por ese texto con los títulos
+en negrita y subrayados. Y la Evidencia de estenosis aórtica gana **cuatro notas** con su guía, su
+hoja y su folio, mientras la frase «Revisar el diámetro del tracto de salida y el trazado de las
+integrales velocidad-tiempo.» **sale** del informe, del EN SUMA y del PDF.
+
+**La TAREA 1 ya estaba hecha** —el arrastre de los cuadros existía desde CUADROS— y se paró como la
+orden manda; lo que se agregó es **TC-1041**, que fija la mitad que ninguno de los cuatro casos
+previos medía: que el orden nuevo llega al PDF.
+
+**Qué dejó pendiente.** **PR6-a** (la TAREA 1 ya hecha, y el botón que la orden llama «Original de
+fábrica» y dice «Restablecer»), **PR6-b** (el interruptor fuera de «Restablecer» y del punto de
+aviso), **PR6-c** (el resumen repite lo que las líneas de válvula publican), **PR6-d** (lo que el
+texto no publica, y la redundancia de las dos capas de exclusión), **PR6-e** (los quince campos que
+entraron por completitud, y la PAP media sin unidad), **PR6-f** (la última red del portapapeles sin
+cobertura automática), **PR6-g** (la ESC/EACTS 2021 ausente de la biblioteca y la ASE 2009 sin citar),
+**PR6-h** (TC-161 y su denominador) y **PR6-i** (la mudanza de «Estado vigente»).
+
+**Y cerró, por decisión de Maicol del 23/11:** **PR5-a**, **PR5-b** y **PR5-d**. **PR5-c** queda
+abierta sin cambios: la graduación por Z **no se implementa**, y es una decisión tomada en contra.
+
+---
+
 ## P10 — la escala de velocidad de un Doppler espectral (2026-11-21)
 
 **Sello** `v20261121-2349` · **md5** `7edbbe06` · **191.470** líneas · línea base `13af3de`.

@@ -112,6 +112,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar un CRITERIO o un CORTE del puntaje HFA-PEFF**: la tabla contra el original, las tres contradicciones del artículo, la PSAP o el operador del IMVI | `docs/mapa/hfapeff-criterios.md` |
 | **Tocar los VOLÚMENES del VI en AI/VI**: el VSFVI automático, el volumen latido automático, quién lee el VSFVI, o el GASTO CARDÍACO del PDF y su frecuencia cardíaca | `docs/mapa/vi-volumenes-automaticos.md` |
 | **Tocar un CUADRO DE DATOS del PDF** —los doce, su orden, la grilla de tres, las líneas de válvula dentro de cada cuadro, el asterisco de la aorta— **o el botón «Cuadros» del Informe** con su tarjeta, su punto de aviso y su arrastre con el dedo | `docs/mapa/cuadros-pdf-tarjeta.md` |
+| **Tocar el TEXTO «TIPO WORD»** —su orden de secciones, la regla de completitud, de dónde sale cada valor—, **los DOS BOTONES DE COPIAR**, el **INTERRUPTOR «Incluir resumen de válvulas»**, el **noveno estilo de PDF** o las **CUATRO NOTAS de la Evidencia de estenosis aórtica** | `docs/mapa/pr6-word-resumen-valvulas.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, PPT) | `docs/mapa/informe-pdf-excel.md` |
 | **Tocar una COLUMNA del EXCEL del Laboratorio**: `LAB_XLS_MAP`, las 440 claves, los tipos, los alias de cabecera del importador o las dos columnas del G2 | `docs/mapa/excel-laboratorio.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
@@ -146,7 +147,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar algo de ECO ESTRÉS, o entender por qué su código sigue en el archivo sin interfaz**: las cinco piezas (A), las compartidas (B), las que tocan algo guardado (C), las TRES compuertas, las CUATRO familias «ee» —tres vivas— o la calculadora de probabilidad pre-test de la ESC 2019 que vive adentro | `docs/mapa/eco-estres-inventario.md` |
 | **Montar un A/B o un barrido de MUTACIÓN, o leer una trampa de instrumentación** | `docs/mapa/arneses-ab-mutacion.md` |
 | **Tocar el BUCLE DEL VIDEO de los dos PPT, los BOTONES de respuesta del panel de Evidencia, la cláusula de la IT sistémica de la TGA o la línea de la MIOCARDIOPATÍA HIPERTRÓFICA del PPT de congénitas**: el árbol de tiempo y su falla cerrada, el dueño único que prepara un mp4, la media query del piso táctil, o `mchConclusion().papel` | `docs/mapa/aj3-bucle-botones.md` |
-| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-971.md` (TC-971 a TC-977), `docs/mapa/tests-fichas-872.md` (TC-872 a TC-881), `docs/mapa/tests-fichas-825.md` (TC-825 a TC-831), `docs/mapa/tests-fichas-821.md` (TC-821 a TC-824), `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
+| **Agregar o correr un caso de prueba** | `docs/mapa/tests.md` · los casos tanda por tanda en `docs/mapa/tests-punteros-tandas.md` · fichas en `docs/mapa/tests-fichas-1035.md` (TC-1035 a TC-1041), `docs/mapa/tests-fichas-971.md` (TC-971 a TC-977), `docs/mapa/tests-fichas-872.md` (TC-872 a TC-881), `docs/mapa/tests-fichas-825.md` (TC-825 a TC-831), `docs/mapa/tests-fichas-821.md` (TC-821 a TC-824), `docs/mapa/tests-fichas-813.md` (TC-813 a TC-820), `docs/mapa/tests-fichas-807.md` (TC-807 a TC-812), `docs/mapa/tests-fichas-801.md` (TC-801 a TC-806), `docs/mapa/tests-fichas-795.md` (TC-795 a TC-800), `docs/mapa/tests-fichas-787.md` (TC-787 a TC-794), `docs/mapa/tests-fichas-769.md` (TC-769 a TC-777), `docs/mapa/tests-fichas-577.md` (TC-577 a TC-581), `docs/mapa/tests-fichas-572.md` (TC-572 a TC-576), `docs/mapa/tests-fichas-550.md` (TC-550), `docs/mapa/tests-fichas-538.md` (TC-538), `docs/mapa/tests-fichas-537.md` (TC-537), `docs/mapa/tests-fichas-536.md` (TC-536), `docs/mapa/tests-fichas-535.md` (TC-535), `docs/mapa/tests-fichas-532.md` (TC-532), `docs/mapa/tests-fichas.md` (TC-499 en adelante), `docs/mapa/tests-fichas-496-498.md`, `docs/mapa/tests-fichas-491-495.md` y `docs/mapa/tests-fichas-481-490.md` |
 | **Tocar el DIBUJO ESTÁTICO de la mitral en ETE**: la tabla única de festones por ángulo, la geometría, la línea del plano, el giro, las tres vistas con sus LETRAS DE FESTÓN, **la ORIENTACIÓN de la TRANSGÁSTRICA** o el PDF | `docs/mapa/mitral-dibujo-estatico.md` |
 | **Tocar los CUATRO DIBUJOS DE MEDIDAS TEER, los CRITERIOS TEER y sus cortes, el ESPEJO de la FEVI y el DSFVI del TEER, o las DOS PROFUNDIDADES DE COAPTACIÓN sincronizadas** | `docs/mapa/mitral-teer-criterios.md` |
 | **Tocar algo que la tanda R2 corrigió** (21/10): las cinco opciones del derrame y la traducción del token viejo, el repintado de la VAB con el gesto de la pastilla, los seis puntos de la probabilidad de HTP, el e′ medial en tres tramos, el espesor relativo y el criterio por eco de la amiloidosis, el SGL y la calculadora de cardio-oncología, el síndrome intersticial difuso por zonas, el índice cardiaco y la RVS, o la orejuela | `docs/mapa/tanda-r2-correcciones.md` |
@@ -299,7 +300,32 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **13,99 MB / 193.873 líneas**, medido con `wc -c` y `wc -l` el 2026-11-23 al cierre de la tanda **PR5** (el valor esperado de los senos de Valsalva, las tres colas del bloque de bajo flujo / bajo gradiente y el folio del cor triatriatum), sobre el árbol ya sellado: sello **`v20261123-0743`**, md5 **`3ebd3272`**.
+  sin frameworks. Hoy **14,03 MB / 194.566 líneas**, medido con `wc -c` y `wc -l` el 2026-11-23 al cierre de la tanda **PR6** (mover los cuadros, el resumen de válvulas, el texto «tipo Word», el noveno estilo de PDF y los cuatro contenidos de la Evidencia), sobre el árbol ya sellado: sello **`v20261123-2054`**, md5 **`21cbbbf6`**.
+  El diff de PR6 son **701 líneas agregadas y 8 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `8618cd9` **sobre el árbol ya sellado**, de las que **421 son código
+  de verdad**, 262 comentario y 18 en blanco — las 701 cierran exacto, y el filtro lleva el estado
+  del comentario de bloque, que es lo que de verdad separa código de prosa.
+  Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos —contados sobre las líneas agregadas y
+  no de memoria—, **CERO** claves y contraseñas, y **CERO** `<input>`, `<select>` y `<textarea>`
+  nuevos **con `id`**: el único control que esta tanda agrega es la casilla del interruptor del
+  resumen de válvulas, que **no lleva `id` a propósito** —el censo del estudio y el Excel recorren
+  `input[id]` y `select[id]`, así que una casilla con id entraría a las 457 columnas por existir y
+  «Nuevo estudio» le escribiría su `checked` guardado—. Medido en los dos árboles: **805**
+  `input[id]`, **293** `select[id]` y **18** `textarea[id]`, los tres **idénticos**, o sea **cero
+  campos guardados nuevos** y las **457** columnas quietas.
+  **CERO ids nuevos en el marcado**: el único que el diff muestra, `eco-build-sello`, ya existía y
+  reaparece porque el sello cambió. Lo nuevo son **clases** —`cuad-pie`, `cuad-rv`, `cuad-copias`,
+  `cuad-copia`— y un **atributo**, `data-cuad-rv`, y ninguno entra a ninguno de los **veintiocho**
+  barridos destructivos por sufijo o prefijo de id del archivo.
+  **Y CERO cortes clínicos, cero umbrales y cero fórmulas de severidad movidos**: lo que entra son
+  un texto que REUSA los valores que los cuadros ya publican —sin una segunda derivación—, una fila
+  de válvulas recuperada de `f5a4e19^` con los mismos campos, un estilo de PDF y cuatro notas de
+  Evidencia; y lo que sale del papel es **una indicación**, sin perder un solo número medido.
+  ⚠️ **POR SEXAGÉSIMA SEGUNDA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show 8618cd9:index.html` da **193.873** líneas,
+  **13.986.819** bytes y el md5 **`3ebd3272`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 13,99 MB / 193.873 al cierre de la tanda **PR5** (el valor esperado de los senos de Valsalva, las tres colas del bloque de bajo flujo / bajo gradiente y el folio del cor triatriatum), sello **`v20261123-0743`**, md5 **`3ebd3272`**.)
   El diff de PR5 son **342 líneas agregadas y 23 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `b005504` **sobre el árbol ya sellado**, de las que **174 son código
   de verdad**, 153 comentario y 15 en blanco — las 342 cierran exacto, y el filtro lleva el estado
@@ -1675,9 +1701,23 @@ impecable.
 (`source.branch: main`, `path: /`, certificado aprobado). Lo que se pushea a `main` **es** lo que
 sale publicado.
 
-⚠️ **PUNTO DE RETORNO VIGENTE: `c047112`**, el cierre de la tanda **P12** —sello `v20261122-1436`,
-md5 `ae874798`, 192.438 líneas—. Es lo que la página servía antes de publicar **P13 + P13-B**
-(sello `v20261122-2251`, md5 `8524699a`), y son **once** commits de diferencia.
+⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR PR6: `8618cd9`**, el cierre de la tanda **PR5** —sello
+`v20261123-0743`, md5 `3ebd3272`, 193.873 líneas—. **Es lo último que Maicol pusheó**, así que es
+lo que la página sirve hoy; PR6 queda en `main` local sin pushear. Para volver atrás SIN reescribir
+historia:
+
+```bash
+git revert --no-commit 8618cd9..main && git commit -m "Revertir PR6: volver al arbol de 8618cd9" && git push origin main
+```
+
+⚠️ **Al revertir, el sello del pie vuelve al viejo y `CLAUDE.md` queda publicando el nuevo**, así
+que **TC-753 sale rojo con razón** hasta que el renglón de tamaño y la sección de la tanda se
+pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
+
+**El punto de retorno de la tanda ANTERIOR, que queda como registro:** `c047112`, el cierre de
+**P12** —sello `v20261122-1436`, md5 `ae874798`, 192.438 líneas—. Era lo que la página servía antes
+de publicar **P13 + P13-B** (sello `v20261122-2251`, md5 `8524699a`), y son **once** commits de
+diferencia. ⚠️ **Ese commit ya NO es el punto de retorno vigente**: lo es `8618cd9`, arriba.
 
 **Para volver atrás SIN reescribir historia** —que es la única forma permitida acá: nada de
 `push --force`, nada de `reset`, porque lo publicado ya lo bajó un navegador—:
@@ -1755,6 +1795,236 @@ pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PR6 (2026-11-23) — mover los cuadros, el resumen de válvulas, el texto «tipo Word», el
+noveno estilo de PDF y los cuatro contenidos de la Evidencia.** CINCO tareas tocadas —la 0 de solo lectura y la 1 PARADA— y SEIS commits. Sello
+**`v20261123-2054`**, md5 **`21cbbbf6`**, **194.566** líneas. Línea base **`8618cd9`**, el cierre de
+PR5. **Sin push: lo corre Maicol.**
+
+⚠️ **LA TAREA 1 YA ESTABA HECHA, Y SE PARÓ COMO LA ORDEN MANDA.** El arrastre de los cuadros con
+eventos de puntero —así funciona con el dedo—, su supervivencia a «Nuevo estudio» y a abrir otro
+estudio, «Restablecer», la llegada al PDF y la adaptación de cada cuadro a su fila: **las seis cosas
+existían** desde la tanda CUADROS (18/11/2026), y ya las cubrían TC-939, TC-941, TC-942 y TC-943.
+**No se escribió una línea de producto** para esa tarea. Lo que se agregó es **TC-1041**, que la
+fija entera en un lugar e incluye la mitad que ninguno de los cuatro casos medía: que el orden nuevo
+**LLEGA AL PDF**, comparado por el orden en que los títulos aparecen en los bytes del papel. Ese
+caso **pasa en los dos árboles a propósito**: es una guarda de regresión. Y queda declarada **una
+diferencia de nombre**: la orden llama al botón «Original de fábrica» y el botón dice
+**«Restablecer»** — hace lo que la orden describe y su rótulo lo miden dos casos, así que no se
+renombró. **PR6-a.**
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas de severidad. Lo
+que entra es un **texto que REUSA los valores que los cuadros ya publican** —sin una segunda
+derivación—, una **fila de válvulas recuperada de `f5a4e19^`** con los mismos campos, un estilo de
+PDF y cuatro notas de Evidencia; y lo que sale del papel es **una indicación**, sin perder un solo
+número medido. **CERO** `<input>`, `<select>` y `<textarea>` nuevos **con `id`** —la única casilla
+que esta tanda agrega no lleva `id` a propósito—, así que **cero campos guardados nuevos** y las
+**457** columnas quietas, medido en los dos árboles: **805** `input[id]`, **293** `select[id]` y
+**18** `textarea[id]`, los tres idénticos.
+
+**LA FILA DE VÁLVULAS SE REUSA, NO SE REESCRIBE.** Son las tres secciones del BLOQUE 5 que la tanda
+CUADROS retiró en `f5a4e19`, recuperadas de su padre. **Tres diferencias deliberadas**, cada una con
+su motivo en el código: **sin la columna `ref`** —CUADROS retiró del papel TODOS los valores de
+referencia por orden expresa y dejó una sola viva en todo el documento—, **sin la sección «Otros»**
+—hoy es el cuadro número doce— y **sin la fila «EROA IT»**, cuyo campo `it_eroa` **no existe**
+(**CUAD-b**). El interruptor vive en un **pie nuevo** de la tarjeta, viene **APAGADO**, no va a
+`localStorage` ni al guardado del estudio, y **sobrevive a «Restablecer» y a «Nuevo estudio»**: vale
+para todos los estudios hasta cerrar la app. **PR6-b** y **PR6-c**.
+
+**MEDIDO CON EL PDF GENERADO DE VERDAD, contra `8618cd9` y con la misma siembra:** apagado
+**34.238 bytes**, los doce cuadros, **CERO** filas de válvula, 2 hojas; la línea base **34.238
+bytes**, los mismos doce títulos, 2 hojas → **IDÉNTICO**; prendido **42.490 bytes**, los mismos doce
+**más** las tres secciones, 3 hojas. El censo de controles con id, **idéntico** antes y después.
+
+**EL TEXTO «TIPO WORD»: UNA FUNCIÓN ÚNICA, Y DE ELLA CUELGAN LOS DOS BOTONES Y EL NOVENO ESTILO.**
+⚠️ **LOS VALORES SALEN DEL ÍNDICE DE `cuadDefs()`, NO DE UNA SEGUNDA LECTURA DE LOS CAMPOS**, y es
+la decisión de fondo: reescribir ahí `vPdf('tapse',' mm')` sería la segunda derivación del mismo
+dato, y el día que una fila cambie de unidad o de banda el cuadro del PDF y este texto publicarían
+dos números distintos del MISMO estudio. Además vuelve **medible** la completitud:
+`cuadTextoFaltan()` compara los dos conjuntos.
+**Medido con los TRES casos de oro** —normal, estenosis aórtica con insuficiencia mitral y casi
+vacío—: `faltan: []` en los tres, **cada valor del cuadro aparece LITERAL en el texto**, el orden de
+las nueve secciones exacto con DOPPLER como título propio, y **CERO** hallazgos de válvula, **CERO**
+contenido del cuadro «Otros» y **CERO** datos del paciente, con la geometría ventricular **sí**
+presente. El casi vacío saca **una** sección con **una** línea.
+**QUINCE CAMPOS EN SIETE GRUPOS entraron por la REGLA DE COMPLETITUD** y no por la lista de la
+orden, cada uno en el renglón más afín de su sección, con su tabla en **PR6-e**; y **DOS** que la
+orden pide y los cuadros **no publican** —las dos velocidades de la insuficiencia pulmonar, que el
+cuadro consume como insumo de la PAPm y la PAPd—, que salen por `vPdf` con su prefijo propio.
+
+**LOS DOS BOTONES, medidos con el portapapeles SIMULADO y por el gesto real:** 44 × 44 cada uno, su
+`title` y su `aria-label` idénticos, los DOS copian **exactamente** lo que arma su función, el de
+datos **sin un dato del paciente**, y **la copia NO depende de los cuadros quitados** —con tres
+quitados el texto copiado es idéntico—. Eso último es **POR CONSTRUCCIÓN**: el índice sale de
+`cuadDefs()`, los doce sin filtrar, y **no** de `cuadVisibles()`. Si el portapapeles falla las dos
+vías se abre un cuadro propio con el texto **ya seleccionado**; ese camino **no tiene cobertura
+automática** y se declara (**PR6-f**), porque en el navegador del arnés la primera vía siempre
+resuelve.
+
+**EL NOVENO ESTILO, «Tipo Word».** `PDF_PLANTILLAS` pasa a **nueve** entradas y con eso queda
+registrado en los **tres** lugares que lo consumen —el selector de Config, el despachador del
+encabezado y las miniaturas—, porque todos salen de esa única lista. ⚠️ **ES EL ÚNICO QUE CAMBIA EL
+CUERPO Y NO SÓLO EL ENCABEZADO**, lo que contradice el comentario que encabeza ese catálogo, así que
+queda dicho ahí. Usa el encabezado **CLÁSICO** apuntando a la **misma** función —no a una copia— y
+el mismo pie y la misma firma.
+**Medido leyendo los operadores Tj de sus bytes sin comprimir:** clásico **38.201 bytes** con el
+cuadro del gasto y **cero** líneas de texto; «Tipo Word» **20.572 bytes** con el cuadro del gasto en
+**cero** y **once** líneas de texto, el informe y el EN SUMA presentes en los dos, y **CERO**
+llamadas a `addImage` en los dos: es **texto real y no una imagen**. **NO lleva el resumen de
+válvulas**, y la compuerta vive en ESE camino: con el interruptor **prendido** su PDF sale en
+**20.572 bytes, idéntico** al de con el interruptor apagado, mientras el clásico pasa de 38.201 a
+**45.203**.
+
+**LOS CUATRO CONTENIDOS DE LA EVIDENCIA, con sus SEIS folios comprobados en el pie o el encabezado
+IMPRESO de cada hoja** —no deducidos de dos—: **ACC/AHA 2020** (Otto) hoja 19 → **e90** y hoja 21 →
+**e92**; **ESC/EACTS 2025** (Praz) hoja 29 → **4663**, hoja 30 → **4664**, hoja 32 → **4666** y hoja
+36 → **4670**. Redacción **descriptiva** y **cada fuente en su propia oración**, por la regla fija
+del 2026-11-04: medido, **CERO** apariciones de «no coinciden», «difieren», «discrepan», «se
+contradicen», «no se encontró», «ninguna guía», «a diferencia de», «mientras la guía» y «sin
+resolver» en las nueve notas. Los dos **umbrales del score de calcio** ganan su folio (hoja 32,
+folio 4666) y **no se repiten** en las notas nuevas: dos cifras del mismo corte en la misma sección
+es cómo una se queda vieja.
+⚠️ **DOS PREMISAS DE LA ORDEN NO SE REPRODUJERON.** La **ESC/EACTS 2021** de valvulopatías **no está
+en la biblioteca** —buscada por nombre y por año en todo el árbol—: lo que hay es la **2025**, y se
+citó ésa. Y de la **ASE/EAE 2009** de estenosis valvular nativa **no se citó nada**, porque su PDF
+tiene las dos columnas **entrelazadas** en la extracción de texto y no se pudo leer una oración
+completa con su folio sin renderizar hoja por hoja: **esta casa no cita lo que no leyó**. Los cuatro
+contenidos quedaron igual sostenidos por las otras dos. **PR6-g.**
+
+**LA FRASE DEL TSVI SALE DE LAS TRES SUPERFICIES**, medido con la escena que de verdad monta la
+discordancia —grado consignado «moderada» contra mediciones severas, `disc=true`—: informe **NO**,
+EN SUMA **NO**, y PDF generado de verdad **NO**, mientras los tres **siguen describiendo** la
+discordancia con sus cinco números (AVA 0,80 cm², AVAi 0,41 cm²/m², Vmax 4,6 m/s, Gmedio 55 mmHg,
+DI 0,25) y el grado que les correspondería. **EL AVISO DE PANTALLA NO SE TOCÓ**, por orden expresa.
+
+**COBERTURA: SIETE casos nuevos, TC-1035 a TC-1041.** **SEIS caen 0/6 contra `8618cd9`** con el
+mismo archivo de casos y sólo el `index.html` distinto, por **46 condiciones** y **CERO
+excepciones** —todo acceso va por un ayudante con guarda y devuelve una forma vacía—. **TC-1041 pasa
+en los dos a propósito** y se declara.
+**CUATRO casos adaptados**, los cuatro consecuencia autorizada y los cuatro **más fuertes**: **TC-935**
+—eran dos apariciones del dibujante de tablas y hoy son tres, con DOS condiciones nuevas: que la
+segunda llamada esté detrás del interruptor, y que el interruptor esté apagado como denominador de
+los ocho estilos—; **TC-161** —ocho plantillas → **nueve**, más el denominador que le faltaba, ver
+abajo—; y **TC-1034 (D1) INVERTIDO**, que es lo que la orden pide: ANTES exigía que la frase del
+TSVI **siguiera en pie** y HOY exige que **no esté** en el informe, en el EN SUMA ni en el PDF, con
+tres condiciones nuevas —(D2) el EN SUMA, (D3) el PDF generado de verdad y (D4) que la descripción
+quede entera—, así que falla por los dos lados. Y **TC-322**, que la pasada de lotes destapó:
+ANTES exigía **UNA** entrada en la bibliografía de la sección aórtica —y con una sola el invariante
+«lista SOLO lo citado» se cumplía por casualidad—; HOY exige las **DOS** que la sección cita, el
+reparto **exacto** de las tres bibliografías de su segunda escena, y una condición **nueva** que
+mide de verdad lo que ese caso protege: que **ninguna entrada quede sin un corchete que la
+invoque**.
+
+**35/35 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
+vivo **idéntico** antes y después (`21cbbbf6`) y las **35 anclas verificadas ANTES** de correr. **Al
+menos dos por grupo**, que es lo que la orden pide, y **cuatro no revierten nada: la aplican DE
+MÁS**, porque las condiciones que las matan son **controles negativos** y un control negativo que
+ninguna mutación puede romper no prueba nada.
+⚠️ **HICIERON FALTA CUATRO PASADAS, Y LAS TRES PRIMERAS ENCONTRARON NUEVE, TRES Y UNA
+SOBREVIVIENTE.** Se repartieron en cuatro clases, y cada una enseñó algo:
+· **DOS HUECOS REALES DE COBERTURA**, cerrados con condiciones nuevas y sin aflojar una mutación: el
+  **AVA sin un grado consignado** —la escena de la estenosis lo tiene puesto, así que las dos formas
+  daban lo mismo y la condición no distinguía— y el **título en negrita y subrayado**, que ninguna
+  condición medía.
+· **UNA CONDICIÓN DEMASIADO DÉBIL**: «una línea por renglón» contaba los textos que **empiezan** con
+  un rótulo, y con las líneas pegadas en un párrafo la primera sigue empezando igual. Hoy exige que
+  **dos renglones de la misma sección sean dos textos dibujados distintos**.
+· **TRES MAL ESCRITAS O MAL DIRIGIDAS**: dos cambiaban el **primer fragmento** del texto de una nota
+  y el resto —donde están las frases que la condición busca— seguía ahí; y una colgaba un oyente de
+  un evento **que la app no despacha** (censado: cero apariciones), así que no hacía nada.
+· **Y TRES QUE SOBREVIVÍAN POR REDUNDANCIA, que es un hallazgo y no un hueco.** La exclusión de los
+  hallazgos de válvula está en **dos capas** —las tablas de orden no los referencian **Y**
+  `CW_NO_MEDIDA` los filtra—, y los filtros de valor vacío están en **tres** lugares: **ninguna
+  muere sola**. Las mutaciones se reapuntaron a la única capa sin pareja, que es el **rótulo** con
+  que se imprime una pieza y el filtro de `_cwLinea`. **PR6-d.**
+⚠️ **Y UNA CONDICIÓN MEDÍA EL JOIN DE LAS NUEVE NOTAS Y NO CADA NOTA**: «varias ventanas» aparece en
+**dos**, así que sacársela a una seguía encontrándola en la otra. Hoy cada contenido se mide
+**dentro de su propia nota**, más una condición que exige que las cuatro sean **cuatro notas
+distintas**. Es la misma lección que PANT-22 pagó con sus «dos equivalentes a nivel de sección».
+
+**SEIS DEFECTOS PROPIOS QUE LA MEDICIÓN CAZÓ Y LA LECTURA NO:**
+1. **Mi reemplazo se llevó puesto el bucle que dibuja LOS DOCE CUADROS**: el PDF pasaba de 34 KB a
+   8 KB **sin un solo cuadro**. Lo destaparon TC-935 y el **denominador vacío de mi propia sonda**
+   —«gasto: 0»—, que era el hallazgo y no un fallo de la sonda.
+2. Las secuencias `\u00e1` entraron **literales al marcado**, donde HTML no las interpreta: el
+   médico leía «Incluir resumen de v\u00e1lvulas» en la pantalla. Corregido en 27 líneas.
+3. **`_cap` es un `const` LOCAL de `generarPDFReal`** —la fila original vivía adentro—, así que
+   desde afuera tiraba «_cap is not defined» y el `try` lo convertía en una lista vacía. Nace
+   `_cuadCap`; el `_cap` de adentro, que usan veinte filas del papel, no se tocó.
+4. **`_C('TEXTO')` NO EXISTE**: ese resolvedor sólo conoce los centinelas TEMA\* y devuelve TAL CUAL
+   lo que no reconoce, así que `tc('T','E','X')` pintaba un color basura. Lo delató el censo —era la
+   **única** aparición de ese centinela en todo el archivo—.
+5. **`emAvmPdfPartes()` devuelve `{met, txt}` y no `{met, val}`** como su hermana, así que por
+   `_cuadMetTxt` salía «undefined (THP)» sobre un área medida. Nace `_cwAvmTxt`.
+6. **El AVA no salía sin un grado consignado y el AVA indexado sí**: el texto publicaba el indexado
+   **sin** el área. Hoy los dos salen de `CX.avaC`, el mismo dueño, sin esa compuerta.
+**Y UN CAMPO FANTASMA**: agregué una fila «Notas» a la tricúspide por simetría y **`vt_notas` NO
+EXISTE** —el censo de ids lo devolvió en cero—. Retirada con su lápida.
+
+⚠️ **EL INTERRUPTOR SE MUDÓ AL PIE DESPUÉS DE MEDIR**: arriba de la grilla la empujaba **75 px** y
+el cuadro de destino del arrastre caía debajo del pliegue de la ventana del arnés, que es lo que
+**TC-939 marcó con su propio denominador** —«NADA BAJO EL PUNTERO»—. Un caso que mide el producto no
+se afloja por una decisión de maquetado que se puede tomar al revés.
+
+⚠️ **TC-161 TENÍA UNA CONDICIÓN SIN DENOMINADOR Y ESTA TANDA LA DESTAPÓ.** El título de la tarjeta
+«Comunidad de desarrollo de IA» lo escribe el JS en `DOMContentLoaded`, y el caso leía a veces
+**antes** de que pintara: **medido 4 de 7 pasadas en este árbol contra 4 de 4 en el anterior**, con
+la misma tarjeta vacía las tres veces. Este árbol es ~700 líneas más grande y eso corrió la carrera,
+pero **la carrera ya estaba**. Se le dio su denominador —se llama al pintor, idempotente por
+declaración propia— y una condición **nueva** que exige que el pintor **exista**: con eso, **4 de
+4**. **PR6-h.**
+
+⚠️ **CUATRO TRAMPAS DE ESTA CASA, PAGADAS OTRA VEZ.** (1) El **acento grave dentro de mis propios
+comentarios** en el cuerpo de un caso, por **trigésima quinta** tanda seguida: **cuatro** veces, y
+las cuatro las abortó el guardián que exige **delta CERO** antes de escribir. (2) **La barra
+invertida no sobrevive al template literal**: la expresión que lee los operadores Tj del PDF llegó
+rota —«Invalid regular expression: missing /»—; se copió la forma **probada** que este mismo archivo
+ya usa, con cada barra **doblada**. (3) **Los siete casos quedaron insertados DESPUÉS de la cola del
+runner** —el bloque `finally` que cierra Chrome—, así que no se registraban y el suite informaba
+«0/0 sin regresiones», que es el peor rojo posible: **parece verde**. El insertador gana una guarda
+que exige que la cola siga después del último caso. (4) **El ayudante del informe devuelve `inf` y
+no `texto`**, así que la cadena salía vacía y las dos condiciones de «la frase ya no sale» pasaban
+**sobre nada**; lo cazó la condición que sí tenía denominador.
+
+**VERIFICACIÓN. LA SUITE COMPLETA NO SE CORRIÓ, POR ORDEN EXPRESA.** Se corrieron los **lotes de
+riesgo** de Cuadros, PDF, informe, EN SUMA, Evidencia de estenosis aórtica y Configuración: los
+**550** casos cuyo cuerpo toca alguna de esas seis zonas, seleccionados por el **patrón de su propio
+cuerpo** y no a ojo (`scripts/_lotes_pr6.sh`). Los demás **no se ejecutaron**, y se declara.
+**545/550 en TRECE lotes**, en UNA sola pasada sobre el árbol sellado, con el md5 de `index.html`
+**idéntico** antes y después (`21cbbbf6`). Los **CINCO** rojos son **TC-376** y **TC-406**, los dos
+de siempre —que fallan igual **corridos aislados**—, y **TC-182**, **TC-551** y **TC-557**, los tres
+intermitentes que este archivo ya declara, que **pasan 3 de 3 corridos aislados**. **NINGÚN rojo
+nuevo**, y los siete casos nuevos y los cuatro adaptados en verde.
+⚠️ **LA PASADA DIO 544/550 Y EL SEXTO ROJO ERA MÍO, consecuencia autorizada de la TAREA 5**:
+**TC-322** —la numeración de las citas por sección—, que **pasa en la línea base** con el mismo
+archivo de casos y sólo el `index.html` distinto. Su causa está medida: la sección de estenosis
+aórtica pasa a citar **DOS** guías, porque las cuatro notas nuevas nombran también la ACC/AHA 2020
+con su hoja y su folio, así que su bibliografía tiene **dos** entradas y el total de la escena B
+pasa de cuatro a **cinco**. **Su lote, el 4, se rehizo entero con el archivo de casos final: 45/45**,
+con el md5 del árbol idéntico al abrir y al cerrar. No se rehizo la pasada completa y se declara con
+su motivo: **`index.html` no cambió** y lo único que se movió fue el archivo de casos — el mismo
+criterio con que la 3A, el prompt 4, P9 y P10 no rehicieron la suya.
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos**, medido en los dos árboles. **CELULAR: 38 ALTA**, la línea base
+**exacta**, medido con el **mismo script en los dos árboles** y con la máquina sola — así que los
+tres controles nuevos **no agregan ninguno**: la casilla del interruptor y los dos botones de copiar
+miden **44 × 44** los tres, medido. **CERO** `innerHTML`, `eval(` y
+`new Function` nuevos, contados sobre las líneas agregadas y no de memoria. **CERO ids nuevos en el
+marcado**: lo nuevo son cuatro **clases** y un **atributo**, y ninguno entra a ninguno de los
+**veintisiete** barridos destructivos por sufijo o prefijo de id del archivo.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por vigésima tercera tanda
+seguida: la orden no la pedía y el presupuesto se fue en las cinco tareas y su verificación. Este
+archivo pesa más de 700 KB. Lo que hay que mudar hoy es todo lo anterior a **PR5**.
+
+Lo declarado, en **PR6-a** a **PR6-i** —con **PR5-a**, **PR5-b** y **PR5-d** CERRADAS por decisión
+de Maicol del 23/11, y **PR5-c** revisada y dejada abierta sin cambios—; el mapa, en
+`docs/mapa/pr6-word-resumen-valvulas.md`; las fichas, en `docs/mapa/tests-fichas-1035.md`; las
+fuentes con sus folios literales, en `docs/fuentes/FUENTES.md` → «La tanda PR6»; las sondas, en
+`scripts/_probe_pr6.mjs` (el interruptor), `_probe_pr6b.mjs` (el texto y los dos botones),
+`_probe_pr6c.mjs` (el noveno estilo) y `_probe_pr6d.mjs` (la Evidencia y la frase), cada una con su
+cuerpo aparte; el barrido, en `scripts/_mut_pr6.py`; el corredor de lotes, en
+`scripts/_lotes_pr6.sh`; el insertador de los casos con su guardián, en `scripts/_casos_pr6.py`.
 
 **La tanda PR5 (2026-11-23) — el valor esperado de los senos de Valsalva, las tres colas del
 bloque BF/BG y el folio del cor triatriatum.** CUATRO tareas (la 4 era sólo reportar) y CINCO

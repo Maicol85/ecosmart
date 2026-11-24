@@ -19619,13 +19619,175 @@ vacio», que son dos defectos distintos, y hoy el caso lo dice.
 
 ---
 
+## Tanda PR6 (2026-11-23) — mover los cuadros, el resumen de válvulas, el texto «tipo Word», el noveno estilo de PDF y los cuatro contenidos de la Evidencia
+
+> Mapa: **`docs/mapa/pr6-word-resumen-valvulas.md`**. Línea base **`8618cd9`** (cierre de PR5,
+> sello `v20261123-0743`, md5 `3ebd3272`). Casos **TC-1035 a TC-1041**.
+
+### PR6-a · La TAREA 1 YA ESTABA HECHA, y se paró como la orden manda
+
+La orden pedía que en la tarjeta de Cuadros el médico pudiera **arrastrar un cuadro a otra
+posición**, con el orden manteniéndose mientras la app esté abierta, restablecible, llegando al PDF
+y con cada cuadro adaptándose a su fila. **Las seis cosas ya estaban**, hechas por la tanda CUADROS
+el 18/11/2026: `_cuadArrDown` / `_cuadArrMove` / `_cuadArrUp` con **eventos de puntero** —así
+funciona con el dedo, y la manija lleva `touch-action:none`—, `cuadOrdenDesdeDOM` commiteando el
+orden al soltar y conservando el lugar de los quitados, `_cuadOrden` en memoria **sin gancho en
+`limpiarCampos`** —la ausencia de ese gancho ES la decisión, escrita ahí—, `cuadRestablecer`
+volviendo al orden de fábrica, `cuadVisibles` leyendo ese orden para el papel, y `cuadFilas` /
+`_cuadSpans` repartiendo la grilla igual en la tarjeta y en el PDF.
+
+Ya lo cubrían **TC-939** (el arrastre y «Restablecer»), **TC-941** (no se descarta al limpiar ni al
+abrir otro estudio, reflejado en dos estilos de PDF), **TC-942** (el punto de aviso al reordenar) y
+**TC-943** (el reparto de la grilla con los siete ejemplos del médico). Por eso **no se escribió una
+línea de producto** para esa tarea, que es lo que la orden fija: «si algo de lo que describe este
+prompt no coincide con lo que encontrás, PARÁ esa tarea y reportalo».
+
+**UNA diferencia de nombre, declarada y no cambiada:** la orden llama al botón **«Original de
+fábrica»** y el botón dice **«Restablecer»**. Hace lo que la orden describe —devuelve el orden de
+fábrica— y su rótulo lo miden TC-939 y TC-942; renombrarlo era un cambio que la orden no pide.
+**Lo decide el médico.**
+
+**Lo que sí se agregó es cobertura:** **TC-1041** fija las seis cosas en un solo lugar e incluye la
+mitad que ninguno de los cuatro casos medía —que el orden nuevo **LLEGA AL PDF**, comparado por el
+orden en que los títulos de los cuadros aparecen en los bytes del papel—. Ese caso **pasa en los dos
+árboles a propósito**: es una guarda de regresión y no lo que discrimina.
+
+### PR6-b · El interruptor del resumen NO entra en «Restablecer» ni en el punto de aviso
+
+`cuadReset()` restablece el **ORDEN** y los **QUITADOS**, que es lo que la tarjeta configura; el
+interruptor del resumen de válvulas es una **INCLUSIÓN** y queda afuera a propósito. Tampoco entra en
+`cuadPersonalizado()`, el predicado del punto de aviso del botón: ese punto existe porque **un cuadro
+quitado y olvidado saca un estudio SIN un dato**, y esto **agrega** datos, que no tiene esa
+consecuencia. Y el interruptor dice su estado en su propia casilla, a la vista.
+
+**Si el médico prefiere que «Restablecer» lo apague** o que el punto de aviso se encienda con él,
+son dos líneas; hoy lo fija **TC-1038 (E1)**, así que cambiarlo exige invertir esa condición.
+
+### PR6-c · El resumen de válvulas REPITE lo que las líneas de válvula ya publican
+
+Las tres secciones del resumen salen de los mismos campos que `cuadLineasVM` / `cuadLineasVA` /
+`cuadLineasTriPulm`, que desde la tanda CUADROS viven **dentro del cuadro de su estructura**. Así que
+con el interruptor prendido el papel publica **dos veces** la vena contracta, el EROA, el volumen
+regurgitante, la fracción regurgitante, el AVm y los DVI. **No se puede evitar sin cambiar una de las
+dos cosas**, y la orden de PR6 pide expresamente «un cuadro por válvula con sus alteraciones,
+velocidades y gradientes» **además** de los cuadros. Por eso viene **apagado de fábrica**.
+
+**Tres diferencias contra la fila original**, y las tres deliberadas: **sin la columna `ref`** —la
+tanda CUADROS retiró del papel TODOS los valores de referencia por orden expresa, y dejó una sola
+viva en todo el documento—, **sin la sección «Otros»** —hoy es el cuadro número doce— y **sin la fila
+«EROA IT»**, cuyo campo `it_eroa` **no existe** (ver **CUAD-b**).
+
+### PR6-d · Lo que el texto «tipo Word» NO publica
+
+Por la regla de la orden —«solo datos numéricos y medidas»— quedan afuera los **hallazgos de
+válvula** (la morfología y los grados IM, IAo, IT, EA, EM y ET), las **notas** que el médico escribe
+en cada válvula, y el **cuadro «Otros» entero**: su única línea son el pericardio, las masas, el
+pulmón y las variantes anatómicas, que son hallazgos y no medidas. **La geometría ventricular SÍ
+entra**, que es lo que la orden pide explícitamente, y con ella la clasificación de la FEVI y el
+RWT: son clasificaciones de un número medido.
+
+**Si el médico quiere el pericardio y las masas en el texto que copia al sistema del sanatorio**, es
+una entrada más en la tabla de orden; hoy lo fija **TC-1035 (E2)**.
+
+### PR6-e · Los campos que entraron al texto por la REGLA DE COMPLETITUD
+
+La orden enumera los renglones de la planilla de papel del médico y pide que **todo campo numérico
+que hoy sale en los cuadros del PDF salga en el texto**, ubicando en el renglón más afín de su
+sección lo que no entre en esa lista, y **listándolo acá**. Son **siete grupos, quince campos**:
+
+| campo | cuadro de origen | dónde se ubicó |
+|---|---|---|
+| VDFVI idx · VSFVI idx | `viest` (VI — Estructura) | Ventrículo izquierdo, renglón de volúmenes |
+| Vol. latido | `visis` (VI — Función sistólica) | el mismo renglón |
+| Vol. sistólico · VLI · GC · IC | `gc` (Gasto cardíaco) | Ventrículo izquierdo, renglón propio — **es el gasto del VI**, así que su sección afín es ésa, y la lista de la orden no tiene una para el gasto |
+| FAC · FEVD · VD/VI | `vd` (Ventrículo derecho) | Ventrículo derecho, segundo renglón |
+| PmAD · VEXUS | `advci` (AD / VCI) | Aurícula derecha y VCI, segundo renglón |
+| Dur. A mit. · S/D pulm. · Dur. Ar · Veloc. Ar · Ar-A | `vm`, sub-columna de **vena pulmonar** | Válvula mitral, renglón propio — van juntos y no mezclados con el Doppler transmitral, que es como el cuadro los separa |
+| PAP media · DVI VP | `trip` (Tricúspide / Pulmonar) | Válvula tricúspide y pulmonar, renglón propio |
+
+**Y DOS que la orden pide y los cuadros NO publican:** la **Vmax proto-diastólica de la IP** y la
+**Vmax telediastólica de la IP**. El cuadro «Tricúspide / Pulmonar» las consume como **insumo** de la
+PAPm y la PAPd y no las imprime; la orden las nombra por su nombre, así que salen por `vPdf` —el
+mismo lector con banda de plausibilidad que usan todas las filas del papel— y con su prefijo propio
+`CW|`, en vez de disimularse entre las claves de cuadro. Es lo **único** de este texto que no sale de
+un cuadro.
+
+**Un valor sale sin unidad, y es el del cuadro:** la **PAP media** la publica `sv('pap_med')` tal
+cual —un desplegable— y el cuadro del PDF la imprime igual. **No se le agregó una unidad**: la
+garantía de esta tanda es que el texto publica el MISMO valor que el cuadro, y ponerle unidad acá
+haría que las dos superficies dijeran cosas distintas del mismo dato. **Lo decide el médico**, y el
+arreglo es del cuadro, no del texto.
+
+**Y el AVm aparece DOS veces en la mitral, y son dos datos:** el **área del método elegido**
+(`emAvmPdfPartes`, que publica «3.14 cm2 (THP)») y el **AVm por THP** del cuadro mitral
+(`cuadAvmThpTxt`). Con el THP como único método elegido dan el mismo número; con planimetría
+elegida, no. La completitud exige el segundo, porque es una fila del cuadro.
+
+### PR6-f · El copiador al portapapeles duplica la mecánica del de CeiboLink
+
+`_cuadCopiar` repite las dos vías —`navigator.clipboard` y el `<textarea>` oculto con
+`execCommand`— que el copiador de CeiboLink ya tiene. **Es deliberado:** aquél es un oyente delegado
+por `data-clnk-copiar` que mete **el valor copiado en el toast** —sirve para una dirección IP de
+quince caracteres y no para un texto de treinta renglones— y vive **dentro del módulo del conector**,
+que esta tanda tiene prohibido tocar. Lo que se repite son ocho líneas de API del navegador, no un
+criterio clínico ni un dato.
+
+**La última red está hecha y no se pudo medir en el arnés:** si las dos vías fallan, se abre un cuadro
+propio con el texto **ya seleccionado** para copiarlo a mano. En el navegador del arnés
+`navigator.clipboard.writeText` **siempre resuelve**, así que ese camino **no tiene cobertura
+automática**: está verificado por lectura y queda declarado.
+
+### PR6-g · La ESC/EACTS **2021** de valvulopatías NO está en la biblioteca
+
+La orden nombra tres fuentes para los cuatro contenidos de la TAREA 5: «guía ASE de estenosis
+valvular nativa, **ESC/EACTS 2021**, ACC/AHA 2020 de valvulopatías». Buscada por nombre y por año en
+**todo** `EcoSmart_Biblioteca_Fuentes`, la de valvulopatías que hay es la **2025**, en dos copias;
+la que lleva los **folios impresos** es `2025 ESC:EACTS Guidelines for the management of valvular
+heart Disease. .pdf`, cuya regla `folio = hoja + 4634` coincide con la que `CLAUDE.md` ya declara
+para `ehaf194.pdf` —comprobado en el encabezado impreso de las hojas 29, 30, 32 y 36—. **Se citó
+ésa.**
+
+**Y de la ASE de estenosis nativa (Baumgartner 2009) no se citó nada**, y queda dicho: su PDF tiene
+las dos columnas **entrelazadas** en la extracción de texto —«the lvot diameter is
+emeasuredatbaselineandthesamediameterisused»—, así que no se pudo leer una oración completa con su
+folio sin renderizar hoja por hoja. Esta casa no cita lo que no leyó. **Las cuatro notas quedaron
+igual sostenidas**: los cuatro contenidos salen de la ESC/EACTS 2025 y de la ACC/AHA 2020, las dos
+leídas con su folio comprobado.
+
+### PR6-h · TC-161 tenía una condición sin denominador, y esta tanda la destapó
+
+El título de la tarjeta **«Comunidad de desarrollo de IA»** de Configuración lo escribe el JS en
+`DOMContentLoaded` (`_anahiSyncTodo`, idempotente por declaración propia), y la condición «cada una
+tiene su título» de **TC-161** leía a veces **antes** de que pintara: **medido 4 de 7 pasadas en el
+árbol de PR6 contra 4 de 4 en el anterior**, con la misma tarjeta —la séptima— vacía las tres veces.
+El árbol de esta tanda es ~700 líneas más grande y eso corrió la carrera, pero **la carrera ya
+estaba**.
+
+Se le dio su denominador —se llama al pintor antes de leer— y una condición **nueva** que exige que
+el pintor **exista**, así que sacarlo sigue saliendo rojo. Con eso: **4 de 4**. **No se aflojó nada:**
+lo que esa condición vigila es que ninguna tarjeta se quede sin título, no que la secuencia de carga
+haya terminado.
+
+### PR6-i · La mudanza de «Estado vigente» a `docs/archivo/` tampoco se hizo
+
+Por **vigésima tercera** tanda seguida. La orden no la pedía y el presupuesto se fue en las cinco
+tareas y su verificación. `CLAUDE.md` pesa más de 700 KB. Lo que hay que mudar hoy es todo lo
+anterior a **PR5**.
+
 ## Tanda PR5 (2026-11-23) — el valor esperado de los senos de Valsalva, las tres colas del BF/BG y el folio del cor triatriatum
 
 > Mapa: **`docs/mapa/pr5-esperado-senos-devereux.md`**. Línea base **`b005504`** (cierre de
 > P13 + P13-B, sello `v20261122-2251`, md5 `8524699a`). Fichas de los casos en
 > `docs/mapa/tests-fichas-1029.md`.
 
-### PR5-a · El nomograma de la ASE/EACVI 2015 se queda, y conviven DOS lecturas del mismo seno
+### [CERRADO 2026-11-23 · PR6] PR5-a · El nomograma de la ASE/EACVI 2015 se queda, y conviven DOS lecturas del mismo seno
+
+> **DECISIÓN DE MAICOL del 23/11/2026, tomada en la tanda PR6:** los dos nomogramas **CONVIVEN**.
+> El de la ASE/EACVI 2015 **no se retira** y el de Devereux 2012 se queda como lo dejó PR5, cada
+> uno con su fuente. Lo que el globo publica son **dos lecturas del mismo diámetro**, y que puedan
+> discrepar —una estratifica la edad en tres tramos y la otra la mete como variable continua— es
+> la consecuencia aceptada. **No hay nada que hacer**: la entrada queda cerrada y lo de abajo es
+> el registro de por qué.
 
 **La premisa de la TAREA 0-b resultó parcialmente falsa**: ya había un **nomograma de los senos de
 Valsalva** en la aplicación, pero de **otra fuente** —ASE/EACVI 2015 (Lang), **Figura 13**, folio
@@ -19643,7 +19805,12 @@ edad en tres tramos y la otra la mete como variable continua.
 sale el de Devereux de ahí y queda sólo en la pantalla y en el papel. Son tres líneas en
 `evTarjetaAo`.
 
-### PR5-b · La superficie corporal de este cálculo es DuBois y no la de la aplicación, y se aparta de la letra de la orden
+### [CERRADO 2026-11-23 · PR6] PR5-b · La superficie corporal de este cálculo es DuBois y no la de la aplicación
+
+> **DECISIÓN DE MAICOL del 23/11/2026, tomada en la tanda PR6:** la superficie de **DuBois SE QUEDA**
+> para este cálculo. `getBSA` —que es Mosteller— **no se toca**, y el esperado de los senos y el Z
+> de Marfan siguen saliendo de la MISMA superficie, que es lo que evita que la pantalla de aorta y
+> la tarjeta de Marfan publiquen dos esperados del mismo paciente. **No hay nada que hacer.**
 
 La orden dice «usá la superficie corporal que ya usa la aplicación». `getBSA()` es **Mosteller**
 —`sqrt(peso × talla / 3600)`— y este cálculo usa **DuBois**, que es la del artículo normativo.
@@ -19663,13 +19830,28 @@ entonces conviene moverla también en `mfsZCalc`, para que los dos Z sigan coinc
 
 ### PR5-c · El artículo publica una graduación por Z y NO se implementó
 
+> **REVISADA EL 23/11/2026 EN LA TANDA PR6 Y QUEDA ABIERTA, SIN CAMBIOS.** Maicol confirmó que
+> la graduación por Z **no se implementa**: esta aplicación no gradúa el seno con ese cálculo y
+> graduar es decisión suya. No es un pendiente de software: es una decisión tomada en contra.
+
+
 La hoja 4 de Devereux 2012 dice, textual: «For convenience, mild, moderate and severe aortic
 dilatation can be recognized by positive z-score values from these models of **1.97–3.0, 3.01–4.0
 and >4.0**, following a previously-reported convention». La orden **no la pide**, esta aplicación
 **no gradúa** el seno de Valsalva con este cálculo —lo gradúa `aoSegGrado` con `AO_DIL_MM`— y
 graduar es decisión del médico. **No se escribió en ninguna superficie**, ni siquiera en el globo.
 
-### PR5-d · El contenido de las tres colas retiradas NO está en la Evidencia
+### [CERRADO 2026-11-23 · PR6] PR5-d · El contenido de las tres colas retiradas pasó a la Evidencia
+
+> **HECHO EN LA TAREA 5 DE PR6 (2026-11-23), por decisión de Maicol.** Las tres colas que PR5
+> retiró del informe —el score de calcio por TAC en la rama paradojal, la medición incorrecta del
+> tracto de salida como causa de gradiente bajo con flujo normal, y el repaso de las integrales
+> velocidad-tiempo con FEVI reducida sin bajo flujo— **están hoy en la Evidencia de estenosis
+> aórtica**, con redacción descriptiva, su guía, su hoja y su folio. Lo mide **TC-1040**. La cuarta
+> nota que esa tanda agregó cubre además la **discordancia de grado**, cuya frase PR6 retiró del
+> papel en la misma tarea. **Los folios, verificados en el pie o el encabezado impreso de cada
+> hoja:** ACC/AHA 2020 hoja 19 → **e90** y hoja 21 → **e92**; ESC/EACTS 2025 hoja 29 → **4663**,
+> hoja 30 → **4664**, hoja 32 → **4666** y hoja 36 → **4670**.
 
 La regla fija de esta casa dice que antes de retirar algo del papel hay que verificar que su
 contenido esté en la Evidencia con su fuente, y que si no está hay que **parar y reportarlo**. Se

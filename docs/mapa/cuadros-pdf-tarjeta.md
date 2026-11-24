@@ -174,6 +174,19 @@ esta casa engancha todo lo que vuelve a cero: la ausencia de ese gancho ES la de
 saltea exactamente esa cadena, y sin ella el `div` entraría por la rama que le pone `tabindex` y
 deja la tecla Espacio cerrando la tarjeta.
 
+## 7b. Lo que la tanda PR6 le agregó (2026-11-23)
+
+El **interruptor «Incluir resumen de válvulas»** del pie de la tarjeta, los **dos botones de
+copiar**, el **texto «tipo Word»** que esos botones copian y el **noveno estilo de PDF** que lo
+imprime viven en **`docs/mapa/pr6-word-resumen-valvulas.md`**. De este mapa se consume:
+`cuadDefs()` —el texto toma sus valores del índice de los doce cuadros, **sin una segunda
+derivación**—, `cuadFilas` y el mismo `drawTablaCompacta` para la fila del resumen.
+
+⚠️ **EL ARRASTRE QUE ESTE MAPA DESCRIBE EN §7 ES EL QUE LA ORDEN DE PR6 PEDÍA, Y YA ESTABA
+HECHO.** Esa tanda paró su TAREA 1 y no escribió una línea de producto; lo que agregó es
+**TC-1041**, que lo fija entero e incluye la mitad que ni TC-939 ni TC-941 medían: que el orden
+nuevo **llega al PDF**. Ver `docs/PENDIENTES.md` → **PR6-a**.
+
 ## 8. Los casos
 
 **TC-928** a **TC-943** — fichas en `docs/mapa/tests-fichas-928.md`. Los dieciséis caen **0/16**

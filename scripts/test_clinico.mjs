@@ -48744,6 +48744,21 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
     R.A_items   = (hA.match(/data-ind-refitem=/g) || []).length;
     R.A_tiene25 = hA.indexOf('data-ind-refitem="esc2025vc"') >= 0;
     R.A_tieneGuch = hA.indexOf('data-ind-refitem="esc2020guch"') >= 0;
+    /* ADAPTADO EN PR6 (2026-11-23): la seccion aortica cita DOS guias desde que las cuatro notas
+       de esa tanda nombran tambien la ACC/AHA 2020 con su hoja y su folio. */
+    R.A_tieneAha = hA.indexOf('data-ind-refitem="ahaVc2020"') >= 0;
+    /* ⚠️ Y ESTO ES LO QUE LA CONDICION DE VERDAD PROTEGE, Y NO EL NUMERO DE ENTRADAS: que NINGUNA
+       entrada de la bibliografia quede SIN un corchete que la invoque -«se lee como hay una cita
+       mas que no encontras»-. Antes el «UNA entrada» lo garantizaba por casualidad; con dos hay
+       que medirlo. Se compara el juego de claves listadas contra el juego de claves invocadas. */
+    R.A_huerfanas = (function () {
+      var listadas = [], invocadas = [], m2;
+      var reL = /data-ind-refitem="([a-zA-Z0-9]+)"/g;
+      while ((m2 = reL.exec(hA)) !== null) listadas.push(m2[1]);
+      var reI = /data-ind-ref="([a-zA-Z0-9]+)"/g;
+      while ((m2 = reI.exec(hA)) !== null) invocadas.push(m2[1]);
+      return listadas.filter(function (k) { return invocadas.indexOf(k) < 0 }).join(',');
+    })();
     /* El numero de la ESC/EACTS 2025 con UNA sola seccion en pantalla. */
     R.A_num = numDe(hA, 'esc2025vc');
     indicCerrar();
@@ -48893,6 +48908,7 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
     const res = JSON.stringify({
       abrieron: R.abrieron, de: nombres.length, malas: R.malas, err: R.err,
       A_items: R.A_items, B_items: R.B_items, A_num: R.A_num, B_num: R.B_num,
+      A_tieneAha: R.A_tieneAha, A_huerfanas: R.A_huerfanas,
       marcada: R.marcada, clave: clave, brackets: R.hayBrackets
     });
 
@@ -48934,9 +48950,20 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
         R.A_biblio === true && R.A_biblios === 1, 'biblio=' + R.A_biblio + ' cuantas=' + R.A_biblios],
       ['y NINGUNA al pie del panel: la global se elimino',
         R.A_alPie === 0 && R.B_alPie === 0, 'A=' + R.A_alPie + ' B=' + R.B_alPie],
-      ['y lista SOLO lo citado: con una seccion aortica, UNA entrada',
-        R.A_items === 1 && R.A_tiene25 === true && R.A_tieneGuch === false,
-        'items=' + R.A_items + ' 2025=' + R.A_tiene25 + ' guch=' + R.A_tieneGuch],
+      /* ADAPTADO EN PR6 (2026-11-23), Y QUEDA MAS FUERTE. ANTES exigia UNA entrada, y con una sola
+         el invariante «lista SOLO lo citado» se cumplia por casualidad. La tanda PR6 le agrego a la
+         Evidencia de estenosis aortica cuatro notas que citan TAMBIEN la ACC/AHA 2020 con su hoja y
+         su folio, asi que esa seccion cita DOS guias y su bibliografia tiene DOS entradas. Lo que
+         este caso vino a cerrar no cambia, y ahora se mide de verdad: cada entrada listada tiene
+         que estar INVOCADA por un corchete de esa misma seccion, y la de la congenitas sigue sin
+         aparecer. Falla por los dos lados: si entra una entrada sin corchete, y si desaparece una
+         de las dos guias que la seccion cita. */
+      ['y lista SOLO lo citado: la seccion aortica cita DOS guias y las DOS estan',
+        R.A_items === 2 && R.A_tiene25 === true && R.A_tieneAha === true && R.A_tieneGuch === false,
+        'items=' + R.A_items + ' 2025=' + R.A_tiene25 + ' aha=' + R.A_tieneAha
+          + ' guch=' + R.A_tieneGuch],
+      ['y NINGUNA entrada queda sin un corchete que la invoque', R.A_huerfanas === '',
+        'huerfanas=' + JSON.stringify(R.A_huerfanas)],
       /* ADAPTADO el 2026-10-31 (tanda TGA-2, commit 5): de DOS a TRES. La escena B siembra
          vmax_ao y mch_grad_reposo, y desde este commit esa miocardiopatia hipertrofica abre
          DOS secciones -la de reduccion septal, que cita la traduccion de la ESC 2023, y la de
@@ -48949,18 +48976,27 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          la edicion inglesa de la ESC 2023 que cargo la TGA-2 y la AHA/ACC 2024 que se leyo en
          imagen para poder retirar la recomendacion del PPT. El invariante no cambia: tres
          secciones, tres bibliografias, cada una hija de la suya y cada una arrancando en [1]. */
+      /* ADAPTADO OTRA VEZ EN PR6 (2026-11-23): de CUATRO a CINCO entradas, porque la seccion de
+         estenosis AORTICA pasa a citar DOS documentos -la ESC/EACTS 2025 y la ACC/AHA 2020, que
+         las cuatro notas de esa tanda nombran con su hoja y su folio-. Las bibliografias siguen
+         siendo TRES, una por seccion. El invariante no cambia. */
       ['TRES secciones de guias distintas dan TRES bibliografias, una por seccion',
-        R.B_biblios === 3 && R.B_secs === 3 && R.B_items === 4 &&
+        R.B_biblios === 3 && R.B_secs === 3 && R.B_items === 5 &&
         R.B_tiene25 === true && R.B_tieneMioc === true,
         'biblios=' + R.B_biblios + ' secs=' + R.B_secs + ' items=' + R.B_items],
       /* Y la de muerte subita es la UNICA con dos entradas: las otras dos siguen con una. Se
          exige asi y no con un total, para que agregarle una cita a otra seccion ponga el caso
          en rojo en vez de compensarse con esta. */
+      /* ADAPTADO EN PR6 (2026-11-23): eran DOS las secciones con una sola entrada y UNA con dos;
+         hoy son DOS con dos -la aortica y la de muerte subita- y UNA con una. Se sigue exigiendo
+         el reparto EXACTO y no un total, que es lo que hace que agregarle una cita a la tercera
+         ponga el caso en rojo en vez de compensarse con las otras. */
       ['cada una es HIJA de su seccion, nace CERRADA y su primera entrada es [1]',
         R.B_cadaUna.length === 3 && R.B_cadaUna.every(function(x){
           return x.propias === 1 && x.hija === true && x.cerrada === true &&
                  (x.items === 1 || x.items === 2) && x.primer === '[1]'; }) &&
-        R.B_cadaUna.filter(function(x){ return x.items === 2 }).length === 1,
+        R.B_cadaUna.filter(function(x){ return x.items === 2 }).length === 2 &&
+        R.B_cadaUna.filter(function(x){ return x.items === 1 }).length === 1,
         JSON.stringify(R.B_cadaUna)],
       ['EL NUMERO NO CAMBIA al cambiar qué secciones se muestran',
         R.estable === true, 'A=' + R.A_num + ' B=' + R.B_num],
@@ -48986,8 +49022,11 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          ADAPTADO OTRA VEZ el 2026-10-31 (tanda AJUSTES-3, commit 4): de TRES a CUATRO, por la
          entrada de la AHA/ACC 2024 en la seccion de prevencion de muerte subita. Lo que vigila
          sigue sin cambiar. */
+      /* ADAPTADO OTRA VEZ EN PR6 (2026-11-23): de CUATRO a CINCO, por la segunda cita de la
+         seccion aortica. Lo que vigila -que el repintado no cierre la bibliografia ni le pierda
+         entradas- sigue sin cambiar. */
       ['un repintado del panel CONSERVA la bibliografia abierta y sus entradas',
-        R.detTrasRepintado === true && R.biblioTrasRepintado === 4,
+        R.detTrasRepintado === true && R.biblioTrasRepintado === 5,
         'open=' + R.detTrasRepintado + ' items=' + R.biblioTrasRepintado],
       ['la marca del corchete SOBREVIVE al repintado, UNA sola y en SU seccion',
         R.marcadasTrasRepintado === 1 && R.marcaTrasRepintado === clave &&
@@ -161906,6 +161945,14 @@ caso('TC-1035',
   ].forEach(p => __t.set(p[0], p[1]));
   R.normalSecs = _secs().map(s => s.tit).join(' | ');
   R.normalTexto = _txt();
+  /* ⚠️ EL AVA SIN UN GRADO CONSIGNADO, que es el hueco que el barrido de mutaciones destapo: la
+     fila del resumen de valvulas gatea el AVA por «hay un grado de estenosis puesto», y este
+     texto NO, porque es una MEDICION y no un grado. En la escena de la estenosis el grado ESTA,
+     asi que ahi las dos formas dan lo mismo y la condicion no distinguia. Esta escena no tiene
+     grado puesto: si el AVA volviera a salir de la fila de valvulas, aca desapareceria. */
+  R.normalSinGrado = (() => { try { return String(__t.val('ea_grado') || '') } catch (e) { return '?' } })();
+  R.normalAva = R.normalTexto.indexOf('AVA: ') >= 0;
+  R.normalAvaIdx = R.normalTexto.indexOf('AVA idx: ') >= 0;
 
   /* (C) LA ESTENOSIS AORTICA CON INSUFICIENCIA MITRAL. */
   __t.limpiar();
@@ -161971,6 +162018,12 @@ caso('TC-1035',
       R.normalSecs === R.ordenPedido, R.normalSecs],
     ['(B2) con sus piezas «Etiqueta: valor unidad» separadas por un guion',
       R.normalTexto.indexOf('SV: 31 mm - ST: 27 mm') >= 0, R.normalTexto.slice(0, 200)],
+    ['(B3) DENOMINADOR: esta escena NO tiene un grado de estenosis consignado',
+      R.normalSinGrado === '' || R.normalSinGrado === 'sin', R.normalSinGrado || '(vacio)'],
+    ['(B4) y aun asi el AVA sale, igual que el AVA indexado: es una medicion, no un grado',
+      R.normalAva === true && R.normalAvaIdx === true,
+      'AVA=' + R.normalAva + ' AVAidx=' + R.normalAvaIdx + ' >>> '
+        + (R.normalTexto.split(String.fromCharCode(10)).filter(l => l.indexOf('AVA') >= 0)[0] || '(sin linea)')],
     ['(C1) la estenosis aortica con insuficiencia mitral tambien saca las nueve',
       R.eaSecs === R.ordenPedido, R.eaSecs],
     ['(C2) con la cuantificacion de la insuficiencia en su renglon: vena contracta, ORE, volumen regurgitante y FR',
@@ -162479,15 +162532,71 @@ caso('TC-1039',
     const out = []; const re = /\\(((?:\\\\.|[^\\\\()])*)\\)\\s*Tj/g; let m;
     while ((m = re.exec(b)) !== null) out.push(m[1].replace(/\\\\([()\\\\])/g, '$1'));
     return out; };
+  /* ⚠️ EL PDF SE INSTRUMENTA PARA MEDIR LA NEGRITA Y EL SUBRAYADO, que es el segundo hueco que el
+     barrido destapo: contar fragmentos de texto en los bytes NO ve de que tipografia salieron ni
+     si debajo del titulo se dibujo una raya. Se envuelven setFont y rect del documento. */
+  /* ⚠️ SE REGISTRA EL ESTILO DE LETRA VIGENTE EN CADA TEXTO DIBUJADO, y NO un conteo global de
+     negritas: medido, el estilo CLASICO pide 865 negritas -las cabeceras de sus doce cuadros- y
+     «Tipo Word» 130, asi que «mas negritas que el clasico» es FALSO sobre un papel correcto. Lo
+     que la orden pide es que el TITULO DE SECCION salga en negrita y subrayado y sus renglones en
+     letra normal, y eso se mide pegandole a cada texto el estilo con el que salio. La raya se
+     reconoce por su forma: ancha y de menos de 0,6 mm de alto. */
+  const _pdfInstr = () => {
+    let cap = null; const textos = []; const rayas = [];
+    let estilo = 'normal';
+    const J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) return { b:null, textos:[], rayas:[] };
+    window.jspdf.jsPDF = function (o) {
+      const d = new J(o);
+      const sf = d.setFont, rc = d.rect, tx = d.text;
+      d.setFont = function (f, e2) { estilo = String(e2 || 'normal'); return sf.apply(this, arguments) };
+      d.rect = function (x, y2, w, h) {
+        if (h > 0 && h <= 0.6 && w > 8) rayas.push({ x:x, y:y2, w:w });
+        return rc.apply(this, arguments) };
+      d.text = function (t, x, y2) {
+        if (typeof t === 'string') textos.push({ t:t, x:x, y:y2, e:estilo });
+        return tx.apply(this, arguments) };
+      d.save = function () { try { cap = this.output('datauristring') } catch (e) {} return this };
+      return d;
+    };
+    try { if (_hay('_pdfAjustarA4')) _pdfAjustarA4(); } catch (e) {}
+    window.jspdf.jsPDF = J;
+    let b = null;
+    if (cap) { try { b = atob(String(cap).split(',')[1]) } catch (e) {} }
+    return { b:b, textos:textos, rayas:rayas };
+  };
   const _medir = est => { try { if (_hay('setPdfPlantilla')) setPdfPlantilla(est) } catch (e) {}
     const r = _pdf(); const rg = _reng(r.b);
-    return { bytes: r.b ? r.b.length : 'SIN PDF', imgs: r.imgs,
+    return { b: r.b, bytes: r.b ? r.b.length : 'SIN PDF', imgs: r.imgs,
       gasto: _cont(r.b, 'Gasto card'), informe: _cont(r.b, 'Pruebas'), suma: _cont(r.b, 'EN SUMA'),
       lineas: rg.filter(t => /^(SV: |AP: |SIV: |FEVI: |TAP: |onda E: |V\\.Max|THP: )/.test(t)).length,
       muestra: rg.filter(t => /^(SV: |onda E: )/.test(t)).slice(0, 2).join(' // ') }; };
   R.clasico = _medir('clasico');
   R.word = _medir('tipoword');
+  /* UNA LINEA POR RENGLON, DE VERDAD: dos renglones de la MISMA seccion tienen que ser DOS textos
+     dibujados distintos. Contar los que empiezan con un rotulo no alcanza -con las lineas pegadas
+     en un parrafo, la primera sigue empezando igual-. */
+  R.dosRenglones = (() => { const rg = _reng(R.word.b);
+    const a = rg.filter(t => t.indexOf('onda E: ') === 0).length;
+    const b = rg.filter(t => t.indexOf('TDE: ') === 0).length;
+    return { a:a, b:b, ok: a >= 1 && b >= 1 }; })();
+  /* LA NEGRITA Y EL SUBRAYADO del titulo de seccion, medidos sobre las llamadas de dibujo. */
+  try { if (_hay('setPdfPlantilla')) setPdfPlantilla('tipoword') } catch (e) {}
+  const iw = _pdfInstr();
   try { if (_hay('setPdfPlantilla')) setPdfPlantilla('clasico') } catch (e) {}
+  const ic = _pdfInstr();
+  /* El titulo de la primera seccion: con que estilo salio, y si justo debajo hay una raya de su
+     ancho. Se busca por su texto, que es el que la tabla de orden declara. */
+  const _tit = iw.textos.filter(x => x.t === 'Aorta')[0] || null;
+  const _lin = iw.textos.filter(x => x.t.indexOf('SV: ') === 0)[0] || null;
+  R.tituloNegrita = _tit ? _tit.e : 'SIN TITULO';
+  R.lineaNormal = _lin ? _lin.e : 'SIN LINEA';
+  R.rayaBajoTitulo = _tit
+    ? iw.rayas.some(r2 => Math.abs(r2.y - _tit.y) < 2.5 && Math.abs(r2.x - _tit.x) < 1) : false;
+  /* Y el clasico NO dibuja ninguna raya en el lugar de un titulo de seccion de este estilo: es el
+     control de que la raya que se mide es la que esta tanda agrego. */
+  R.rayasClasico = ic.rayas.length;
+  R.rayasWord = iw.rayas.length;
 
   return { extra: [
     ['(A1) el catalogo tiene NUEVE plantillas', R.catN === 9, R.catN + ': ' + R.catIds],
@@ -162505,6 +162614,13 @@ caso('TC-1039',
     ['(B3) es TEXTO REAL y no una imagen: cero llamadas a addImage', R.word.imgs === 0, String(R.word.imgs)],
     ['(B4) cada renglon es su propio texto dibujado, no un parrafo envuelto',
       /^SV: /.test(R.word.muestra), R.word.muestra.slice(0, 120)],
+    ['(B4b) y dos renglones de la MISMA seccion son DOS textos distintos',
+      R.dosRenglones.ok === true, JSON.stringify(R.dosRenglones)],
+    ['(B4c) el titulo de seccion se dibuja en NEGRITA', R.tituloNegrita === 'bold', R.tituloNegrita],
+    ['(B4d) y sus renglones en letra normal', R.lineaNormal === 'normal', R.lineaNormal],
+    ['(B4e) con una raya SUBRAYANDOLO, justo debajo y arrancando en su misma x',
+      R.rayaBajoTitulo === true, 'raya=' + R.rayaBajoTitulo + ' rayas word=' + R.rayasWord
+        + ' clasico=' + R.rayasClasico],
     ['(B5) conserva el informe', R.word.informe >= 1, String(R.word.informe)],
     ['(B6) y el EN SUMA', R.word.suma >= 1, String(R.word.suma)]
   ] };
@@ -162582,10 +162698,25 @@ caso('TC-1040',
   const U = notas.map(n => n.txt).join(' @@ ');
   R.notasN = notas.length;
   R.conRefs = notas.filter(n => n.refs && n.refs.length).length;
-  R.c1 = U.indexOf('paradojal') >= 0 && U.indexOf('score de calcio') >= 0 && U.indexOf('e90') >= 0;
-  R.c2 = U.indexOf('errores de medici') >= 0 && U.indexOf('4670') >= 0;
-  R.c3 = U.indexOf('sin bajo flujo') >= 0 && U.indexOf('varias ventanas') >= 0;
-  R.c4 = U.indexOf('no coincide con las mediciones') >= 0 && U.indexOf('4663') >= 0;
+  /* ⚠️ CADA CONTENIDO SE MIDE DENTRO DE SU PROPIA NOTA Y NO SOBRE EL JOIN DE LAS NUEVE, y lo
+     destapo el barrido de mutaciones: «varias ventanas» aparece en DOS notas -la del repaso de las
+     integrales y la de la discordancia-, asi que sacarsela a UNA seguia encontrandola en la otra y
+     la mutacion sobrevivia sobre una nota mutilada. Es la misma leccion que PANT-22 pago con sus
+     «dos equivalentes a nivel de seccion». */
+  const _nota = frase => notas.filter(x => x.txt.indexOf(frase) >= 0)[0] || null;
+  const _tiene = (frase, ...partes) => { const nt = _nota(frase);
+    return !!nt && partes.every(p => nt.txt.indexOf(p) >= 0); };
+  R.c1 = _tiene('paradojal', 'score de calcio', 'e90', '4664');
+  R.c2 = _tiene('errores de medici', '4670', 'e92');
+  R.c3 = _tiene('sin bajo flujo', 'varias ventanas', '4664');
+  R.c4 = _tiene('no coincide con las mediciones', 'varias ventanas', '4664', '4663');
+  /* Y las CUATRO son notas DISTINTAS: con una sola que las contuviera todas, las cuatro
+     condiciones de arriba pasarian sobre un unico parrafo. */
+  R.cuatroDistintas = (() => {
+    const ns = ['paradojal', 'errores de medici', 'sin bajo flujo', 'no coincide con las mediciones']
+      .map(f => notas.indexOf(_nota(f)));
+    return ns.every(i => i >= 0) && new Set(ns).size === 4;
+  })();
   R.folios = ['e90', 'e92', '4663', '4664', '4666', '4670'].filter(f => U.indexOf(f) < 0).join(',');
   /* LA REGLA FIJA DEL 2026-11-04: ningun texto compara dos fuentes ni dice que algo no se
      encontro. Cada una se cita por lo que ELLA dice, en su propia oracion. */
@@ -162634,6 +162765,8 @@ caso('TC-1040',
     ['(A4) el repaso de las integrales con FEVI reducida SIN bajo flujo', R.c3 === true, String(R.c3)],
     ['(A5) y la discordancia de grado, con su folio', R.c4 === true, String(R.c4)],
     ['(A6) los seis folios estan', R.folios === '', R.folios],
+    ['(A6b) y los cuatro contenidos son CUATRO notas distintas, no un parrafo unico',
+      R.cuatroDistintas === true, String(R.cuatroDistintas)],
     ['(A7) y NINGUN texto compara dos fuentes ni dice que algo no se encontro', R.compara === '', R.compara],
     ['(A8) la bibliografia gano los folios de la aortica sin perder los mitrales', R.biblio === 'ok', R.biblio],
     ['(B0) DENOMINADOR: la escena monta una discordancia de grado de verdad',
