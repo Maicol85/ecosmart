@@ -67565,7 +67565,11 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
     /* ⚠️ ADAPTADO EN PR7 (23/11/2026): 149 -> 150, por sgl-num, el globo del interruptor de datos
        numericos del bull is eye de strain. NO esta en Valvulas, que es la pestana que este caso
        mide: lo que cambia es el DENOMINADOR del registro, no lo que esta condicion afirma. */
-    Object.keys(VINFO).length === 150 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+    /* ⚠️ ADAPTADO EN PR8: 150 -> 155. Las CINCO nuevas son sc-prom, sc-niv, sc-terr, sc-asr y
+       sc-fsgl, los globos de las celdas de la tabla «Calculos de strain» de la pestana SGL. NO
+       estan en Valvulas, igual que los de AI/VI: lo que cambia es el tamanio del registro, no lo
+       que esta condicion afirma sobre los globos de esta pestana. */
+    Object.keys(VINFO).length === 155 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
       && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO)
       && ('masa-ref' in VINFO) && ('masa-ref-ei' in VINFO) && ('wi-aplica' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
@@ -79126,7 +79130,10 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      no una afirmacion sobre las ocho tarjetas de valvulas que este caso mide. */
   /* ADAPTADO EN PANT-37: 142 -> 143 por el globo wi-aplica del boton «What if». Es el
      DENOMINADOR del registro y no una de las tarjetas que este caso mide. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 150 entradas',
+  /* ⚠️ ADAPTADO EN PR8: 150 -> 155, por los CINCO globos de las celdas de la tabla «Calculos de
+     strain» (sc-prom, sc-niv, sc-terr, sc-asr y sc-fsgl). Lo que este denominador afirma no
+     cambia: que el mecanismo existe y que el registro es el dueno unico. */
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 155 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -79174,7 +79181,10 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        ⚠️ ADAPTADO EN LA 3A: 144 -> 148. Las cuatro entradas nuevas son vd-strain-pl,
        tavi-pvl-ext, otr-cortri y diast-valsalva. NINGUNA esta en Valvulas: lo que cambia es el
        denominador del registro, no lo que este caso afirma sobre las tarjetas de esa pestana. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 150 && ('wi-aplica' in (REG() || {})),
+    /* ⚠️ ADAPTADO EN PR8: 150 -> 155, por los CINCO globos de las celdas de la tabla «Calculos de
+       strain» -- sc-prom, sc-niv, sc-terr, sc-asr y sc-fsgl --. Lo que este denominador afirma no
+       cambia: que el mecanismo exista y que el registro sea el dueno unico. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 155 && ('wi-aplica' in (REG() || {})),
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -80522,6 +80532,12 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      Lo que este censo declara son los globos de los FORMULARIOS de la app; el de la vista 2D
      lo declara TC-825, que ademas exige que no tenga entrada en VINFO_REF a proposito. */
   const sinBoton = (function () {
+    /* ⚠️ LA TABLA DE CALCULOS DE STRAIN SE PINTA A DEMANDA, Y SIN ESTO EL CENSO DEPENDE DEL LOTE.
+       Sus diez ⓘ los crea scRender, que corre al mostrar la pestana de strain o al escribir un
+       segmento: corrido aislado este caso contaba 76 y en su lote 81, que es la firma de una
+       dependencia de orden. Se la pinta aca a proposito -es idempotente- para que las cinco claves
+       nuevas entren al censo SIEMPRE y la condicion mida lo que dice. */
+    try { if (FN('scRender')) window.scRender(); } catch (e) {}
     const ks = {}, bs = document.querySelectorAll('[data-vinfo]');
     for (let i = 0; i < bs.length; i++) {
       const e = bs[i];
@@ -80617,7 +80633,14 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ⚠️ ADAPTADO EN PR7: setenta y cinco -> SETENTA Y SEIS. La nueva es sgl-num, el globo del
      interruptor de datos numericos: es DESCRIPTIVO -explica como se usa el control- y por eso no
      tiene entrada en Referencias ni la necesita. */
-  ex.push(['(C3) LIMITE DECLARADO: setenta y seis tarjetas sin boton, porque Referencias no tiene esa entrada',
+  /* ⚠️ ADAPTADO EN PR8 (TAREA 4): SETENTA Y SEIS -> OCHENTA Y UNA. Las cinco nuevas son los globos
+     de la tabla «CALCULOS DE STRAIN» -sc-prom, sc-niv, sc-terr, sc-asr y sc-fsgl-. Las cinco citan
+     su fuente DENTRO del globo -autor y anio- y ninguna tiene ficha en Referencias, por el MISMO
+     motivo que las otras de esta lista: la tabla es de consulta, no publica un corte propio ni una
+     recomendacion, asi que una ficha suya seria una entrada sin criterio detras. El limite que esta
+     condicion declara no cambia; cambia su denominador, y la lista las sigue nombrando una por una,
+     que es lo que hace que el dia que una consiga ficha el caso se ponga rojo. */
+  ex.push(['(C3) LIMITE DECLARADO: ochenta y una tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ⚠️ ADAPTADA EN LA TAREA 1 (18/11/2026): 74 -> 75. La entrada nueva es ev-indep, el globo
        del titulo del panel de Evidencia. No tiene ficha en Referencias por la MISMA razon que
        inf-min, tga-3d y clnk-guia: dice de QUE es la aplicacion y de donde salen las guias que
@@ -80674,6 +80697,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       + 'masa-ref,masa-ref-ei,mca-eco,mca-score,mca-sec,mca-vi,'
       + 'mch-adic,mch-ex,mch-hvi,mch-msub,mch-score,mch-sec,'
       + 'otr-cortri,'
+      + 'sc-asr,sc-fsgl,sc-niv,sc-prom,sc-terr,'
       + 'sgl-num,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,tavi-calc,tavi-pvl-ext,'
       + 'tdf-eco,tdf-sec,tdf-vol,'
@@ -93740,15 +93764,20 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      dar sus CINCO puntos propios. Verificado por mutacion en un worktree: quitarle la clase al
      globo nuevo, achicarlo por debajo de 44 px y taparlo con un vecino ponen en rojo (K0), (K1)
      y (K2) respectivamente. */
-  ex.push(['(K0) DENOMINADOR: los SETENTA globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
-    tapTodos.length === 70 && tapK.length === 69 && tapEv.length === 1
+  /* ⚠️ ADAPTADO EN PR8 (TAREA 4): SETENTA -> OCHENTA. Los diez nuevos son los ⓘ de las diez celdas
+     con contenido de la tabla «CALCULOS DE STRAIN» -dos promedios globales, tres niveles, tres
+     territorios y dos formulas-, que apuntan a CINCO claves: una celda de cada grupo comparte su
+     texto con sus hermanas. Nacen con la clase vinfo-btn-44 a proposito, que es lo que los pone
+     bajo esta condicion. Lo que exige no cambia; cambia su denominador. */
+  ex.push(['(K0) DENOMINADOR: los OCHENTA globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
+    tapTodos.length === 80 && tapK.length === 79 && tapEv.length === 1
       && tapTodos.filter((x) => !x.k).length === 1
       && !!document.querySelector('#cm3d-ib.vinfo-btn-44')
       && tapTodos.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapTodos)]);
-  ex.push(['(K1) los setenta miden 44x44 tambien con el mouse',
-    tapTodos.length === 70 && tapTodos.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapTodos)]);
+  ex.push(['(K1) los ochenta miden 44x44 tambien con el mouse',
+    tapTodos.length === 80 && tapTodos.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapTodos)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapTodos.length === 70 && tapTodos.every((x) => x.propios === 5), JSON.stringify(tapTodos)]);
+    tapTodos.length === 80 && tapTodos.every((x) => x.propios === 5), JSON.stringify(tapTodos)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -150427,7 +150456,17 @@ caso('TC-939', 'CUADROS (B): en la tarjeta se quita un cuadro con su cruz y pasa
     const gr = a.querySelector('.cuad-grip');
     if (!gr) return 'SIN MANIJA';
     const rb = b.getBoundingClientRect();
-    const px = rb.left + rb.width - 6, py = rb.top + rb.height - 6;
+    /* ⚠️ ADAPTADO EN PR8: EL PUNTO DE SUELTA PASA DE LA ESQUINA DE ABAJO AL BORDE DE ARRIBA DEL
+       CUADRO DE DESTINO, y es una correccion de MEDICION y no una condicion aflojada. La TAREA
+       1.3 de PR8 reescribio el renglon de ayuda de la tarjeta -tiene que describir el gesto
+       nuevo: mantener apretado y arrastrar sobre otro cuadro- y paso de dos lineas a TRES, lo que
+       corrio la grilla 17 px hacia abajo: medido, el borde de abajo del segundo cuadro pasa de
+       y=459 a y=475 en la ventana de 756x469 del arnes, o sea SEIS PIXELES fuera de la ventana,
+       donde elementFromPoint devuelve null. Es la misma trampa que PR6 ya pago cuando el
+       interruptor vivia arriba de la grilla. El gesto sigue siendo DIAGONAL -a la derecha y hacia
+       abajo, porque el destino esta en la fila siguiente- y sigue soltando SOBRE otro cuadro, que
+       es lo que esta condicion mide. */
+    const px = rb.left + rb.width - 6, py = rb.top + 8;
     const el = document.elementFromPoint(px, py);
     const over = (el && el.closest) ? el.closest('#cuad-grid > [data-cuad-id]') : null;
     const rg = gr.getBoundingClientRect();
@@ -150880,7 +150919,17 @@ caso('TC-942', 'CUADROS (B): el boton muestra un PUNTO de aviso cuando la config
     const gr = a.querySelector('.cuad-grip');
     if (!gr) return 'SIN MANIJA';
     const rb = b.getBoundingClientRect();
-    const px = rb.left + rb.width - 6, py = rb.top + rb.height - 6;
+    /* ⚠️ ADAPTADO EN PR8: EL PUNTO DE SUELTA PASA DE LA ESQUINA DE ABAJO AL BORDE DE ARRIBA DEL
+       CUADRO DE DESTINO, y es una correccion de MEDICION y no una condicion aflojada. La TAREA
+       1.3 de PR8 reescribio el renglon de ayuda de la tarjeta -tiene que describir el gesto
+       nuevo: mantener apretado y arrastrar sobre otro cuadro- y paso de dos lineas a TRES, lo que
+       corrio la grilla 17 px hacia abajo: medido, el borde de abajo del segundo cuadro pasa de
+       y=459 a y=475 en la ventana de 756x469 del arnes, o sea SEIS PIXELES fuera de la ventana,
+       donde elementFromPoint devuelve null. Es la misma trampa que PR6 ya pago cuando el
+       interruptor vivia arriba de la grilla. El gesto sigue siendo DIAGONAL -a la derecha y hacia
+       abajo, porque el destino esta en la fila siguiente- y sigue soltando SOBRE otro cuadro, que
+       es lo que esta condicion mide. */
+    const px = rb.left + rb.width - 6, py = rb.top + 8;
     const el = document.elementFromPoint(px, py);
     const over = (el && el.closest) ? el.closest('#cuad-grid > [data-cuad-id]') : null;
     const rg = gr.getBoundingClientRect();
@@ -162086,8 +162135,13 @@ caso('TC-1035',
         + (R.normalTexto.split(String.fromCharCode(10)).filter(l => l.indexOf('AVA') >= 0)[0] || '(sin linea)')],
     ['(C1) la estenosis aortica con insuficiencia mitral tambien saca las nueve',
       R.eaSecs === R.ordenPedido, R.eaSecs],
-    ['(C2) con la cuantificacion de la insuficiencia en su renglon: vena contracta, ORE, volumen regurgitante y FR',
-      R.eaTexto.indexOf('vena contracta: 6 mm') >= 0 && R.eaTexto.indexOf('ORE: 28.0') >= 0
+    /* ⚠️ ADAPTADA EN PR8 (TAREA 2.2) E INVERTIDA EN SU PRIMERA MITAD: la cuantificacion ARRANCA el
+       renglon, y desde PR8 la primera letra de cada renglon va en MAYUSCULA -«Vena contracta» es,
+       textual, el ejemplo que la orden da-. La condicion exige las cuatro piezas igual y ademas
+       que la forma vieja en minuscula YA NO ESTE, asi que falla por los dos lados. */
+    ['(C2) con la cuantificacion de la insuficiencia arrancando su renglon en mayuscula: Vena contracta, ORE, volumen regurgitante y FR',
+      R.eaTexto.indexOf('Vena contracta: 6 mm') >= 0 && R.eaTexto.indexOf('vena contracta: 6 mm') < 0
+      && R.eaTexto.indexOf('ORE: 28.0') >= 0
       && R.eaTexto.indexOf('volumen regurgitante: 45.0') >= 0 && R.eaTexto.indexOf('FR: 42%') >= 0,
       _piezas(R.eaTexto).filter(p => p.indexOf('ORE') === 0 || p.indexOf('vena contracta') === 0).join(' / ')],
     ['(C3) y con el area, el AVA y el AVA indexado de la aortica',
@@ -162186,6 +162240,7 @@ caso('TC-1036',
         if (T.indexOf(s) < 0) mal.push(d.id + '|' + i.lbl + '=' + s); }); });
     return mal; } catch (e) { return ['ERR'] } })();
   /* (D) LOS SEIS GRUPOS QUE ENTRARON POR LA REGLA y no por la lista de la orden. */
+  const TL = String(T).toLowerCase();
   R.porCompletitud = [
     ['los dos volumenes indexados', T.indexOf('VDFVI idx') >= 0 && T.indexOf('VSFVI idx') >= 0],
     ['el volumen latido', T.indexOf('Vol. latido') >= 0],
@@ -162194,8 +162249,13 @@ caso('TC-1036',
     ['la FAC, la FEVD y la relacion VD/VI', T.indexOf('FAC:') >= 0 && T.indexOf('FEVD:') >= 0
       && T.indexOf('VD/VI:') >= 0],
     ['la PmAD', T.indexOf('PmAD:') >= 0],
-    ['los cinco de la vena pulmonar', T.indexOf('dur. A mitral') >= 0 && T.indexOf('dur. Ar') >= 0
-      && T.indexOf('veloc. Ar') >= 0 && T.indexOf('Ar-A') >= 0],
+    /* ⚠️ ADAPTADO EN PR8 (TAREA 2.2): la comparacion pasa a ser SIN MAYUSCULAS. Desde PR8 cada
+       renglon del texto arranca en mayuscula, y «dur. A mitral» es la PRIMERA pieza de su renglon:
+       hoy se estampa «Dur. A mitral» y este indexOf dejaba de encontrarla. Lo que esta condicion
+       exige NO cambia -- que los cinco campos de la vena pulmonar salgan en el texto --, y la
+       mayuscula inicial la mide TC-1054, que es su dueno. */
+    ['los cinco de la vena pulmonar', TL.indexOf('dur. a mitral') >= 0 && TL.indexOf('dur. ar') >= 0
+      && TL.indexOf('veloc. ar') >= 0 && TL.indexOf('ar-a') >= 0],
     ['la PAP media', T.indexOf('PAP media') >= 0]
   ].filter(x => !x[1]).map(x => x[0]).join(' ; ');
   /* (E) Y EL TEXTO NO INVENTA NINGUNA DERIVACION: la funcion no nombra un solo campo del
@@ -162292,7 +162352,15 @@ caso('TC-1037',
   try { if (_hay('cuadAbrir')) cuadAbrir(); } catch (e) {}
   R.abierta = (() => { const o = document.getElementById('cuad-ov');
     return !!o && !o.hasAttribute('hidden'); })();
-  const bs = Array.prototype.slice.call(document.querySelectorAll('.cuad-copia'));
+  /* ⚠️ ADAPTADO EN PR8 (TAREA 1.1): LOS DOS BOTONES DE COPIAR SE ELIGEN POR LO QUE HACEN Y NO POR
+     SU CLASE DE ESTILO. El interruptor del resumen de valvulas paso a ser un boton de icono «del
+     mismo estilo discreto que los dos de copiar» -que es la letra de la orden-, asi que comparte
+     la clase cuad-copia y el selector devuelve TRES. La clase dice como se VE; lo que identifica a
+     un boton de copiar es su funcion. La condicion (A5), nueva, fija los TRES del mismo estilo, asi
+     que el estilo compartido queda medido en vez de perdido. */
+  R.estilo = document.querySelectorAll('.cuad-copia').length;
+  const bs = Array.prototype.slice.call(document.querySelectorAll('.cuad-copia'))
+    .filter(b => (b.getAttribute('onclick') || '').indexOf('cuadCopiar') >= 0);
   R.n = bs.length;
   R.cajas = bs.map(b => { const q = b.getBoundingClientRect();
     return Math.round(q.width) + 'x' + Math.round(q.height) }).join(' ');
@@ -162303,12 +162371,29 @@ caso('TC-1037',
 
   /* EL PORTAPAPELES SIMULADO, y se aprieta el boton: asi se mide lo que de verdad LLEGA al
      portapapeles y no lo que la funcion devuelve. */
+  /* ⚠️ ADAPTADO EN PR8 (TAREA 2.1): EL COPIADO YA NO PASA POR writeText. Desde PR8 los dos
+     botones escriben las DOS representaciones en el MISMO copiado -- un ClipboardItem con
+     text/html y text/plain --, asi que sustituir solo writeText medía CERO copias sobre dos
+     botones que funcionan. Se sustituyen ademas ClipboardItem y write, y se lee el text/plain del
+     item, que es EXACTAMENTE el texto que esta condicion ya comparaba. */
   const orig = navigator.clipboard && navigator.clipboard.writeText;
-  let cap = [];
+  const origCI = window.ClipboardItem;
+  const origW = navigator.clipboard && navigator.clipboard.write;
+  let cap = [], items = [];
   try {
     if (!navigator.clipboard) Object.defineProperty(navigator, 'clipboard', { value:{}, configurable:true });
     navigator.clipboard.writeText = function (t) { cap.push(String(t)); return Promise.resolve(); };
+    window.ClipboardItem = function (o) { items.push(o); this._o = o; };
+    navigator.clipboard.write = function () { return Promise.resolve(); };
   } catch (e) { R.noSePudoSustituir = String(e && e.message || e); }
+  /* ⚠️ SE APAGAN ClipboardItem Y execCommand PARA QUE EL FLUJO LLEGUE A writeText, que es donde
+     este caso mide. El cuerpo de un caso corre dentro de una funcion que NO es async -lo declara
+     el comentario del runner-, asi que leer el text/plain de un Blob -que es asincronico- exigiria
+     envolver el caso entero. El texto que viaja por las tres vias es EL MISMO -el argumento t de
+     _cuadCopiar-, asi que medirlo por writeText mide lo mismo. Las DOS representaciones del mismo
+     copiado las mide TC-1053, que para eso existe. */
+  const origEC = document.execCommand;
+  try { window.ClipboardItem = undefined; document.execCommand = function () { return false; }; } catch (e) {}
   if (bs[0]) bs[0].click();
   if (bs[1]) bs[1].click();
   R.copiados = cap.length;
@@ -162324,15 +162409,20 @@ caso('TC-1037',
   try { if (_hay('cuadQuitar')) { cuadQuitar('va'); cuadQuitar('vd'); cuadQuitar('ai'); } } catch (e) {}
   R.visiblesTrasQuitar = (() => { try { return _hay('cuadVisibles') ? cuadVisibles().length : -1 }
                                   catch (e) { return -1 } })();
-  cap = []; if (bs[0]) bs[0].click();
+  cap = []; items = [];
+  if (bs[0]) bs[0].click();
   R.igualTrasQuitar = (cap[0] === antes);
   try { if (_hay('cuadRestablecer')) cuadRestablecer(); } catch (e) {}
   try { if (orig) navigator.clipboard.writeText = orig; } catch (e) {}
+  try { window.ClipboardItem = origCI; if (origW) navigator.clipboard.write = origW;
+    document.execCommand = origEC; } catch (e) {}
   try { if (_hay('cuadCerrar')) cuadCerrar(); } catch (e) {}
 
   return { extra: [
     ['(A0) DENOMINADOR: la tarjeta de Cuadros esta abierta', R.abierta === true, String(R.abierta)],
-    ['(A1) hay DOS botones de copiar en la tarjeta', R.n === 2, String(R.n)],
+    ['(A1) hay DOS botones de copiar en la tarjeta, elegidos por lo que HACEN', R.n === 2, String(R.n)],
+    ['(A5) y son TRES los botones de icono del mismo estilo discreto: los dos de copiar y el del resumen de valvulas',
+      R.estilo === 3, String(R.estilo)],
     ['(A2) los dos se tocan en 44 px o mas', R.chicos === 0, R.cajas],
     ['(A3) los dos tienen su explicacion al pasar el mouse', R.conTitulo === true, String(R.conTitulo)],
     ['(A4) y la dicen tambien con palabras en su aria-label', R.ariaIgual === true, String(R.ariaIgual)],
@@ -162412,14 +162502,19 @@ caso('TC-1038',
   __t.chk('im_pdf_cont', true);
 
   try { if (_hay('cuadAbrir')) cuadAbrir(); } catch (e) {}
+  /* ⚠️ ADAPTADO EN PR8 (TAREA 1.1): EL INTERRUPTOR YA NO ES UNA CASILLA. Pasa a ser un BOTON DE
+     ICONO del mismo estilo discreto que los dos de copiar, y su estado lo dice aria-pressed en vez
+     del atributo checked. Lo que estas cuatro condiciones exigen NO cambia -- que exista, que venga
+     apagado, que no lleve id y que se toque en 44 px --: cambia DONDE se lee el estado. Se
+     conserva la marca data-cuad-rv, que es por donde el interruptor se alcanzaba antes. */
   const lab = document.querySelector('[data-cuad-rv]');
-  const cas = lab ? lab.querySelector('input[type=checkbox]') : null;
   R.existe = !!lab;
-  R.sinId = cas ? !cas.id : 'SIN CASILLA';
-  R.apagado = cas ? (cas.checked === false) : 'SIN CASILLA';
+  R.esBoton = lab ? (lab.tagName === 'BUTTON') : 'NO HAY';
+  R.sinId = lab ? !lab.id : 'NO HAY';
+  R.apagado = lab ? (lab.getAttribute('aria-pressed') === 'false') : 'NO HAY';
   R.estado = _hay('cuadResumenValvOn') ? cuadResumenValvOn() : 'NO';
-  R.caja = cas ? (() => { const q = cas.getBoundingClientRect();
-    return Math.round(q.width) + 'x' + Math.round(q.height) })() : 'SIN CASILLA';
+  R.caja = lab ? (() => { const q = lab.getBoundingClientRect();
+    return Math.round(q.width) + 'x' + Math.round(q.height) })() : 'NO HAY';
   /* Las TRES secciones y nada mas: ni «Otros» -que es el cuadro doce- ni la fila «EROA IT», cuyo
      campo NO existe, ni una sola columna de valores de referencia, que CUADROS retiro del papel. */
   const rv = () => { try { return _hay('cuadResumenValvDefs') ? cuadResumenValvDefs() : [] }
@@ -162437,9 +162532,11 @@ caso('TC-1038',
     /* DENOMINADOR: los doce cuadros SI estan. Sin esto, cero filas de valvula sobre un PDF sin
        cuadros se lee igual que cero filas de valvula sobre un PDF completo. */
     gasto: _cont(a.b, 'Gasto card') };
-  /* Se prende POR EL GESTO REAL -- un clic en la casilla -- y no llamando a la funcion. */
-  if (cas) cas.click();
-  R.trasClic = { casilla: cas ? cas.checked : 'SIN CASILLA',
+  /* Se prende POR EL GESTO REAL -- un clic en el boton -- y no llamando a la funcion.
+     ⚠️ ADAPTADO EN PR8 (TAREA 1.1): el gesto es el mismo clic, pero el estado se lee en
+     aria-pressed y no en un atributo checked que ya no existe. */
+  if (lab) lab.click();
+  R.trasClic = { casilla: lab ? (lab.getAttribute('aria-pressed') === 'true') : 'SIN BOTON',
                  estado: _hay('cuadResumenValvOn') ? cuadResumenValvOn() : 'NO' };
   const b2 = _pdf();
   R.pdfPrendido = { bytes: b2.b ? b2.b.length : 'SIN PDF',
@@ -162459,6 +162556,11 @@ caso('TC-1038',
   try { if (_hay('cuadResumenValvToggle')) cuadResumenValvToggle(true); } catch (e) {}
   try { if (_hay('cuadRestablecer')) cuadRestablecer(); } catch (e) {}
   R.trasRestablecer = _hay('cuadResumenValvOn') ? cuadResumenValvOn() : 'NO';
+  /* ⚠️ SE VUELVE A PRENDER ANTES DE «Nuevo estudio», y es una correccion de ESCENA y no una
+     condicion aflojada: desde PR8 (TAREA 1.2) «Restablecer» tambien apaga el resumen -lo exige
+     (E1), invertida-, asi que sin esta linea (E2) mediria la sobrevida de un interruptor que ya
+     estaba apagado. Las dos cosas se siguen midiendo por separado. */
+  try { if (_hay('cuadResumenValvToggle')) cuadResumenValvToggle(true); } catch (e) {}
   __t.limpiar();
   R.trasNuevoEstudio = _hay('cuadResumenValvOn') ? cuadResumenValvOn() : 'NO';
   R.enDisco = (() => { try { return Object.keys(localStorage)
@@ -162468,10 +162570,11 @@ caso('TC-1038',
   try { if (_hay('cuadCerrar')) cuadCerrar(); } catch (e) {}
 
   return { extra: [
-    ['(A1) el interruptor existe en la tarjeta', R.existe === true, String(R.existe)],
-    ['(A2) y viene APAGADO de fabrica', R.apagado === true && R.estado === false,
+    ['(A1) el interruptor existe en la tarjeta, y desde PR8 es un BOTON de icono',
+      R.existe === true && R.esBoton === true, String(R.existe) + ' / ' + String(R.esBoton)],
+    ['(A2) y viene APAGADO de fabrica, dicho por aria-pressed', R.apagado === true && R.estado === false,
       String(R.apagado) + ' / ' + String(R.estado)],
-    ['(A3) su casilla NO lleva id, asi que no entra al censo del estudio ni al Excel',
+    ['(A3) NO lleva id, asi que no entra al censo del estudio ni al Excel',
       R.sinId === true, String(R.sinId)],
     ['(A4) y se toca en 44 px', R.caja === '44x44', R.caja],
     ['(B1) son TRES secciones de valvula', R.defsN === 3 && R.defsIds === 'rv_vm|rv_va|rv_vt',
@@ -162482,7 +162585,7 @@ caso('TC-1038',
     ['(C0) DENOMINADOR: apagado, el PDF trae los doce cuadros', R.pdfApagado.gasto === 1,
       String(R.pdfApagado.gasto)],
     ['(C1) y NI UNA fila de valvula', R.pdfApagado.valv === 0, String(R.pdfApagado.valv)],
-    ['(C2) el clic en la casilla lo prende', R.trasClic.casilla === true && R.trasClic.estado === true,
+    ['(C2) el clic en el boton lo prende', R.trasClic.casilla === true && R.trasClic.estado === true,
       String(R.trasClic.casilla) + ' / ' + String(R.trasClic.estado)],
     ['(C3) y entonces el PDF saca la mitral y la tricuspide, sin perder los doce cuadros',
       R.pdfPrendido.vm === 1 && R.pdfPrendido.vt === 1 && R.pdfPrendido.gasto === 1,
@@ -162493,8 +162596,13 @@ caso('TC-1038',
       R.censoIgual === true, String(R.censoIgual)],
     ['(D1) el estilo «Tipo Word» lo IGNORA: su PDF es identico prendido y apagado',
       R.wordIgnora === true, R.wordBytes],
-    ['(E1) sobrevive a «Restablecer», que restablece el ORDEN y los quitados',
-      R.trasRestablecer === true, String(R.trasRestablecer)],
+    /* ⚠️ INVERTIDA EN PR8 (TAREA 1.2), Y ES CONSECUENCIA AUTORIZADA. Hasta PR7 este caso exigia
+       que el resumen SOBREVIVIERA a «Restablecer» -ese boton restablecia el orden y los quitados y
+       el interruptor era una inclusion aparte-. La orden de PR8 dice con todas las letras que
+       «Restablecer» lo APAGA y apaga su indicador, asi que hoy exige lo contrario y falla por los
+       dos lados. Lo que NO cambio es «Nuevo estudio», que lo conserva: ver (E2). */
+    ['(E1) «Restablecer» lo APAGA, junto con el orden y los quitados',
+      R.trasRestablecer === false, String(R.trasRestablecer)],
     ['(E2) y a «Nuevo estudio»: vale para todos los estudios hasta cerrar la app',
       R.trasNuevoEstudio === true, String(R.trasNuevoEstudio)],
     ['(E3) y NO se guarda en el navegador', R.enDisco === 'ninguna', R.enDisco]
@@ -162636,9 +162744,15 @@ caso('TC-1039',
   /* UNA LINEA POR RENGLON, DE VERDAD: dos renglones de la MISMA seccion tienen que ser DOS textos
      dibujados distintos. Contar los que empiezan con un rotulo no alcanza -con las lineas pegadas
      en un parrafo, la primera sigue empezando igual-. */
+  /* ⚠️ ADAPTADO EN PR8: LOS DOS RENGLONES SON OTROS, y es consecuencia autorizada de la TAREA 2.2:
+     «onda E» pasa a «Onda E» -la primera letra de cada renglon va en mayuscula- y el TDE dejo de
+     arrancar un renglon porque se fundio en la linea mitral «THP - TDE - TRIV». Lo que esta
+     condicion mide no cambia -que dos renglones de la MISMA seccion sean dos textos dibujados
+     distintos y no un parrafo envuelto-: cambian los dos renglones con los que se mide, y se
+     eligen dos que hoy ARRANCAN su linea en el ventriculo izquierdo. */
   R.dosRenglones = (() => { const rg = _reng(R.word.b);
-    const a = rg.filter(t => t.indexOf('onda E: ') === 0).length;
-    const b = rg.filter(t => t.indexOf('TDE: ') === 0).length;
+    const a = rg.filter(t => t.indexOf('SIV: ') === 0).length;
+    const b = rg.filter(t => t.indexOf('FEVI: ') === 0).length;
     return { a:a, b:b, ok: a >= 1 && b >= 1 }; })();
   /* LA NEGRITA Y EL SUBRAYADO del titulo de seccion, medidos sobre las llamadas de dibujo. */
   try { if (_hay('setPdfPlantilla')) setPdfPlantilla('tipoword') } catch (e) {}
@@ -162649,10 +162763,13 @@ caso('TC-1039',
      ancho. Se busca por su texto, que es el que la tabla de orden declara. */
   const _tit = iw.textos.filter(x => x.t === 'Aorta')[0] || null;
   const _lin = iw.textos.filter(x => x.t.indexOf('SV: ') === 0)[0] || null;
+  const _dop = iw.textos.filter(x => x.t === 'DOPPLER')[0] || null;
   R.tituloNegrita = _tit ? _tit.e : 'SIN TITULO';
   R.lineaNormal = _lin ? _lin.e : 'SIN LINEA';
-  R.rayaBajoTitulo = _tit
-    ? iw.rayas.some(r2 => Math.abs(r2.y - _tit.y) < 2.5 && Math.abs(r2.x - _tit.x) < 1) : false;
+  const _raya = t => t ? iw.rayas.some(r2 => Math.abs(r2.y - t.y) < 2.5 && Math.abs(r2.x - t.x) < 1) : 'SIN TEXTO';
+  R.rayaBajoTitulo = _raya(_tit);
+  R.dopNegrita = _dop ? _dop.e : 'SIN DOPPLER';
+  R.rayaBajoDoppler = _raya(_dop);
   /* Y el clasico NO dibuja ninguna raya en el lugar de un titulo de seccion de este estilo: es el
      control de que la raya que se mide es la que esta tanda agrego. */
   R.rayasClasico = ic.rayas.length;
@@ -162678,9 +162795,17 @@ caso('TC-1039',
       R.dosRenglones.ok === true, JSON.stringify(R.dosRenglones)],
     ['(B4c) el titulo de seccion se dibuja en NEGRITA', R.tituloNegrita === 'bold', R.tituloNegrita],
     ['(B4d) y sus renglones en letra normal', R.lineaNormal === 'normal', R.lineaNormal],
-    ['(B4e) con una raya SUBRAYANDOLO, justo debajo y arrancando en su misma x',
-      R.rayaBajoTitulo === true, 'raya=' + R.rayaBajoTitulo + ' rayas word=' + R.rayasWord
+    /* ⚠️ (B4e) INVERTIDA EN PR8 (TAREA 2.2) Y PARTIDA EN DOS. El estilo se rehizo: el subrayado
+       queda para DOPPLER -y para los dos rotulos del narrativo-, y los titulos de seccion van en
+       NEGRITA SOLA. Medido sobre las llamadas de dibujo: DOPPLER@11,116.2 con su raya en
+       (11, 117.1), y «Aorta»@11,35.6 sin ninguna. La condicion exige las dos cosas, asi que falla
+       tanto si el subrayado del titulo vuelve como si el de DOPPLER se pierde. */
+    ['(B4e) el titulo de seccion va en negrita SOLA, sin raya debajo',
+      R.rayaBajoTitulo === false, 'raya=' + R.rayaBajoTitulo + ' rayas word=' + R.rayasWord
         + ' clasico=' + R.rayasClasico],
+    ['(B4f) y «DOPPLER» va en negrita CON su raya justo debajo y en su misma x',
+      R.dopNegrita === 'bold' && R.rayaBajoDoppler === true,
+      R.dopNegrita + ' / raya=' + R.rayaBajoDoppler],
     ['(B5) conserva el informe', R.word.informe >= 1, String(R.word.informe)],
     ['(B6) y el EN SUMA', R.word.suma >= 1, String(R.word.suma)]
   ] };
@@ -162926,7 +163051,11 @@ caso('TC-1041',
     const pev = (t, x, y) => gr.dispatchEvent(new PointerEvent(t,
       { bubbles:true, cancelable:true, pointerId:1, clientX:x, clientY:y }));
     pev('pointerdown', ra.left + 6, ra.top + 6);
-    const px = rb.right - 3, py = rb.bottom - 3;
+    /* ⚠️ ADAPTADO EN PR8: el punto de suelta pasa de la esquina de abajo al borde de ARRIBA del
+       cuadro de destino, por la misma medicion que TC-939 declara: el renglon de ayuda paso a tres
+       lineas, la grilla bajo 17 px y el borde de abajo del segundo cuadro cae 6 px fuera de la
+       ventana de 756x469 del arnes. Sigue siendo diagonal y sigue soltando sobre otro cuadro. */
+    const px = rb.right - 3, py = rb.top + 8;
     pev('pointermove', px, py);
     const over = document.elementFromPoint(px, py);
     pev('pointerup', px, py);
@@ -163083,7 +163212,7 @@ caso('TC-1042',
 `);
 
 caso('TC-1043',
- 'PR7: con el boton de datos numericos APAGADO los 17 segmentos arrancan SIN DATO -grises y con un guion-, un toque cicla los NUEVE estados y vuelve a sin dato, y el toque BORRA el numero que hubiera',
+ 'PR7, ADAPTADO EN PR8 (TAREA 3): con el boton de datos numericos APAGADO los 17 segmentos arrancan en el TRAMO 1 -violeta y sin guion-, un toque cicla 1 a 8, pasa por SIN DATO y vuelve al 1, y sobre un segmento CON numero no cambia nada y lo dice',
 `
   /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
      diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
@@ -163115,42 +163244,64 @@ caso('TC-1043',
   const segs = Array.from(document.querySelectorAll('#sgl-svg-bullseye .strain-seg'));
   const tx = Array.from(document.querySelectorAll('#sgl-svg-bullseye text[data-strainid]'));
   const GRIS = (() => { try { return String(window.STRAIN_PAL[0].color).toUpperCase() } catch (e) { return 'NO' } })();
+  const VIOL = (() => { try { return String(window.STRAIN_PAL[1].color).toUpperCase() } catch (e) { return 'NO' } })();
   const GUION = String.fromCharCode(0x2013);
   R.cuentas = segs.length + ' segmentos / ' + tx.length + ' numeros';
   /* (A) ARRANQUE: los diecisiete SIN DATO. */
   cond('(A1) hay 17 segmentos y 17 nodos de numero',
        segs.length === 17 && tx.length === 17);
-  cond('(A2) los 17 arrancan GRISES, el color de SIN DATO',
-       GRIS !== 'NO' && segs.length === 17
-       && segs.every(p => String(p.getAttribute('fill')).toUpperCase() === GRIS));
-  cond('(A3) los 17 arrancan con un GUION adentro',
-       tx.length === 17 && tx.every(t => t.textContent === GUION));
+  /* ⚠️ (A2) y (A3) INVERTIDAS EN PR8 (TAREA 3.1 y 3.4), y las dos por orden expresa del medico:
+     el estado inicial de los diecisiete pasa de SIN DATO -gris- al TRAMO 1 -violeta-, y el guion
+     deja de dibujarse salvo con el interruptor de datos numericos ENCENDIDO. Las dos exigen
+     ademas que la forma vieja ya no este, asi que fallan por los dos lados. */
+  cond('(A2) los 17 arrancan VIOLETAS, el color del tramo 1, y ninguno gris',
+       VIOL !== 'NO' && GRIS !== 'NO' && VIOL !== GRIS && segs.length === 17
+       && segs.every(p => String(p.getAttribute('fill')).toUpperCase() === VIOL));
+  cond('(A3) y SIN guion adentro, porque el interruptor de numeros esta apagado',
+       tx.length === 17 && tx.every(t => t.textContent === '')
+       && !tx.some(t => t.textContent === GUION));
   /* (B) EL CICLO: nueve estados distintos y vuelve al primero. */
   const vistos = [];
   for (let i = 0; i < 10; i++) { vistos.push(_fill('basal_anterior')); _toque('basal_anterior'); }
   R.ciclo = vistos.join(',');
   cond('(B1) el ciclo recorre NUEVE estados distintos',
        Array.from(new Set(vistos.slice(0, 9))).length === 9);
-  cond('(B2) el ciclo arranca en SIN DATO y sigue el orden de la paleta',
-       (() => { try { return vistos.slice(0, 9).join(',')
-         === window.STRAIN_PAL.map(p => p.color).join(',').toUpperCase() } catch (e) { return false } })());
-  cond('(B3) el decimo toque VUELVE a sin dato', vistos[9] === vistos[0]);
+  /* ⚠️ (B2) y (B3) ADAPTADAS EN PR8 (TAREA 3.2): el ciclo arranca en el TRAMO 1, sube hasta el 8,
+     pasa por SIN DATO y vuelve al 1. Siguen siendo nueve estados y sigue cerrando el circulo:
+     cambia por donde empieza, que es lo que la orden del medico pide. */
+  cond('(B2) el ciclo arranca en el TRAMO 1, sube a 8 y recien ahi pasa por SIN DATO',
+       (() => { try { const esp = window.STRAIN_PAL.slice(1).map(p => p.color)
+           .concat([window.STRAIN_PAL[0].color]).join(',').toUpperCase();
+         return vistos.slice(0, 9).join(',') === esp } catch (e) { return false } })());
+  cond('(B3) el decimo toque VUELVE al tramo 1', vistos[9] === vistos[0] && vistos[9] === VIOL);
   cond('(B4) con un color elegido a mano el segmento no muestra NINGUN numero',
        (() => { _reset(); _toque('mid_anterior');
                 return _fill('mid_anterior') !== GRIS && _num('mid_anterior') === '' })());
-  /* (C) EL TOQUE BORRA EL NUMERO: el color y el numero no pueden contradecirse. */
+  /* (C) ⚠️ INVERTIDO EN PR8 (TAREA 3.7): CON EL INTERRUPTOR APAGADO, UN SEGMENTO QUE TIENE UN
+     NUMERO NO CAMBIA DE COLOR Y LO DICE. Hasta PR7 el toque BORRABA el numero; la orden del medico
+     lo prohibe con todas las letras -«no puede haber nunca un numero y un color que se
+     contradigan, ni perdida silenciosa de datos»-, asi que el toque se abstiene y avisa. Las
+     cuatro condiciones exigen lo contrario de lo que exigian, y la cuarta mide el aviso. */
   _reset();
   try { if (_hay('strainEscribir')) strainEscribir('apical_anterior', '-12'); } catch (e) {}
   R.conNumero = _fill('apical_anterior') + ' / ' + JSON.stringify(_num('apical_anterior'));
+  const _toastOrig = window.toast; let _dicho = '';
+  try { window.toast = function (m) { _dicho += String(m) + ' | '; }; } catch (e) {}
   _toque('apical_anterior');
+  try { window.toast = _toastOrig; } catch (e) {}
   R.trasToque = _fill('apical_anterior') + ' / ' + JSON.stringify(_num('apical_anterior'));
+  R.dicho = _dicho;
   cond('(C1) el segmento tenia su numero y su color derivado antes del toque',
        R.conNumero.indexOf('-12') >= 0 && _fill('apical_anterior') !== 'NO');
-  cond('(C2) tras el toque el numero YA NO esta', _num('apical_anterior') === '');
-  cond('(C3) y el color cambio al tramo siguiente, no quedo el del numero',
-       R.conNumero.split(' / ')[0] !== R.trasToque.split(' / ')[0]);
-  cond('(C4) el almacen de numeros quedo sin la entrada de ese segmento',
-       (() => { try { return strainNumDe('apical_anterior') === null } catch (e) { return false } })());
+  cond('(C2) tras el toque el numero SIGUE AHI: no hay perdida silenciosa',
+       String(_num('apical_anterior')).indexOf('-12') >= 0, R.trasToque);
+  cond('(C3) y el color NO cambio: el numero y el color no pueden contradecirse',
+       R.conNumero.split(' / ')[0] === R.trasToque.split(' / ')[0], R.trasToque);
+  cond('(C4) el almacen de numeros CONSERVA su entrada',
+       (() => { try { return strainNumDe('apical_anterior') === -12 } catch (e) { return false } })(),
+       (() => { try { return String(strainNumDe('apical_anterior')) } catch (e) { return 'EXC' } })());
+  cond('(C5) y se le dice al medico que active el interruptor para cambiarlo o borrarlo',
+       R.dicho.indexOf('Activ') >= 0 && R.dicho.indexOf('datos num') >= 0, R.dicho || '(no dijo nada)');
   _reset();
   return { extra: _E };
 `);
@@ -163183,6 +163334,7 @@ caso('TC-1044',
   const _col = v => { try { return String(window.STRAIN_PAL[strainTramoDe(v)].color).toUpperCase() } catch (e) { return 'NO' } };
   const MENOS = String.fromCharCode(0x2212);
   const GRIS = (() => { try { return String(window.STRAIN_PAL[0].color).toUpperCase() } catch (e) { return 'NO' } })();
+  const VIOL = (() => { try { return String(window.STRAIN_PAL[1].color).toUpperCase() } catch (e) { return 'NO' } })();
   const GUION = String.fromCharCode(0x2013);
 
   R.abrio = _abrir();
@@ -163249,12 +163401,22 @@ caso('TC-1044',
              + _fill('mid_anterior') + '/' + _num('mid_anterior');
   cond('(E1) un -30 se pinta con el color del extremo y publica su numero',
        _num('mid_inferior') === '-30' && _fill('mid_inferior') === _col(-30));
-  cond('(E2) un +25 se pinta con el color del otro extremo y publica su numero',
-       _num('mid_anterior') === '25' && _fill('mid_anterior') === _col(25));
-  /* (F) BORRAR vuelve a SIN DATO. */
+  /* ⚠️ (E2) ADAPTADA EN PR8 (TAREA 3.5): UN POSITIVO SE PUBLICA CON SU SIGNO. La orden del medico
+     lo pide con todas las letras -«+8, +15, porque la escala lateral es asi»-, asi que el texto
+     del segmento pasa de «25» a «+25». El color no se movio. Y se exige que la forma vieja sin
+     signo ya no este, asi que falla por los dos lados. */
+  cond('(E2) un +25 se pinta con el color del otro extremo y publica su numero CON el mas',
+       _num('mid_anterior') === '+25' && _fill('mid_anterior') === _col(25),
+       _fill('mid_anterior') + '/' + _num('mid_anterior'));
+  /* (F) ⚠️ INVERTIDA EN PR8 (TAREA 3.6): BORRAR EL NUMERO DEVUELVE EL SEGMENTO AL TRAMO 1 -violeta-
+     y no a SIN DATO. Es la decision del medico: el estado inicial de un segmento es el tramo 1, asi
+     que borrar lo devuelve ahi. El guion SI queda, porque el interruptor de numeros esta encendido
+     y el segmento quedo sin numero -que es la regla 3.4-. Exige ademas que NO quede gris. */
   try { strainEscribir('mid_inferior', ''); } catch (e) {}
-  cond('(F1) borrar el numero deja el segmento SIN DATO, gris y con guion',
-       _fill('mid_inferior') === GRIS && _num('mid_inferior') === GUION);
+  cond('(F1) borrar el numero devuelve el segmento al TRAMO 1, violeta y con guion, y no a gris',
+       _fill('mid_inferior') === VIOL && _fill('mid_inferior') !== GRIS
+       && _num('mid_inferior') === GUION,
+       _fill('mid_inferior') + '/' + JSON.stringify(_num('mid_inferior')) + ' viol=' + VIOL);
   /* (G) ESCAPE CANCELA: ni el color ni el numero se mueven. */
   try { strainEscribir('apical_lateral', '-14'); } catch (e) {}
   const antes = _fill('apical_lateral') + '/' + _num('apical_lateral');
@@ -163263,7 +163425,8 @@ caso('TC-1044',
   if (c2) { c2.value = '+19'; c2.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true })); }
   R.escape = antes + ' -> ' + _fill('apical_lateral') + '/' + _num('apical_lateral');
   cond('(G1) la casilla se abrio sobre un segmento que ya tenia numero', !!c2);
-  cond('(G2) Escape la cierra', !_caja());
+  cond('(G2) Escape la cierra', !_caja(),
+       'cajas=' + document.querySelectorAll('[data-strain-caja]').length + ' · ' + R.escape);
   cond('(G3) Escape NO cambia el numero ni el color',
        antes === (_fill('apical_lateral') + '/' + _num('apical_lateral')));
   /* (H) APAGAR EL MODO cierra la casilla abierta y devuelve el ciclo de colores. */
@@ -163328,7 +163491,11 @@ caso('TC-1045',
        && g.num.indexOf('apex') < 0);
   _reset();
   R.vacio = _fill('basal_anterior');
-  cond('(A3) DENOMINADOR: tras limpiar el segmento vuelve a SIN DATO', R.vacio === _pal(0));
+  /* ⚠️ (A3) INVERTIDA EN PR8 (TAREA 3.3): «Limpiar» deja los diecisiete en el TRAMO 1 -violeta- y
+     no en SIN DATO. Sigue siendo el denominador del viaje de ida y vuelta: lo que importa es que
+     el segmento arranque VACIO de dato antes de restaurar. */
+  cond('(A3) DENOMINADOR: tras limpiar el segmento vuelve al TRAMO 1, no a gris',
+       R.vacio === _pal(1) && R.vacio !== _pal(0), R.vacio + ' tramo1=' + _pal(1));
   R.rest = _rest({ strain_sgl: g.est, strain_sgl_num: g.num,
                    strain_sgl_ver: (() => { try { return window.STRAIN_VER } catch (e) { return '' } })() });
   R.trasRest = _fill('basal_anterior') + '/' + _num('basal_anterior') + ' · '
@@ -163337,8 +163504,10 @@ caso('TC-1045',
   cond('(A4) la restauracion no lanza', R.rest === 'ok');
   cond('(A5) vuelve el numero NEGATIVO con su color derivado',
        _num('basal_anterior') === '-18' && _fill('basal_anterior') === _col(-18));
-  cond('(A6) vuelve el numero POSITIVO con su color derivado',
-       _num('mid_inferolateral') === '7' && _fill('mid_inferolateral') === _col(7));
+  /* ⚠️ (A6) ADAPTADA EN PR8 (TAREA 3.5): un positivo se publica CON su signo, «+7». */
+  cond('(A6) vuelve el numero POSITIVO con su mas y su color derivado',
+       _num('mid_inferolateral') === '+7' && _fill('mid_inferolateral') === _col(7),
+       _fill('mid_inferolateral') + '/' + _num('mid_inferolateral'));
   cond('(A7) el segmento que solo tenia COLOR vuelve con su color y sin numero',
        _fill('apex') === _pal(4) && _num('apex') === '');
   /* (B) UN ESTUDIO VIEJO, de CINCO estados y sin marca de version. */
@@ -163351,19 +163520,30 @@ caso('TC-1045',
   cond('(B2) los cuatro estados pintados se migran al tramo mas cercano: 1>2, 2>3, 3>5 y 4>7',
        _est('mid_anterior') === 2 && _est('apical_anterior') === 3
        && _est('basal_inferior') === 5 && _est('apex') === 7);
-  cond('(B3) el 0 viejo -el valor por omision del segmento que nadie toco- va a SIN DATO',
-       _est('basal_anterior') === 0 && _fill('basal_anterior') === _pal(0)
-       && _num('basal_anterior') === GUION);
+  /* ⚠️ (B3) INVERTIDA EN PR8 (TAREA 3.8): EL 0 VIEJO VA AL TRAMO 1 Y NO A SIN DATO. Es la tabla de
+     migracion que la orden del medico fija -0 a tramo 1, 1 a 2, 2 a 3, 3 a 5 y 4 a 7-, y es
+     coherente con que el tramo 1 sea el estado inicial. No se le inventa ningun numero, y con el
+     interruptor de numeros APAGADO no se dibuja el guion. */
+  cond('(B3) el 0 viejo -el valor por omision del segmento que nadie toco- va al TRAMO 1',
+       _est('basal_anterior') === 1 && _fill('basal_anterior') === _pal(1)
+       && _fill('basal_anterior') !== _pal(0) && _num('basal_anterior') === '',
+       _est('basal_anterior') + ' ' + _fill('basal_anterior') + '/' + JSON.stringify(_num('basal_anterior')));
   cond('(B4) a ninguno de esos segmentos se le inventa un numero',
        R.viejoNums === '{}' && ['mid_anterior', 'apical_anterior', 'basal_inferior', 'apex']
          .every(k => _nd(k) === null && _num(k) === ''));
   cond('(B5) y el estudio viejo SIGUE contando como strain evaluado',
        (() => { try { return strainHayDatos() === true } catch (e) { return false } })());
-  /* (C) CONTROL NEGATIVO: un estudio viejo con TODO en cero no es strain evaluado. */
+  /* (C) ⚠️ INVERTIDA EN PR8 (TAREA 3.8), Y ES UNA CONSECUENCIA DECLARADA: un estudio viejo con TODO
+     en cero AHORA SI cuenta como strain evaluado, porque el 0 viejo migra al tramo 1 y el tramo 1
+     es un tramo pintado. En PR7 el 0 iba a SIN DATO y ese estudio no tenia datos. El precio es que
+     un estudio de los de antes en el que nadie toco un segmento entra al PDF con su bull is eye
+     violeta; queda declarado en docs/PENDIENTES.md -> PR8-g y es decision del medico, no de la
+     prueba. La condicion exige lo contrario de lo que exigia, asi que falla por los dos lados. */
   _reset();
   _rest({ strain_sgl: '{"basal_anterior":0,"apex":0}' });
-  cond('(C1) un estudio viejo con todos los segmentos en cero NO es strain evaluado',
-       (() => { try { return strainHayDatos() === false } catch (e) { return 'NO' } })());
+  cond('(C1) un estudio viejo con todos los segmentos en cero SI cuenta como strain evaluado, porque el 0 migra al tramo 1',
+       (() => { try { return strainHayDatos() === true } catch (e) { return 'NO' } })(),
+       'est=' + _est('basal_anterior') + ' fill=' + _fill('basal_anterior'));
   /* (D) UN PAR DESPAREJO: gana el COLOR, que es lo que el medico vio. */
   _reset();
   _rest({ strain_sgl: '{"basal_anterior":8}', strain_sgl_num: '{"basal_anterior":-18}',
@@ -163407,8 +163587,9 @@ caso('TC-1045',
   _rest(cp);
   R.reabierto = _fill('basal_anterior') + '/' + _num('basal_anterior') + ' · '
               + _fill('mid_inferolateral') + '/' + _num('mid_inferolateral');
-  cond('(E4) al reabrir el estudio guardado los dos numeros vuelven con su color',
-       _num('basal_anterior') === '-18' && _num('mid_inferolateral') === '7'
+  /* ⚠️ (E4) ADAPTADA EN PR8 (TAREA 3.5): el positivo vuelve con su mas. */
+  cond('(E4) al reabrir el estudio guardado los dos numeros vuelven con su color y su signo',
+       _num('basal_anterior') === '-18' && _num('mid_inferolateral') === '+7'
        && _fill('basal_anterior') === _col(-18), R.reabierto);
   _reset();
   return { extra: _E };
@@ -163416,7 +163597,7 @@ caso('TC-1045',
 `);
 
 caso('TC-1046',
- 'PR7: «Limpiar» deja los 17 segmentos SIN DATO y borra los numeros, y NO toca el campo SGL global ni los comentarios de strain',
+ 'PR7, ADAPTADO EN PR8 (TAREA 3.3): «Limpiar» deja los 17 segmentos en el TRAMO 1 -violeta-, sin numeros y sin dato guardado, y NO toca el campo SGL global ni los comentarios de strain',
 `
   /* El recolector de condiciones. El runner espera un objeto con la lista extra -rotulo, ok y
      diagnostico-, y este ayudante deja que cada condicion se escriba donde se mide, al lado de
@@ -163435,6 +163616,10 @@ caso('TC-1046',
   const GUION = String.fromCharCode(0x2013);
   R.abrio = _abrir();
   cond('(DENOM) la pestania SGL abre y el bull is eye se dibuja', R.abrio === true);
+  /* ⚠️ EL INTERRUPTOR DE NUMEROS SE DEJA APAGADO A PROPOSITO: desde PR8 el guion depende de el
+     -regla 3.4-, asi que sin fijarlo este caso mediria los guiones de un modo que le dejo puesto
+     el caso anterior. Los mil casos corren en UNA pagina. */
+  if (_hay('strainNumModoOn') && strainNumModoOn()) strainNumToggle();
   __t.set('sgl_gls', '-17.5');
   __t.set('sgl_notas', 'Nota uno' + String.fromCharCode(10) + 'Nota dos');
   try { strainEscribir('basal_anterior', '-18'); strainEscribir('mid_inferolateral', '+7');
@@ -163443,11 +163628,16 @@ caso('TC-1046',
      pelado tira TypeError que se lleva el caso ENTERO -las condiciones de abajo no llegan a
      evaluarse y el rojo no apunta a su causa-. */
   const _GRIS = (() => { try { return String(window.STRAIN_PAL[0].color).toUpperCase() } catch (e) { return 'NO HAY PALETA' } })();
-  const pintados = Array.from(document.querySelectorAll('#sgl-svg-bullseye .strain-seg'))
-    .filter(p => String(p.getAttribute('fill')).toUpperCase() !== _GRIS).length;
-  R.antes = pintados + ' pintados · nums=' + (() => { try { return strainSnapshot().num } catch (e) { return 'NO' } })();
-  cond('(DENOM2) la escena tiene TRES segmentos pintados y dos con numero',
-       pintados === 3 && R.antes.indexOf('-18') >= 0 && R.antes.indexOf('7') >= 0);
+  /* ⚠️ EL DENOMINADOR SE MIDE SOBRE EL DATO GUARDADO Y NO SOBRE «cuantos no son grises»: desde PR8
+     (TAREA 3.1) los diecisiete nacen VIOLETAS, asi que contar los que no son grises da 17 siempre
+     y no distingue una escena sembrada de una vacia. Lo que de verdad dice que la escena tiene
+     datos son las TRES entradas de strainEstado y los DOS numeros. */
+  const _est = (() => { try { return JSON.stringify(strainEstado) } catch (e) { return '{}' } })();
+  const _nEst = (() => { try { return Object.keys(strainEstado).length } catch (e) { return -1 } })();
+  R.antes = _nEst + ' con dato · est=' + _est.slice(0, 120)
+          + ' · nums=' + (() => { try { return strainSnapshot().num } catch (e) { return 'NO' } })();
+  cond('(DENOM2) la escena tiene TRES segmentos con dato y dos con numero',
+       _nEst === 3 && R.antes.indexOf('-18') >= 0 && R.antes.indexOf('7') >= 0, R.antes);
   /* El boton de «Limpiar» de la pestania, no la funcion: es el gesto del medico. */
   const btn = Array.from(document.querySelectorAll('#tab-sgl button'))
     .filter(b => (b.textContent || '').indexOf('Limpiar') >= 0)[0];
@@ -163456,12 +163646,22 @@ caso('TC-1046',
   if (btn) btn.click();
   const segs = Array.from(document.querySelectorAll('#sgl-svg-bullseye .strain-seg'));
   const tx = Array.from(document.querySelectorAll('#sgl-svg-bullseye text[data-strainid]'));
+  const _VIOL = (() => { try { return String(window.STRAIN_PAL[1].color).toUpperCase() } catch (e) { return 'NO HAY PALETA' } })();
   R.despues = { grises: segs.filter(p => String(p.getAttribute('fill')).toUpperCase() === _GRIS).length,
+                violetas: segs.filter(p => String(p.getAttribute('fill')).toUpperCase() === _VIOL).length,
+                conDato: (() => { try { return Object.keys(strainEstado).length } catch (e) { return -1 } })(),
                 guiones: tx.filter(t => t.textContent === GUION).length,
                 nums: (() => { try { return strainSnapshot().num } catch (e) { return 'NO' } })(),
                 gls: __t.val('sgl_gls'), notas: __t.val('sgl_notas') };
-  cond('(A2) los 17 segmentos quedan SIN DATO', R.despues.grises === 17);
-  cond('(A3) los 17 vuelven a mostrar el guion', R.despues.guiones === 17);
+  /* ⚠️ (A2) y (A3) INVERTIDAS EN PR8 (TAREA 3.3 y 3.4): «Limpiar» deja los diecisiete en el TRAMO 1
+     -violetas, no grises- y SIN dato guardado, y el guion no se dibuja porque el interruptor de
+     numeros esta apagado. Las dos exigen ademas que la forma vieja ya no este, asi que fallan por
+     los dos lados. */
+  cond('(A2) los 17 segmentos quedan VIOLETAS, en el tramo 1, y sin un solo dato guardado',
+       R.despues.violetas === 17 && R.despues.grises === 0 && R.despues.conDato === 0,
+       JSON.stringify(R.despues).slice(0, 200));
+  cond('(A3) y NINGUNO muestra el guion, porque el interruptor de numeros esta apagado',
+       R.despues.guiones === 0, String(R.despues.guiones));
   cond('(A4) el almacen de numeros queda vacio', R.despues.nums === '{}');
   cond('(A5) NO toca el campo SGL global', R.despues.gls === '-17.5');
   cond('(A6) NO toca los comentarios de strain',
@@ -163504,9 +163704,15 @@ caso('TC-1047',
   cond('(A1) la pantalla de SGL no nombra la marca del ecografo', R.hitsSgl === '');
   R.frase = (() => { const p = document.querySelector('#tab-sgl .sacc-body p');
     return p ? String(p.textContent || '').trim() : 'SIN FRASE' })();
-  cond('(A2) la frase de arriba describe el gesto nuevo y los 17 segmentos',
-       R.frase.indexOf('cambiar el color del strain') >= 0
-       && R.frase.indexOf('Ingresar datos num') >= 0 && R.frase.indexOf('17 segmentos') >= 0);
+  /* ⚠️ (A2) ADAPTADA EN PR8 (TAREA 3): LA FRASE SE REESCRIBIO PORQUE EL GESTO CAMBIO. Tiene que
+     decir el estado inicial -los diecisiete en violeta-, el ciclo -el tramo siguiente, y «Sin
+     dato» despues del ultimo- y el interruptor de datos numericos. Lo que esta condicion protege
+     es lo mismo que protegia: que la frase de arriba EXPLIQUE el gesto y nombre los 17 segmentos;
+     cambian las palabras con las que se mide, y se exige una por una. */
+  cond('(A2) la frase de arriba describe el gesto nuevo, el estado inicial y los 17 segmentos',
+       R.frase.indexOf('17 segmentos') >= 0 && R.frase.indexOf('violeta') >= 0
+       && R.frase.indexOf('tramo siguiente') >= 0 && R.frase.indexOf('Sin dato') >= 0
+       && R.frase.indexOf('Ingresar datos num') >= 0, R.frase.slice(0, 140));
   R.tituloLeyenda = (() => {
     const d = document.querySelector('[data-strain-leyenda="sgl"]');
     if (!d || !d.parentNode) return 'SIN LEYENDA';
@@ -163938,6 +164144,820 @@ caso('TC-1050',
   try { if (_hay('sglReset')) sglReset(); } catch (e) {}
   try { if (_hay('contrReset')) contrReset(); } catch (e) {}
   return { extra: _E };
+`);
+
+caso('TC-1051',
+ 'PR8 (TAREA 1.1 y 1.2): el resumen de valvulas es un BOTON DE ICONO sin texto y sin id, con su explicacion al pasar el mouse; al tocarlo los cuadros de valvulas aparecen EN EL MOMENTO en la vista previa sin entrar al orden ni a los quitados, y «Restablecer» lo apaga con su indicador',
+`
+  /* TODO ACCESO VA POR UN AYUDANTE CON GUARDA Y DEVUELVE UNA FORMA VACIA. Contra el arbol
+     anterior (d6f8326) el boton no existe -ahi es un label con una casilla- y cuadRvBtnSync
+     tampoco: un acceso pelado tira ReferenceError que se lleva el caso ENTERO y las condiciones
+     de abajo no llegan a evaluarse. Es lo que TC-827 tuvo que deshacer en PANT-37. */
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const R = {};
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    [['nombre','Zoraida Pruebas'],['fecha','2026-11-24'],['edad','64'],['sexo','M'],
+     ['peso','78'],['talla','172'],['ao_sin','41'],['ao_st','33'],['ao_tub','45'],
+     ['ai_diam','42'],['ai_area','23'],['ai_vol','78'],['ad_area','17'],['vci_diam','19'],
+     ['siv','12'],['ddfvi','52'],['dsfvi','34'],['ppvi','11'],['fevi','58'],['vol_lat','82'],
+     ['tapse','19'],['vd_bas','38'],['onda_e','88'],['onda_a','62'],['thp','95'],
+     ['e_sep','7'],['e_lat','10'],['hemo_fc','72'],
+     ['vmax_it','2.8'],['vmax_ao','4.2'],['gmedio_ao','46'],['itv_tsvi','18'],['itv_ao','95'],
+     ['diam_tsvi','21'],['diam_tsvi_ao','21'],
+     ['vm_morf','Prolapso / EVMS'],['im_grado','4'],['im_vc','7'],
+     ['va_morf','Calcificada'],['ia_grado','4'],['ia_vc','4'],
+     ['vt_morf','Normal'],['it_grado','2'],['it_vc','5']
+    ].forEach(p => __t.set(p[0], p[1]));
+    try { showTab('informe'); } catch (e) {}
+    if (_hay('cuadReset')) cuadReset();
+    if (_hay('cuadResumenValvToggle')) cuadResumenValvToggle(false);
+    if (_hay('cuadAbrir')) cuadAbrir();
+    const btn = () => document.querySelector('[data-cuad-rv]');
+    const rv = () => document.querySelectorAll('#cuad-grid > [data-cuad-rv-id]').length;
+    const ids = () => Array.prototype.map.call(
+      document.querySelectorAll('#cuad-grid > [data-cuad-id]'), n => n.getAttribute('data-cuad-id')).join(',');
+    const b = btn();
+    R.tag = b ? b.tagName : 'NO HAY';
+    R.inputs = b ? b.querySelectorAll('input').length : -1;
+    R.id = b ? (b.id || 'SIN') : 'NO HAY';
+    R.texto = b ? (b.textContent || '').trim() : '';
+    R.tit = b ? String(b.getAttribute('title') || '') : '';
+    R.aria = b ? String(b.getAttribute('aria-label') || '') : '';
+    R.w = b ? Math.round(b.getBoundingClientRect().width) : 0;
+    R.h = b ? Math.round(b.getBoundingClientRect().height) : 0;
+    R.press0 = b ? b.getAttribute('aria-pressed') : 'NO';
+    R.rv0 = rv();
+    R.ids0 = ids();
+    if (b) b.click();
+    R.press1 = b ? b.getAttribute('aria-pressed') : 'NO';
+    R.rv1 = rv();
+    R.ids1 = ids();
+    const t = document.querySelector('#cuad-grid > .cuad-rvtit');
+    R.titFila = t ? (t.textContent + '|' + t.getAttribute('data-cuad-span')) : 'NO HAY';
+    const c0 = document.querySelector('#cuad-grid > [data-cuad-rv-id]');
+    R.rvSinId = c0 ? String(c0.getAttribute('data-cuad-id') === null) : 'NO HAY';
+    R.rvSinCruz = c0 ? c0.querySelectorAll('.cuad-x').length : -1;
+    /* RESTABLECER lo apaga */
+    const rb = document.getElementById('cuad-rest');
+    if (rb) rb.click();
+    R.press2 = b ? b.getAttribute('aria-pressed') : 'NO';
+    R.rv2 = rv();
+    if (_hay('cuadCerrar')) cuadCerrar();
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 200); }
+  finally { try { if (_hay('cuadReset')) cuadReset(); if (_hay('cuadResumenValvToggle')) cuadResumenValvToggle(false); } catch (e) {} }
+  const BASE = 'ao,ai,advci,viest,visis,vd,vm,dti,trip,va,gc,otros';
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['el interruptor es un BOTON y no una casilla', R.tag === 'BUTTON' && R.inputs === 0, R.tag + '|inputs=' + R.inputs],
+    ['sin texto: solo su icono', R.texto.length > 0 && R.texto.length <= 3, '[' + R.texto + ']'],
+    ['sin id, para no entrar al censo del estudio ni al Excel', R.id === 'SIN', R.id],
+    ['dice su funcion al pasar el mouse, con palabras', R.tit.indexOf('resumen de v') > 0 && R.aria === R.tit, R.tit.slice(0, 50)],
+    ['con su piso tactil de 44 px', R.w === 44 && R.h === 44, R.w + 'x' + R.h],
+    ['DENOMINADOR: arranca apagado y sin cuadros de valvula en la vista previa', R.press0 === 'false' && R.rv0 === 0, R.press0 + '|' + R.rv0],
+    ['DENOMINADOR: los doce en el orden de fabrica', R.ids0 === BASE, R.ids0],
+    ['al tocarlo queda marcado', R.press1 === 'true', String(R.press1)],
+    ['y los cuadros de valvulas aparecen EN EL MOMENTO en la vista previa', R.rv1 === 3, String(R.rv1)],
+    ['debajo de su propio titulo, a todo el ancho de la grilla', R.titFila.indexOf('Resumen de v') === 0 && R.titFila.indexOf('|6') > 0, R.titFila],
+    ['sin entrar al orden de los doce', R.ids1 === BASE, R.ids1],
+    ['y sin entrar al arrastre ni a los quitados: no llevan data-cuad-id ni cruz', R.rvSinId === 'true' && R.rvSinCruz === 0, R.rvSinId + '|' + R.rvSinCruz],
+    ['«Restablecer» lo apaga', R.press2 === 'false', String(R.press2)],
+    ['y se lleva los cuadros de valvulas de la vista previa', R.rv2 === 0, String(R.rv2)]
+  ] };
+`);
+
+caso('TC-1052',
+ 'PR8 (TAREA 1.3): el cuadro se arrastra desde CUALQUIER parte y en DIAGONAL, con un marcador del destino, y al soltar los dos se INTERCAMBIAN; el que se movio no queda gris y se puede volver a mover; un clic sin movimiento no reordena y la cruz no arrastra',
+`
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const R = {};
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    [['nombre','Zoraida Pruebas'],['fecha','2026-11-24'],['edad','64'],['sexo','M'],
+     ['peso','78'],['talla','172'],['ao_sin','41'],['ao_st','33'],['ao_tub','45'],
+     ['ai_diam','42'],['ai_area','23'],['ai_vol','78'],['ad_area','17'],['vci_diam','19'],
+     ['siv','12'],['ddfvi','52'],['dsfvi','34'],['ppvi','11'],['fevi','58'],['vol_lat','82'],
+     ['tapse','19'],['vd_bas','38'],['onda_e','88'],['onda_a','62'],['thp','95'],
+     ['e_sep','7'],['e_lat','10'],['vmax_it','2.8'],['vmax_ao','4.2'],['gmedio_ao','46'],
+     ['itv_tsvi','18'],['itv_ao','95'],['diam_tsvi','21'],['diam_tsvi_ao','21'],['hemo_fc','72'],
+     ['pericardio','Derrame leve (<10mm)']
+    ].forEach(p => __t.set(p[0], p[1]));
+    try { showTab('informe'); } catch (e) {}
+    if (_hay('cuadReset')) cuadReset();
+    if (_hay('cuadAbrir')) cuadAbrir();
+    const ids = () => Array.prototype.map.call(
+      document.querySelectorAll('#cuad-grid > [data-cuad-id]'), n => n.getAttribute('data-cuad-id')).join(',');
+    const caja = i => document.querySelectorAll('#cuad-grid > [data-cuad-id]')[i];
+    const pev = (nodo, t, x, y) => { let e;
+      try { e = new PointerEvent(t, { bubbles:true, cancelable:true, pointerId:9, pointerType:'mouse',
+                                      button:0, buttons:1, clientX:x, clientY:y }); }
+      catch (err) { e = new MouseEvent(t, { bubbles:true, cancelable:true, clientX:x, clientY:y }); }
+      nodo.dispatchEvent(e); };
+    R.n = document.querySelectorAll('#cuad-grid > [data-cuad-id]').length;
+    R.ids0 = ids();
+    /* (A) EL ARRASTRE EN DIAGONAL, agarrando el CUERPO del cuadro y no el asa. */
+    /* ⚠️ SE ARRASTRA AL CUADRO SIGUIENTE Y NO A UNO LEJANO: la ventana del arnes mide 756x469 y
+       a ese ancho la tarjeta pone UN cuadro por fila, asi que el quinto cae debajo del pliegue y
+       elementFromPoint devuelve null. Es la trampa que TC-939 documenta con su denominador. La
+       DIAGONAL sale igual: el cuadro es ancho, asi que de su esquina de abajo a la izquierda a la
+       de arriba a la derecha del siguiente hay recorrido en los dos ejes. */
+    const a = caja(0), b = caja(1);
+    if (!a || !b) { R.falta = 'FALTAN CAJAS'; }
+    else {
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      const x0 = ra.left + 24, y0 = ra.top + ra.height - 8;
+      const x1 = rb.left + rb.width - 30, y1 = rb.top + 12;
+      R.dx = Math.round(Math.abs(x1 - x0)); R.dy = Math.round(Math.abs(y1 - y0));
+      const bajo = document.elementFromPoint(x0, y0);
+      R.desdeCuerpo = String(!!bajo && !a.querySelector('.cuad-grip').contains(bajo) && a.contains(bajo));
+      pev(a, 'pointerdown', x0, y0);
+      pev(document, 'pointermove', x0 + 9, y0 + 9);
+      R.arrOn = a.classList.contains('cuad-arr');
+      pev(document, 'pointermove', x1, y1);
+      const d = document.querySelector('#cuad-grid .cuad-dest');
+      R.destMarca = document.querySelectorAll('#cuad-grid .cuad-dest').length;
+      R.destId = d ? d.getAttribute('data-cuad-id') : 'NINGUNO';
+      R.bajoPuntero = (function () { const e = document.elementFromPoint(x1, y1);
+        const c = e && e.closest ? e.closest('#cuad-grid > [data-cuad-id]') : null;
+        return c ? c.getAttribute('data-cuad-id') : 'NADA BAJO EL PUNTERO' })();
+      pev(document, 'pointerup', x1, y1);
+      R.ids1 = ids();
+    }
+    /* (B) NO QUEDA GRIS NI TRABADO */
+    R.sucias = document.querySelectorAll('#cuad-grid .cuad-arr, #cuad-grid .cuad-dest').length;
+    R.opac = (() => { const c = caja(0); return c ? getComputedStyle(c).opacity : 'NO' })();
+    /* (C) EL MISMO CUADRO SE VUELVE A MOVER: el intercambio inverso devuelve el orden de fabrica */
+    const a2 = caja(0), b2 = caja(1);
+    if (a2 && b2) {
+      const ra2 = a2.getBoundingClientRect(), rb2 = b2.getBoundingClientRect();
+      pev(a2, 'pointerdown', ra2.left + 25, ra2.top + 25);
+      pev(document, 'pointermove', ra2.left + 36, ra2.top + 36);
+      pev(document, 'pointermove', rb2.left + rb2.width / 2, rb2.top + rb2.height / 2);
+      pev(document, 'pointerup', rb2.left + rb2.width / 2, rb2.top + rb2.height / 2);
+    }
+    R.ids2 = ids();
+    /* (D) UN CLIC SIN MOVIMIENTO NO REORDENA */
+    const a3 = caja(0); const r3 = a3.getBoundingClientRect();
+    pev(a3, 'pointerdown', r3.left + 20, r3.top + 20);
+    pev(document, 'pointerup', r3.left + 20, r3.top + 20);
+    R.ids3 = ids();
+    /* (D2) Y UN MOVIMIENTO MINIMO TAMPOCO: es el UMBRAL, y sin esta condicion no se ejercita.
+       El clic de arriba no mueve el puntero ni un pixel, asi que pointermove no llega nunca y el
+       arrastre no arranca por otra razon -- la mutacion que pone el umbral en cero sobrevivia-.
+       Aca el puntero se mueve DOS pixeles, por debajo del umbral de seis, y cruza al cuadro
+       siguiente: si el umbral no estuviera, esto reordenaria. */
+    const a3b = caja(0), b3b = caja(1);
+    if (a3b && b3b) {
+      const rr = a3b.getBoundingClientRect();
+      pev(a3b, 'pointerdown', rr.left + 20, rr.top + 20);
+      pev(document, 'pointermove', rr.left + 22, rr.top + 21);
+      R.arrMinimo = a3b.classList.contains('cuad-arr');
+      const rb3 = b3b.getBoundingClientRect();
+      pev(document, 'pointerup', rb3.left + 20, rb3.top + 10);
+    }
+    R.ids3b = ids();
+    /* (E) LA CRUZ NO ARRASTRA: el gesto que empieza en ella no prende el arrastre */
+    const a4 = caja(0); const x4 = a4.querySelector('.cuad-x');
+    const r4 = x4 ? x4.getBoundingClientRect() : null;
+    if (r4) {
+      pev(x4, 'pointerdown', r4.left + 2, r4.top + 2);
+      pev(document, 'pointermove', r4.left + 30, r4.top + 30);
+      R.cruzArr = a4.classList.contains('cuad-arr');
+      pev(document, 'pointerup', r4.left + 30, r4.top + 30);
+    }
+    R.ids4 = ids();
+    /* (F) EL ANCHO PERTENECE A LA POSICION: con ONCE cuadros las dos ultimas filas van de a 2 */
+    /* ⚠️ SE LEE EL ATRIBUTO Y NO EL ANCHO EN PIXELES: a 756 px la media query de celular le pone
+       span 6 a todos, asi que el ancho medido no distingue nada y el atributo si. */
+    if (_hay('cuadQuitar')) cuadQuitar('otros');
+    const spans = () => Array.prototype.map.call(
+      document.querySelectorAll('#cuad-grid > [data-cuad-id]'), n => n.getAttribute('data-cuad-span')).join('');
+    R.spanAntes = spans();
+    const p0 = caja(0), p1 = caja(1);
+    if (p0 && p1) {
+      const rp0 = p0.getBoundingClientRect(), rp1 = p1.getBoundingClientRect();
+      pev(p0, 'pointerdown', rp0.left + 20, rp0.top + rp0.height - 8);
+      pev(document, 'pointermove', rp0.left + 31, rp0.top + rp0.height - 19);
+      pev(document, 'pointermove', rp1.left + rp1.width - 30, rp1.top + 12);
+      pev(document, 'pointerup', rp1.left + rp1.width - 30, rp1.top + 12);
+    }
+    R.spanDespues = spans();
+    R.ids5 = ids();
+    if (_hay('cuadCerrar')) cuadCerrar();
+    /* ══ (G) EL INTERCAMBIO DE DOS CUADROS QUE NO SON VECINOS ═══════════════════════════════════
+       ⚠️ ESTO LO PIDIO EL BARRIDO DE MUTACIONES, Y ES UN HUECO REAL DE COBERTURA: con dos cuadros
+       VECINOS, «intercambiar los dos» e «insertar el primero despues del segundo» dan EXACTAMENTE
+       el mismo orden, asi que la mutacion que vuelve al mecanismo de insertar de PR6 pasaba en
+       verde sobre las condiciones de arriba. La unica forma de distinguir los dos mecanismos es
+       arrastrar sobre un cuadro que NO sea el vecino: intercambiar 1 con 3 da «a d c b» e insertar
+       da «a c d b».
+       ⚠️ Y PARA ESO HAY QUE DESPLAZAR LA TARJETA: la ventana del arnes mide 756x469 y a ese ancho la
+       tarjeta pone un cuadro por fila, asi que el cuarto cae debajo del pliegue, donde
+       elementFromPoint devuelve null -la trampa que TC-939 documenta-. Se desplaza el overlay para
+       que los dos entren en la ventana, se mide, y se devuelve el desplazamiento a cero. */
+    R.noVecinos = (() => {
+      try {
+        /* ⚠️ LA TARJETA SE VUELVE A ABRIR: los bloques de arriba la cierran, y lo que esta
+           escondido NO TIENE GEOMETRIA -medido: todos los rect daban top 0 y elementFromPoint
+           devolvia lo que hay detras del overlay, asi que el denominador decia «NADA» sobre un
+           arrastre que funciona-. */
+        if (_hay('cuadAbrir')) cuadAbrir();
+        /* ⚠️ Y SE REPINTA: cuadReset mueve el MODELO del orden y NO redibuja -el que redibuja es
+           cuadPintar, y «Restablecer» los llama a los dos-. Sin esto el DOM seguia mostrando el
+           orden que dejaron los bloques de arriba mientras el modelo ya decia el de fabrica, asi
+           que cj() devolvia como segundo el cuadro que estaba SEGUNDO EN PANTALLA -que era otro- y
+           el intercambio medido salia de dos posiciones que no eran las pedidas. La condicion (G0)
+           lo exige ahora: el orden del DOM tiene que ser el del modelo. */
+        if (_hay('cuadReset')) cuadReset();
+        if (_hay('cuadPintar')) cuadPintar();
+        const ov = document.getElementById('cuad-ov');
+        const cj = () => Array.prototype.slice.call(document.querySelectorAll('#cuad-grid > [data-cuad-id]'));
+        if (cj().length < 4 || !ov) return { err: 'FALTAN CAJAS U OVERLAY' };
+        const antes = cuadOrdenVigente().slice();
+        /* El orden del DOM se lee ANTES del arrastre: leido despues seria el orden nuevo, y la
+           comparacion contra el modelo viejo no diria nada. */
+        const domAntes = cj().map(n => n.getAttribute('data-cuad-id')).join(',');
+        /* ⚠️ EL CUADRO 1 SE DEJA A 150 px DEL BORDE Y NO PEGADO ARRIBA: la tarjeta tiene su
+           encabezado FIJO en el tope del overlay -medido: a y=8 elementFromPoint devuelve ese
+           encabezado y no el cuadro-, asi que soltar ahi no cae sobre ningun cuadro. Con 150 px
+           el 1 arranca debajo del encabezado y el 3 entra entero en los 469 px de la ventana. */
+        ov.scrollTop = ov.scrollTop + cj()[1].getBoundingClientRect().top - 150;
+        const a = cj()[1], d = cj()[3];
+        const ra = a.getBoundingClientRect(), rd = d.getBoundingClientRect();
+        const x0 = ra.left + 30, y0 = ra.top + 10;
+        const x1 = rd.left + rd.width - 30, y1 = rd.top + 8;
+        const bajoA = document.elementFromPoint(x0, y0);
+        const bajoD = document.elementFromPoint(x1, y1);
+        const dentro = y0 > 0 && y1 > 0 && y1 < innerHeight && y0 < innerHeight;
+        const idD = (bajoD && bajoD.closest) ? (bajoD.closest('#cuad-grid > [data-cuad-id]') || {}) : {};
+        pev(a, 'pointerdown', x0, y0);
+        pev(document, 'pointermove', x0 + 10, y0 + 10);
+        pev(document, 'pointermove', x1, y1);
+        pev(document, 'pointerup', x1, y1);
+        const despues = cuadOrdenVigente().slice();
+        ov.scrollTop = 0;
+        /* El orden que da INTERCAMBIAR y el que daria INSERTAR, los dos armados de la misma lista. */
+        const esp = antes.slice(); const t = esp[1]; esp[1] = esp[3]; esp[3] = t;
+        const ins = antes.slice(); const q = ins.splice(1, 1)[0]; ins.splice(3, 0, q);
+        return { antes: antes.join(','), dom: domAntes, despues: despues.join(','), esp: esp.join(','),
+                 ins: ins.join(','), dentro: dentro, y0: Math.round(y0), y1: Math.round(y1), vh: innerHeight,
+                 destino: idD.getAttribute ? idD.getAttribute('data-cuad-id') : 'NADA',
+                 desdeCuerpo: !!bajoA && a.contains(bajoA) };
+      } catch (e) { return { err: String(e && e.message || e) } };
+    })();
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 200); }
+  finally { try { if (_hay('cuadReset')) cuadReset(); } catch (e) {} }
+  const BASE = 'ao,ai,advci,viest,visis,vd,vm,dti,trip,va,gc,otros';
+  return { extra: [
+    ['(G0) DENOMINADOR: los dos cuadros que NO son vecinos entran en la ventana y el destino esta debajo del puntero',
+      R.noVecinos.dentro === true && R.noVecinos.destino === 'viest'
+        && R.noVecinos.desdeCuerpo === true && R.noVecinos.dom === R.noVecinos.antes,
+      'dentro=' + R.noVecinos.dentro + ' destino=' + R.noVecinos.destino
+        + ' desdeCuerpo=' + R.noVecinos.desdeCuerpo + ' err=' + (R.noVecinos.err || 'no')
+        + ' y0=' + R.noVecinos.y0 + ' y1=' + R.noVecinos.y1 + ' vh=' + R.noVecinos.vh
+        + ' dom=' + R.noVecinos.dom + ' modelo=' + R.noVecinos.antes],
+    ['(G1) arrastrar el cuadro 1 sobre el 3 los INTERCAMBIA, y no inserta uno despues del otro',
+      R.noVecinos.despues === R.noVecinos.esp && R.noVecinos.despues !== R.noVecinos.ins,
+      'quedo=' + R.noVecinos.despues + ' · intercambiar=' + R.noVecinos.esp
+        + ' · insertar=' + R.noVecinos.ins],
+    ['sin excepciones', !R.err, R.err],
+    ['DENOMINADOR: la tarjeta tiene los doce cuadros en el orden de fabrica', R.n === 12 && R.ids0 === BASE, R.n + '|' + R.ids0],
+    ['DENOMINADOR: el gesto agarra el CUERPO del cuadro y no el asa', R.desdeCuerpo === 'true', String(R.desdeCuerpo)],
+    ['DENOMINADOR: el arrastre es en DIAGONAL -- se mueve en los dos ejes', R.dx > 40 && R.dy > 20, R.dx + 'x' + R.dy],
+    ['el movimiento prende el arrastre', R.arrOn === true, String(R.arrOn)],
+    ['DENOMINADOR: habia un cuadro debajo del puntero al soltar', R.bajoPuntero === 'ai', String(R.bajoPuntero)],
+    ['y marca UN cuadro de destino, el que esta debajo del puntero', R.destMarca === 1 && R.destId === 'ai', R.destMarca + '|' + R.destId],
+    ['al soltar, los dos cuadros se INTERCAMBIAN de lugar', R.ids1 === 'ai,ao,advci,viest,visis,vd,vm,dti,trip,va,gc,otros', R.ids1],
+    ['el que se movio NO queda gris ni con el marcador puesto', R.sucias === 0 && R.opac === '1', R.sucias + '|' + R.opac],
+    ['y se puede volver a mover: el intercambio inverso devuelve el orden de fabrica', R.ids2 === BASE, R.ids2],
+    ['un clic sin movimiento NO reordena', R.ids3 === BASE, R.ids3],
+    ['y un movimiento MINIMO -- por debajo del umbral -- tampoco prende el arrastre ni reordena',
+      R.arrMinimo === false && R.ids3b === BASE, 'arr=' + R.arrMinimo + '|' + R.ids3b],
+    ['la cruz no arrastra', R.cruzArr === false, String(R.cruzArr)],
+    ['y el orden queda como estaba', R.ids4 === BASE, R.ids4],
+    ['con once cuadros, las dos ultimas posiciones son mas anchas', R.spanAntes === '22222222233', R.spanAntes],
+    ['y al intercambiar dos cuadros los ANCHOS se quedan en su POSICION', R.spanDespues === R.spanAntes, R.spanDespues],
+    ['con el intercambio hecho: el segundo paso al primer lugar', R.ids5.indexOf('ai,ao,') === 0, R.ids5]
+  ] };
+`);
+
+caso('TC-1053',
+ 'PR8 (TAREA 2.1 y 2.3): los dos botones copian TEXTO CON FORMATO -- HTML y texto plano en el MISMO copiado --, el HTML lleva negrita, subrayado y vinietas, y sin el formato el copiado cae al texto plano sin romper nada',
+`
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const R = {};
+  const CI = window.ClipboardItem, ESCR = navigator.clipboard && navigator.clipboard.write;
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    [['nombre','Zoraida Pruebas'],['fecha','2026-11-24'],['edad','64'],['sexo','M'],
+     ['peso','78'],['talla','172'],['ao_sin','41'],['ai_diam','42'],['siv','12'],['ddfvi','52'],
+     ['dsfvi','34'],['ppvi','11'],['fevi','58'],['onda_e','88'],['onda_a','62'],['thp','95'],
+     ['vmax_ao','4.2'],['gmedio_ao','46'],['diam_tsvi_ao','21'],
+     ['informe_texto','Ventriculo izquierdo de dimensiones normales.'],
+     ['en_suma','Insuficiencia mitral severa.\\nEstenosis aortica moderada.']
+    ].forEach(p => __t.set(p[0], p[1]));
+    try { showTab('informe'); } catch (e) {}
+    const hd = _hay('cuadTextoHTML') ? cuadTextoHTML() : '';
+    const hi = _hay('cuadInformeHTML') ? cuadInformeHTML() : '';
+    R.hdLen = hd.length; R.hiLen = hi.length;
+    R.hdB = (hd.match(/<b>/g) || []).length;
+    R.hdU = (hd.match(/<u>/g) || []).length;
+    R.hdDop = hd.indexOf('<b><u>DOPPLER</u></b>') >= 0;
+    R.hdNbsp = (hd.match(/&nbsp;/g) || []).length;
+    R.hiInf = hi.indexOf('<b><u>INFORME</u></b>') >= 0;
+    R.hiSuma = hi.indexOf('<b><u>EN SUMA:</u></b>') >= 0;
+    R.hiLi = (hi.match(/<li/g) || []).length;
+    R.items = _hay('cuadSumaItems') ? cuadSumaItems(document.getElementById('en_suma').value).length : -1;
+    /* ⚠️ LOS DOS FORMATOS VIAJAN EN EL MISMO COPIADO. Se sustituyen ClipboardItem y write para
+       capturar los tipos: escribir primero el HTML y despues el texto plano dejaria SOLO el
+       segundo en el portapapeles del sistema. */
+    let tipos = null, llamadas = 0;
+    window.ClipboardItem = function (o) { tipos = Object.keys(o).sort().join('+'); this._o = o; };
+    navigator.clipboard.write = function (it) { llamadas++; return Promise.resolve(); };
+    if (_hay('cuadCopiarDatos')) cuadCopiarDatos();
+    R.tipos = tipos; R.llamadas = llamadas;
+    tipos = null;
+    if (_hay('cuadCopiarInforme')) cuadCopiarInforme();
+    R.tipos2 = tipos;
+    /* SIN FORMATO: sin ClipboardItem, el copiado NO se rompe y el texto plano sale igual. */
+    window.ClipboardItem = undefined;
+    let plano = 0;
+    navigator.clipboard.write = undefined;
+    const wt = navigator.clipboard.writeText;
+    navigator.clipboard.writeText = function (t) { plano++; return Promise.resolve(); };
+    /* Se apaga tambien la via del nodo editable, que es la que conserva el formato sin
+       ClipboardItem: asi el caso mide la ULTIMA red, la del texto plano. */
+    const ec = document.execCommand; document.execCommand = function () { return false; };
+    R.devuelve = _hay('cuadCopiarDatos') ? cuadCopiarDatos() : 'NO HAY';
+    R.plano = plano;
+    document.execCommand = ec;
+    navigator.clipboard.writeText = wt;
+    /* ⚠️ LA ULTIMA RED, EL TEXTAREA, SE EJERCITA APARTE. Con navigator.clipboard presente el flujo
+       no llega NUNCA a esa via -- writeText viene antes --, asi que apagarla no cambiaba nada y la
+       mutacion que la desactiva sobrevivia. Aca se saca el portapapeles entero y se deja
+       execCommand andando: el texto tiene que copiarse igual y NO tiene que abrirse el cuadro de
+       «copialo a mano», que es la red de la red. */
+    const cb = navigator.clipboard;
+    try { Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true }); }
+    catch (e) { R.noSePudoSacar = true; }
+    let cmd = 0;
+    const ec2 = document.execCommand;
+    document.execCommand = function (c) { if (c === 'copy') cmd++; return true; };
+    R.devuelveTa = _hay('_cuadCopiar') ? _cuadCopiar('UN TEXTO DE PRUEBA', 'datos') : 'NO HAY';
+    R.cmd = cmd;
+    R.aMano = document.querySelectorAll('[data-cuad-copia-mano]').length;
+    document.execCommand = ec2;
+    try { Object.defineProperty(navigator, 'clipboard', { value: cb, configurable: true }); } catch (e) {}
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 200); }
+  finally {
+    try { window.ClipboardItem = CI; navigator.clipboard.write = ESCR; } catch (e) {}
+    try { document.querySelectorAll('[data-cuad-copia-mano]').forEach(n => n.parentNode && n.parentNode.removeChild(n)); } catch (e) {}
+  }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['DENOMINADOR: los dos HTML salen con contenido', R.hdLen > 400 && R.hiLen > 120, R.hdLen + '/' + R.hiLen],
+    ['los titulos de seccion van en NEGRITA', R.hdB >= 5, String(R.hdB)],
+    ['y el SUBRAYADO es solo el de DOPPLER', R.hdU === 1 && R.hdDop === true, R.hdU + '|' + R.hdDop],
+    ['con una linea en blanco entre secciones', R.hdNbsp >= 4, String(R.hdNbsp)],
+    ['el informe lleva «INFORME» en negrita y subrayado', R.hiInf === true, String(R.hiInf)],
+    ['y «EN SUMA:» tambien', R.hiSuma === true, String(R.hiSuma)],
+    ['cada item del EN SUMA con su vinieta', R.items === 2 && R.hiLi === 2, R.items + '|' + R.hiLi],
+    ['los DOS formatos viajan en el MISMO copiado de datos', R.tipos === 'text/html+text/plain', String(R.tipos)],
+    ['una sola escritura al portapapeles', R.llamadas === 1, String(R.llamadas)],
+    ['y lo mismo el copiado del informe', R.tipos2 === 'text/html+text/plain', String(R.tipos2)],
+    ['sin formato disponible, copia el texto plano', R.plano === 1, String(R.plano)],
+    ['y no rompe nada: el boton sigue informando que copio', R.devuelve === true, String(R.devuelve)],
+    ['DENOMINADOR: se pudo sacar el portapapeles del navegador', R.noSePudoSacar !== true, String(R.noSePudoSacar)],
+    ['sin portapapeles, la ULTIMA red copia por el textarea', R.devuelveTa === true && R.cmd >= 1,
+      'devolvio=' + R.devuelveTa + '|copy=' + R.cmd],
+    ['y no hace falta abrir el cuadro de copiar a mano', R.aMano === 0, String(R.aMano)]
+  ] };
+`);
+
+caso('TC-1054',
+ 'PR8 (TAREA 2.2): el texto de los datos numericos arranca cada renglon en MAYUSCULA, omite los renglones que son un mensaje, la PAP media lleva su unidad, la linea mitral es THP - TDE - TRIV con el area al lado, el ventriculo izquierdo va en TRES grupos y el THP no se repite',
+`
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const R = {};
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    [['nombre','Zoraida Pruebas'],['fecha','2026-11-24'],['edad','64'],['sexo','M'],
+     ['peso','78'],['talla','172'],['ao_sin','41'],['ao_st','33'],['ao_tub','45'],
+     ['ai_diam','42'],['ai_area','23'],['ai_vol','78'],['ad_area','17'],['vci_diam','19'],
+     ['siv','12'],['ddfvi','52'],['dsfvi','34'],['ppvi','11'],['vdfvi','140'],['vsfvi','58'],
+     ['fevi','58'],['sgl','-17'],['vol_lat','82'],['hemo_fc','72'],
+     ['tapse','19'],['vd_bas','38'],['onda_e','88'],['onda_a','62'],['tde','198'],['triv','82'],
+     ['thp','95'],['e_sep','7'],['e_lat','10'],['vmax_it','2.8'],['pap_med','26'],
+     ['vmax_ao','4.2'],['gmedio_ao','46'],['itv_tsvi','18'],['itv_ao','95'],['diam_tsvi','21'],
+     ['diam_tsvi_ao','21'],['vm_morf','Prolapso / EVMS'],['im_grado','4'],['im_vc','7'],
+     ['va_morf','Calcificada'],['ia_grado','4'],['ia_vc','4'],['ia_pht','220']
+    ].forEach(p => __t.set(p[0], p[1]));
+    try { showTab('informe'); } catch (e) {}
+    const t = _hay('cuadTexto') ? cuadTexto() : '';
+    R.len = t.length;
+    const linDe = sec => { const i = t.indexOf(sec); if (i < 0) return []; 
+      const j = t.indexOf(':', i); const resto = t.slice(j + 1);
+      const out = []; resto.split('\\n').forEach(l => { 
+        if (l.indexOf('  ') === 0) out.push(l.trim()); else if (out.length && l === '') out.push(''); else if (out.length && l !== '') return; });
+      return out; };
+    /* MAYUSCULA INICIAL en TODOS los renglones de datos */
+    const malas = [];
+    t.split('\\n').forEach(l => { if (l.indexOf('  ') !== 0) return;
+      const c = l.slice(2, 3); if (c && c === c.toLowerCase() && c !== c.toUpperCase()) malas.push(l.slice(0, 24)); });
+    R.minusculas = malas.length; R.ejMinus = malas[0] || '';
+    /* MENSAJES */
+    const bajo = t.toLowerCase();
+    R.mensajes = ['no corresponde','no evaluable','no valid','no \\u00e1lid']
+      .filter(m => bajo.indexOf(m) >= 0).join(',');
+    R.filtro = _hay('_cwEsMensaje')
+      ? [_cwEsMensaje('no corresponde'), _cwEsMensaje('THP: no evaluable (fuera de rango)'),
+         _cwEsMensaje('no v\\u00e1lido'), _cwEsMensaje('2.32 cm2'), _cwEsMensaje('95 ms')].join(',')
+      : 'NO HAY';
+    R.pz = _hay('_cwPz') ? String(_cwPz('AVm por THP', 'no corresponde')) : 'NO HAY';
+    /* PAP MEDIA con su unidad, con el campo en un numero pelado */
+    const pm = document.getElementById('pap_med'); const prev = pm ? pm.value : null;
+    if (pm) pm.value = '31';
+    const t2 = _hay('cuadTexto') ? cuadTexto() : '';
+    const ipm = t2.indexOf('PAP media');
+    R.pap = ipm < 0 ? 'NO SALE' : t2.slice(ipm, ipm + 20).split('\\n')[0];
+    if (pm) pm.value = prev;
+    /* LINEA MITRAL */
+    const mi = t.indexOf('V\\u00e1lvula mitral:');
+    const bloqueM = mi < 0 ? '' : t.slice(mi, mi + 300);
+    R.lineaThp = (bloqueM.split('\\n').filter(l => l.indexOf('THP:') > 0)[0] || 'NO HAY').trim();
+    R.largo = R.lineaThp.length;
+    R.corte = _hay('cuadTexto') ? (typeof CW_CORTE_LARGO === 'number' ? CW_CORTE_LARGO : -1) : -1;
+    /* EL THP UNA SOLA VEZ: el area lo rotula; «AVm por THP» ya no sale como segundo renglon */
+    R.avmSuelto = t.indexOf('AVm por THP') >= 0;
+    R.areaConThp = bloqueM.indexOf('(THP)') > 0;
+    /* EL VENTRICULO IZQUIERDO EN TRES GRUPOS */
+    const vi = t.indexOf('Ventr\\u00edculo izquierdo:');
+    const bloqueV = vi < 0 ? '' : t.slice(vi, t.indexOf('Ventr\\u00edculo derecho:'));
+    const lv = bloqueV.split('\\n');
+    R.viBlancos = lv.filter((l, k) => l === '' && lv[k + 1] && lv[k + 1].indexOf('  ') === 0).length;
+    R.viRenglones = bloqueV.split('\\n').filter(l => l.indexOf('  ') === 0).length;
+    R.viOrden = bloqueV.indexOf('SIV') < bloqueV.indexOf('Masa idx')
+             && bloqueV.indexOf('Masa idx') < bloqueV.indexOf('VDFVI idx');
+    R.dobles = t.indexOf('\\n\\n\\n') >= 0;
+    /* PERICARDIO Y MASAS NO ENTRAN */
+    __t.set('pericardio', 'Derrame leve (<10mm)');
+    const t3 = _hay('cuadTexto') ? cuadTexto() : '';
+    R.peri = t3.toLowerCase().indexOf('derrame') >= 0;
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 200); }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['DENOMINADOR: el texto sale con contenido', R.len > 900, String(R.len)],
+    ['cada renglon arranca en MAYUSCULA', R.minusculas === 0, R.minusculas + ' :: ' + R.ejMinus],
+    ['ningun renglon es un mensaje', R.mensajes === '', R.mensajes],
+    ['y el filtro los reconoce, con su control: los valores no son mensajes', R.filtro === 'true,true,true,false,false', R.filtro],
+    ['una pieza que es un mensaje se omite sola', R.pz === 'null', R.pz],
+    ['la PAP media lleva su unidad', R.pap === 'PAP media: 31 mmHg', R.pap],
+    ['la linea mitral es THP - TDE - TRIV con el area al lado', R.lineaThp.indexOf('THP:') === 0
+      && R.lineaThp.indexOf('TDE:') > 0 && R.lineaThp.indexOf('TRIV:') > 0 && R.lineaThp.indexOf('rea:') > 0, R.lineaThp],
+    ['y no pasa del largo que decide el corte', R.largo <= R.corte && R.corte === 70, R.largo + '/' + R.corte],
+    ['el THP se publica UNA vez: el area dice que sale de el y no hay un segundo renglon', R.avmSuelto === false && R.areaConThp === true, 'avmSuelto=' + R.avmSuelto + '|areaConThp=' + R.areaConThp],
+    ['el ventriculo izquierdo va en TRES grupos', R.viBlancos === 2, String(R.viBlancos)],
+    ['con sus seis renglones y en su orden', R.viRenglones === 6 && R.viOrden === true, R.viRenglones + '|' + R.viOrden],
+    ['sin dos lineas en blanco pegadas en ninguna parte', R.dobles === false, String(R.dobles)],
+    ['el pericardio no entra al texto numerico', R.peri === false, String(R.peri)]
+  ] };
+`);
+
+caso('TC-1055',
+ 'PR8 (TAREA 2.4): el PDF «Tipo Word» sale con la ficha del paciente en pocos renglones y sin cuadros, los datos numericos IDENTICOS al texto copiado, el narrativo con sus vinietas, todo en negro y sin un solo recuadro -- y los otros ocho estilos no mueven un solo texto',
+`
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const R = {};
+  const pdf = (plant) => {
+    const out = []; let circ = 0, rects = [], imgs = 0, cap = null;
+    const J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) return null;
+    try { setPdfPlantilla(plant); } catch (e) {}
+    window.jspdf.jsPDF = function (o) { const d = new J(o);
+      const at = d.text; d.text = function (t) { out.push(String(t)); return at.apply(this, arguments) };
+      const ac = d.circle; d.circle = function (x, y, r) { if (r <= 0.8) circ++; return ac.apply(this, arguments) };
+      const ar = d.rect; d.rect = function (x, y, w, h) { rects.push([w, h]); return ar.apply(this, arguments) };
+      const ai = d.addImage; d.addImage = function () { imgs++; return ai.apply(this, arguments) };
+      d.save = function () { try { cap = this.output('datauristring') } catch (e) {} return this };
+      return d; };
+    try { _pdfAjustarA4(); } catch (e) {}
+    window.jspdf.jsPDF = J;
+    const txt = out.join('\\u0001');
+    let h = 0; for (let i = 0; i < txt.length; i++) { h = (h * 31 + txt.charCodeAt(i)) | 0; }
+    return { n: out.length, chars: txt.length, hash: h, circ, rects, imgs, txt };
+  };
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    [['nombre','Zoraida Pruebas'],['fecha','2026-11-24'],['edad','64'],['sexo','M'],
+     ['peso','78'],['talla','172'],['ao_sin','41'],['ao_st','33'],['ai_diam','42'],
+     ['ai_area','23'],['siv','12'],['ddfvi','52'],['dsfvi','34'],['ppvi','11'],['fevi','58'],
+     ['tapse','19'],['onda_e','88'],['onda_a','62'],['thp','95'],['tde','198'],['triv','82'],
+     ['vmax_ao','4.2'],['gmedio_ao','46'],['itv_tsvi','18'],['itv_ao','95'],['diam_tsvi','21'],
+     ['diam_tsvi_ao','21'],['vmax_it','2.8'],
+     ['informe_texto','Ventriculo izquierdo de dimensiones normales.'],
+     ['en_suma','Insuficiencia mitral severa.\\nEstenosis aortica moderada.']
+    ].forEach(p => __t.set(p[0], p[1]));
+    try { showTab('informe'); } catch (e) {}
+    const w = pdf('tipoword');
+    R.hay = !!w;
+    if (w) {
+      R.n = w.n; R.imgs = w.imgs; R.circ = w.circ;
+      R.rects = w.rects.length;
+      R.grandes = w.rects.filter(q => q[0] > 40 && q[1] > 1).length;
+      R.ficha = w.txt.indexOf('Zoraida Pruebas') >= 0;
+      R.fichaUna = (w.txt.split('Nombre: Zoraida Pruebas').length - 1);
+      R.informe = w.txt.indexOf('INFORME') >= 0;
+      R.suma = w.txt.indexOf('EN SUMA') >= 0;
+      R.itemsSuma = w.txt.split('\\u0001').filter(x => x.indexOf('Insuficiencia mitral severa') === 0).length;
+      /* LOS DATOS NUMERICOS, IDENTICOS AL TEXTO COPIADO: cada renglon del texto tiene que estar
+         estampado, con su mayuscula inicial. Es el punto central de la TAREA 2.4. */
+      const secs = _hay('cuadTextoSecs') ? cuadTextoSecs() : [];
+      const faltan = [];
+      secs.forEach(s => { if (w.txt.indexOf(s.tit) < 0) faltan.push('TIT:' + s.tit);
+        (s.lineas || []).forEach(l => { if (l === '') return;
+          const cap = _hay('_cwCap') ? _cwCap(l) : l;
+          if (w.txt.indexOf(cap.slice(0, 28)) < 0) faltan.push(cap.slice(0, 22)); }); });
+      R.secs = secs.length; R.faltan = faltan.length; R.ejFalta = faltan[0] || '';
+    }
+    /* LOS OTROS OCHO ESTILOS NO SE MUEVEN: se comparan contra si mismos corriendo dos veces el
+       mismo estilo no diria nada, asi que lo que se fija es que NINGUNO dibuje una vinieta
+       -- lo unico que PR8 agrego al cuerpo -- y que el clasico conserve sus recuadros. */
+    const c = pdf('clasico');
+    R.cCirc = c ? c.circ : -1; R.cRects = c ? c.rects.length : -1; R.cN = c ? c.n : -1;
+    const m = pdf('moderno');
+    R.mCirc = m ? m.circ : -1;
+    R.wMenosRects = (w && c) ? (c.rects.length - w.rects.length) : -1;
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 200); }
+  finally { try { setPdfPlantilla('clasico'); } catch (e) {} }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['DENOMINADOR: el PDF «Tipo Word» se genera y estampa texto', R.hay === true && R.n > 40, R.hay + '|' + R.n],
+    ['la ficha del paciente sale arriba, una sola vez y en pocos renglones', R.ficha === true, 'ficha=' + R.ficha],
+    ['sin un solo recuadro: los rectangulos que quedan son subrayados finos', R.grandes === 0, 'grandes=' + R.grandes + ' de ' + R.rects],
+    ['y con muchos menos rectangulos que el estilo de cuadros', R.wMenosRects > 40, String(R.wMenosRects)],
+    ['sin logo cargado no agrega ninguna imagen', R.imgs === 0, String(R.imgs)],
+    ['DENOMINADOR: el texto copiado tiene secciones que comparar', R.secs >= 6, String(R.secs)],
+    ['los datos numericos salen IDENTICOS al texto copiado, renglon por renglon', R.faltan === 0, R.faltan + ' :: ' + R.ejFalta],
+    ['el narrativo va todo junto, con INFORME y EN SUMA', R.informe === true && R.suma === true, R.informe + '|' + R.suma],
+    ['cada item del EN SUMA con su vinieta dibujada', R.circ >= 2, 'circulitos=' + R.circ],
+    ['y el item sale como texto propio y no pegado al anterior', R.itemsSuma >= 1, String(R.itemsSuma)],
+    ['el estilo clasico conserva sus recuadros', R.cRects > 60, String(R.cRects)],
+    ['y no gana ninguna vinieta: la vinieta es solo del estilo nuevo', R.cCirc <= 2 && R.mCirc <= 2, 'clasico=' + R.cCirc + '|moderno=' + R.mCirc]
+  ] };
+`);
+
+caso('TC-1056',
+ 'PR8 (TAREA 3): los 17 segmentos arrancan en el tramo 1 -- violeta y sin numeros --, el toque cicla 1 a 8 y despues gris y vuelve al 1, el guion sale solo con el boton de numeros, un «+8» se conserva positivo y sin signo es negativo, borrar el numero vuelve al violeta, y con el boton apagado un segmento con numero avisa y no cambia',
+`
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const _idx = id => { try { return _hay('strainIdx') ? strainIdx(id) : -1 } catch (e) { return -1 } };
+  const _num = id => { try { return (window.strainNumDe ? strainNumDe(id) : (window.strainSnapshot
+      ? JSON.parse(strainSnapshot().num)[id] : undefined)) } catch (e) { return 'ERR' } };
+  const R = {};
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    try { showTab('sgl'); } catch (e) {}
+    try { const h = document.querySelector('#sacc-sgl .sacc-hdr');
+      if (h && h.getAttribute('aria-expanded') !== 'true') secToggle('sgl'); } catch (e) {}
+    if (_hay('sglOnShow')) sglOnShow();
+    const seg = id => document.querySelector('#sgl-svg-bullseye path[data-strainid="' + id + '"]')
+                   || document.querySelector('#sgl-svg-bullseye circle[data-strainid="' + id + '"]');
+    const txt = id => document.querySelector('#sgl-svg-bullseye text[data-strainid="' + id + '"]');
+    const ids17 = (function () { try { return LV3D_SEG_ID.slice(1) } catch (e) { return [] } })();
+    R.n = ids17.length;
+    R.violeta = (function () { try { return STRAIN_PAL[1].color } catch (e) { return 'NO' } })();
+    R.def = (function () { try { return STRAIN_DEF } catch (e) { return 'NO' } })();
+    R.migra = (function () { try { return JSON.stringify(STRAIN_MIGRA) } catch (e) { return 'NO' } })();
+    /* (A) ARRANQUE: los diecisiete en violeta, sin texto, y SIN contar como dato evaluado */
+    R.colores = Array.from(new Set(ids17.map(i => { const e = seg(i); return e ? e.getAttribute('fill') : 'NO' }))).join(',');
+    R.textos = Array.from(new Set(ids17.map(i => { const e = txt(i); return e ? (e.textContent || '') : 'NO' }))).join('~');
+    R.hayDatos = _hay('strainHayDatos') ? strainHayDatos() : 'NO';
+    /* (B) EL CICLO: 2..8, gris y vuelta al 1 */
+    const ciclo = [];
+    for (let k = 0; k < 10; k++) { if (_hay('strainTocar')) strainTocar('basal_anterior', seg('basal_anterior')); ciclo.push(_idx('basal_anterior')); }
+    R.ciclo = ciclo.join(',');
+    if (_hay('sglReset')) sglReset();
+    /* (C) EL GUION, solo con el boton encendido */
+    R.guionOff = (function () { const e = txt('apex'); return '[' + (e ? e.textContent : 'NO') + ']' })();
+    if (_hay('strainNumToggle')) strainNumToggle();
+    R.modoOn = _hay('strainNumModoOn') ? strainNumModoOn() : 'NO';
+    R.guionOn = (function () { const e = txt('apex'); return '[' + (e ? e.textContent : 'NO') + ']' })();
+    /* (D) EL SIGNO */
+    if (_hay('strainEscribir')) strainEscribir('basal_anterior', '+8');
+    R.masTxt = (function () { const e = txt('basal_anterior'); return e ? e.textContent : 'NO' })();
+    R.masTramo = _idx('basal_anterior');
+    if (_hay('strainEscribir')) strainEscribir('basal_anteroseptal', '8');
+    R.sinSignoTramo = _idx('basal_anteroseptal');
+    R.sinSignoTxt = (function () { const e = txt('basal_anteroseptal'); return e ? e.textContent : 'NO' })();
+    /* (E) BORRAR EL NUMERO VUELVE AL VIOLETA */
+    if (_hay('strainEscribir')) strainEscribir('basal_anterior', '');
+    R.borrTramo = _idx('basal_anterior');
+    R.borrColor = (function () { const e = seg('basal_anterior'); return e ? e.getAttribute('fill') : 'NO' })();
+    /* (F) LA CASILLA MUESTRA EL VALOR Y ESCONDE LA ETIQUETA VIEJA */
+    if (_hay('strainEscribir')) strainEscribir('mid_anterior', '-12');
+    if (_hay('strainCajaAbrir')) strainCajaAbrir('mid_anterior', seg('mid_anterior'));
+    const cj = document.querySelector('[data-strain-caja]');
+    R.cajaVal = cj ? cj.value : 'NO HAY';
+    R.rotOculto = (function () { const e = txt('mid_anterior'); return e ? String(e.getAttribute('visibility')) : 'NO' })();
+    if (_hay('strainCajaCerrar')) strainCajaCerrar(false);
+    R.rotVuelve = (function () { const e = txt('mid_anterior'); return e ? String(e.getAttribute('visibility')) : 'NO' })();
+    /* (G) CON EL BOTON APAGADO, UN SEGMENTO CON NUMERO NO CAMBIA Y AVISA */
+    if (_hay('strainNumToggle')) strainNumToggle();
+    R.modoOff = _hay('strainNumModoOn') ? strainNumModoOn() : 'NO';
+    const antes = _idx('mid_anterior');
+    if (_hay('strainTocar')) strainTocar('mid_anterior', seg('mid_anterior'));
+    R.avisoAntes = antes; R.avisoDespues = _idx('mid_anterior');
+    R.avisoTxt = (function () { try { return String(STRAIN_AVISO_NUM) } catch (e) { return 'NO HAY' } })();
+    /* (H) un segmento SIN numero si cicla con el boton apagado */
+    const a2 = _idx('basal_inferior');
+    if (_hay('strainTocar')) strainTocar('basal_inferior', seg('basal_inferior'));
+    R.sinNumCicla = a2 + '->' + _idx('basal_inferior');
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 200); }
+  finally { try { if (_hay('strainNumModoOn') && strainNumModoOn()) strainNumToggle(); } catch (e) {}
+            try { if (_hay('sglReset')) sglReset(); } catch (e) {} }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['DENOMINADOR: los diecisiete segmentos estan dibujados', R.n === 17, String(R.n)],
+    ['arrancan TODOS en el tramo 1, el violeta', R.colores === R.violeta && R.violeta !== 'NO', R.colores + ' vs ' + R.violeta],
+    ['y sin numeros ni guion', R.textos === '', '[' + R.textos + ']'],
+    ['sin contar como segmento evaluado: el papel sigue sin bull is eye', R.hayDatos === false, String(R.hayDatos)],
+    ['el tramo por omision es el 1', String(R.def) === '1', String(R.def)],
+    ['el toque cicla 2 a 8, despues gris y vuelve al 1', R.ciclo === '2,3,4,5,6,7,8,0,1,2', R.ciclo],
+    ['el guion NO sale con el boton apagado', R.guionOff === '[]', R.guionOff],
+    ['y SI con el boton encendido, en el segmento sin numero', R.modoOn === true && R.guionOn === '[\\u2013]', R.modoOn + '|' + R.guionOn],
+    ['un «+8» se conserva positivo y se muestra con su signo', R.masTxt === '+8' && R.masTramo === 6, R.masTxt + '|' + R.masTramo],
+    ['y sin signo se toma negativo', R.sinSignoTramo === 3 && R.sinSignoTxt === '-8', R.sinSignoTramo + '|' + R.sinSignoTxt],
+    ['borrar el numero devuelve el segmento al violeta', R.borrTramo === 1 && R.borrColor === R.violeta, R.borrTramo + '|' + R.borrColor],
+    ['la casilla abre con el valor actual', R.cajaVal === '-12', R.cajaVal],
+    ['y esconde la etiqueta vieja del segmento mientras esta abierta', R.rotOculto === 'hidden' && R.rotVuelve === 'null', R.rotOculto + '->' + R.rotVuelve],
+    ['con el boton apagado, un segmento con numero NO cambia de color', R.modoOff === false && R.avisoAntes === R.avisoDespues, R.avisoAntes + '->' + R.avisoDespues],
+    ['y hay un aviso que dice que hay que activar el boton', R.avisoTxt.indexOf('tiene un n') > 0 && R.avisoTxt.indexOf('Ingresar datos num') > 0, R.avisoTxt.slice(0, 60)],
+    ['un segmento SIN numero si cicla con el boton apagado', R.sinNumCicla === '1->2', R.sinNumCicla],
+    ['la migracion de los cinco estados viejos manda el 0 al tramo 1', R.migra === '[1,2,3,5,7]', R.migra]
+  ] };
+`);
+
+caso('TC-1057',
+ 'PR8 (TAREA 4): la tabla «Calculos de strain» va entre el bull is eye y los patrones, con cuatro columnas y tres filas, sus botones apagados dicen que segmento falta, los promedios salen con un decimal y las razones con dos, el resultado se borra al cambiar un numero que uso, «Usar como SGL global» pregunta antes de reemplazar, y nada de la tabla llega al informe ni al PDF',
+`
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const R = {};
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    [['fevi','58'],['sgl','-17'],['peso','78'],['talla','172'],['edad','64'],['sexo','M']]
+      .forEach(p => __t.set(p[0], p[1]));
+    try { showTab('sgl'); } catch (e) {}
+    try { const h = document.querySelector('#sacc-sgl .sacc-hdr');
+      if (h && h.getAttribute('aria-expanded') !== 'true') secToggle('sgl'); } catch (e) {}
+    if (_hay('sglOnShow')) sglOnShow();
+    const raiz = document.getElementById('sgl-calc');
+    R.existe = !!raiz;
+    if (raiz) {
+      const card = document.getElementById('sacc-sgl'), pat = document.getElementById('sp-root');
+      R.trasTarjeta = !!(card && (card.compareDocumentPosition(raiz) & 4));
+      R.antesPatrones = !!(pat && (raiz.compareDocumentPosition(pat) & 4));
+      const tb = raiz.querySelector('table.sc-tabla');
+      R.cols = tb ? Array.prototype.map.call(tb.querySelectorAll('thead th'), n => n.textContent).join('/') : 'NO';
+      R.filas = tb ? tb.querySelectorAll('tbody tr').length : -1;
+      R.celdas = tb ? tb.querySelectorAll('tbody td').length : -1;
+      R.inputs = raiz.querySelectorAll('input').length;
+      R.alto0 = Math.round(raiz.getBoundingClientRect().height);
+      /* (A) APAGADOS, con el motivo en el boton Y en la celda */
+      const bs0 = raiz.querySelectorAll('.sc-bot button');
+      R.bot0 = bs0.length;
+      R.apag0 = Array.prototype.filter.call(bs0, b => b.disabled).length;
+      R.faltas0 = raiz.querySelectorAll('.sc-falta').length;
+      const f0 = raiz.querySelector('.sc-falta');
+      R.motivoCelda = f0 ? f0.textContent.slice(0, 16) : 'NINGUNA';
+      const bCalc = Array.prototype.filter.call(bs0, b => b.disabled
+        && String(b.getAttribute('title') || '').indexOf('Calcular') === 0)[0];
+      R.motivoBoton = bCalc ? String(bCalc.getAttribute('title')).indexOf('Falta:') > 0 : 'NO HAY';
+      R.botMin = Math.min.apply(null, Array.prototype.map.call(bs0,
+        b => Math.round(Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height))));
+    }
+    /* (B) CON LOS DIECISIETE CARGADOS: los promedios y las razones */
+    const vs = [-20,-18,-16,-14,-12,-10, -19,-17,-15,-13,-11,-9, -8,-7,-6,-5, -4];
+    (function () { try { LV3D_SEG_ID.slice(1).forEach((id, k) => strainEscribir(id, String(vs[k]))) } catch (e) {} })();
+    R.prom = _hay('scPromedio') ? ([scPromedio(SC_GRUPOS.g17), scPromedio(SC_GRUPOS.g16),
+      scPromedio(SC_GRUPOS.basal), scPromedio(SC_GRUPOS.medio), scPromedio(SC_GRUPOS.apical)].join(',')) : 'NO';
+    R.terr = _hay('_scTerr') ? (JSON.stringify(_scTerr('DA')) + JSON.stringify(_scTerr('CD')) + JSON.stringify(_scTerr('CX'))) : 'NO';
+    R.asr = _hay('scApicalSparing') ? scApicalSparing() : 'NO';
+    R.fsgl = _hay('scFeviSobreSgl') ? scFeviSobreSgl() : 'NO';
+    if (_hay('scRender')) scRender();
+    if (raiz) {
+      const bs1 = raiz.querySelectorAll('.sc-bot button');
+      R.apag1 = Array.prototype.filter.call(bs1, b => b.disabled).length;
+      R.faltas1 = raiz.querySelectorAll('.sc-falta').length;
+      R.alto1 = Math.round(raiz.getBoundingClientRect().height);
+      if (_hay('scCalcular')) { scCalcular('g17'); scCalcular('basal'); scCalcular('asr'); scCalcular('fsgl'); }
+      R.vals = Array.prototype.map.call(raiz.querySelectorAll('.sc-val'), n => n.textContent).join(' / ');
+      /* (C) EL RESULTADO SE BORRA AL CAMBIAR UN NUMERO QUE ESA CELDA USO */
+      try { strainEscribir('apex', '-3'); } catch (e) {}
+      if (_hay('scRender')) scRender();
+      R.tras = Array.prototype.map.call(raiz.querySelectorAll('.sc-val'), n => n.textContent).join(' / ');
+    }
+    /* (C2) sglOnShow LA PINTA. Se vacia el contenedor a mano y se vuelve a abrir la pestania: sin
+       esta condicion, la mutacion que le saca el repintado a sglOnShow sobrevive, porque
+       __t.limpiar() llama a sglReset() y ESE tambien la pinta. */
+    if (raiz) { raiz.textContent = ''; R.vacio = raiz.children.length; }
+    if (_hay('sglOnShow')) sglOnShow();
+    R.trasOnShow = raiz ? raiz.querySelectorAll('table.sc-tabla tbody td').length : -1;
+    /* (C3) EL APICAL SPARING CON UN SIGNO MIXTO. Con los diecisiete negativos, dividir sin valor
+       absoluto da EL MISMO numero -- menos sobre menos --, asi que la mutacion que saca el valor
+       absoluto sobrevivia. Con un segmento apical POSITIVO -- un segmento discinetico -- los dos
+       caminos dan signos distintos. */
+    try { strainEscribir('apical_anterior', '+4'); strainEscribir('apical_septal', '+4');
+          strainEscribir('apical_inferior', '+4'); strainEscribir('apical_lateral', '+4'); } catch (e) {}
+    R.asrMixto = _hay('scApicalSparing') ? scApicalSparing() : 'NO';
+    R.asrMixtoTxt = (() => { try { scCalcular('asr');
+      const v = Array.prototype.map.call(raiz.querySelectorAll('.sc-val'), n => n.textContent);
+      return v.join(' / ') } catch (e) { return 'ERR' } })();
+    /* y se devuelven los cuatro apicales a su valor negativo */
+    try { strainEscribir('apical_anterior', '-8'); strainEscribir('apical_septal', '-7');
+          strainEscribir('apical_inferior', '-6'); strainEscribir('apical_lateral', '-5'); } catch (e) {}
+    /* (C4) NADA DE LA TABLA LLEGA AL INFORME, AL PDF NI A LOS COPIADOS. */
+    R.fuera = (() => { try {
+      const t = (_hay('cuadTexto') ? cuadTexto() : '') + ' '
+              + (_hay('cuadInformeTexto') ? cuadInformeTexto() : '') + ' '
+              + (_hay('cuadTextoHTML') ? cuadTextoHTML() : '') + ' '
+              + (document.getElementById('informe_texto') || {}).value + ' '
+              + (document.getElementById('en_suma') || {}).value;
+      return ['Apical sparing', 'FEVI / SGL', 'Promedio 17', 'lculos de strain', 'Por territorio']
+        .filter(x => t.indexOf(x) >= 0).join(','); } catch (e) { return 'ERR' } })();
+    /* (D) «USAR COMO SGL GLOBAL» PREGUNTA ANTES DE REEMPLAZAR */
+    if (_hay('scCalcular')) scCalcular('g17');
+    const campo = document.getElementById('sgl_gls');
+    if (campo) campo.value = '-15';
+    R.tienePregunta = _hay('preguntaProp');
+    R.tieneUsar = _hay('scUsarComoSGL');
+    R.crudo = _hay('scValorCrudo') ? String(scValorCrudo({ k:'g17', tipo:'prom', grupo:'g17', usar:true })) : 'NO';
+    /* ⚠️ SE ESPIA EL CARTEL EN VEZ DE BUSCARLO EN EL DOM. El cartel propio devuelve una promesa
+       que SOLO un clic resuelve: un caso que lo deja abierto tapa la pagina entera para los que
+       siguen en su lote -- es lo que la tanda EQ pago con TC-990 -- y buscarlo por su marca
+       depende de que nadie mas lo haya cerrado en el medio. Lo que la orden pide es «pregunta
+       ANTES de reemplazar», y eso se mide en DOS mitades: que la pregunta se haga, y que el campo
+       NO cambie mientras se espera la respuesta. */
+    const _pp = window.preguntaProp;
+    let _llamo = null, _rot = null;
+    window.preguntaProp = function (t, p, r) { _llamo = String(t); _rot = String(r);
+      return Promise.resolve(true); };
+    try { if (_hay('scUsarComoSGL')) scUsarComoSGL('g17'); }
+    catch (e2) { R.errUsar = String(e2 && e2.message || e2).slice(0, 140); }
+    R.llamo = _llamo; R.rotulo = _rot;
+    R.campoAntes = campo ? campo.value : 'NO';
+    /* Y CON EL CAMPO VACIO NO PREGUNTA NADA: escribe en el acto. Es el control negativo. */
+    _llamo = null;
+    if (campo) campo.value = '';
+    try { if (_hay('scUsarComoSGL')) scUsarComoSGL('g17'); } catch (e3) {}
+    R.llamoVacio = _llamo;
+    R.campoVacio = campo ? campo.value : 'NO';
+    window.preguntaProp = _pp;
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 200); }
+  /* DEJA LA PIZARRA LIMPIA: los diecisiete numeros y el campo de SGL atraviesan los casos -- la
+     bateria corre los mil en UNA pagina -- y con strain cargado el bull is eye entra al PDF de
+     cualquier caso que lo genere despues. */
+  finally {
+    try { if (_hay('sglReset')) sglReset(); } catch (e) {}
+    try { if (_hay('scLimpiarRes')) scLimpiarRes(); } catch (e) {}
+    try { const c = document.getElementById('sgl_gls'); if (c) c.value = ''; } catch (e) {}
+    try { document.querySelectorAll('[data-borr-conf]').forEach(o => o.parentNode && o.parentNode.removeChild(o)); } catch (e) {}
+  }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['la tabla existe', R.existe === true, String(R.existe)],
+    ['entre la tarjeta del bull is eye y los patrones de strain', R.trasTarjeta === true && R.antesPatrones === true, R.trasTarjeta + '|' + R.antesPatrones],
+    ['con cuatro columnas en su orden', R.cols === 'Globales/Por nivel/Por territorio/F\\u00f3rmulas', R.cols],
+    ['y tres filas de cuatro celdas', R.filas === 3 && R.celdas === 12, R.filas + '|' + R.celdas],
+    ['sin una sola casilla de inclusion', R.inputs === 0, String(R.inputs)],
+    ['DENOMINADOR: sin numeros cargados sus botones estan apagados', R.apag0 >= 9, String(R.apag0)],
+    ['con el motivo en el boton apagado', R.motivoBoton === true, String(R.motivoBoton)],
+    ['y tambien en un renglon dentro de la celda, con el nombre del segmento', R.faltas0 >= 9 && R.motivoCelda.indexOf('Falta:') === 0, R.faltas0 + '|' + R.motivoCelda],
+    ['sus botones se tocan en 44 px', R.botMin === 44, String(R.botMin)],
+    ['con los diecisiete cargados, los promedios dan lo que tienen que dar', R.prom === '-12,-12.5,-15,-14,-6.5', String(R.prom)],
+    ['el reparto por territorio es el de Contractilidad', R.terr === '[1,2,7,8,13,14,17][3,4,9,10,15][5,6,11,12,16]', String(R.terr)],
+    ['el apical sparing relativo y la FEVI sobre SGL salen de sus formulas', Math.abs(R.asr - 0.2241379) < 1e-5 && Math.abs(R.fsgl - 3.4117647) < 1e-5, R.asr + '|' + R.fsgl],
+    ['y los botones se prenden sin ninguna falta', R.apag1 <= 2 && R.faltas1 === 0, R.apag1 + '|' + R.faltas1],
+    ['los promedios se muestran con UN decimal y coma, y las razones con DOS', R.vals === '-12,0 % / -15,0 % / 0,22 / 3,41', R.vals],
+    ['al cambiar un numero que una celda uso, su resultado se borra', R.tras === '-15,0 % / 0,22 / 3,41', R.tras],
+    ['DENOMINADOR: el contenedor quedo vacio antes de volver a abrir la pestania', R.vacio === 0, String(R.vacio)],
+    ['y al abrir la pestania la tabla se pinta sola, con sus doce celdas', R.trasOnShow === 12, String(R.trasOnShow)],
+    ['el apical sparing usa VALORES ABSOLUTOS: con el apice positivo la razon sigue siendo positiva',
+      typeof R.asrMixto === 'number' && R.asrMixto > 0 && Math.abs(R.asrMixto - 4 / 29) < 1e-6, String(R.asrMixto)],
+    ['y se publica positiva', String(R.asrMixtoTxt).indexOf('0,14') >= 0, String(R.asrMixtoTxt)],
+    ['nada de la tabla llega al informe, al PDF ni a los textos copiados', R.fuera === '', R.fuera],
+    ['DENOMINADOR: el cartel propio y el ayudante existen, y hay valor que escribir', R.tienePregunta === true && R.tieneUsar === true && R.crudo !== 'null', R.tienePregunta + '|' + R.tieneUsar + '|' + R.crudo + '|err=' + R.errUsar],
+    ['«Usar como SGL global» pregunta antes de reemplazar un valor cargado', R.llamo !== null && String(R.llamo).indexOf('Reemplazar') >= 0, 'llamo=' + R.llamo],
+    ['con un rotulo que dice que reemplaza', String(R.rotulo).indexOf('Reemplaz') === 0, String(R.rotulo)],
+    ['y no lo cambia mientras espera la respuesta', R.campoAntes === '-15', String(R.campoAntes)],
+    ['CONTROL: con el campo vacio no pregunta y escribe en el acto', R.llamoVacio === null && R.campoVacio === '-11.9', 'llamo=' + R.llamoVacio + '|campo=' + R.campoVacio]
+  ] };
 `);
 
 
