@@ -36,6 +36,14 @@ vez), **PR7-c** (el tramo 8 no lo usa ningún patrón de ejemplo), **PR7-d** (`C
 con una barra y no estaba en la orden) y **PR7-h** (el interruptor no se apaga con «Nuevo
 estudio»).
 
+**Verificación.** La suite completa **no** se corrió, por orden expresa. Los **lotes de riesgo** de
+SGL, contractilidad, PDF, informe, guardado de estudios y Configuración —los **665** casos
+seleccionados por el patrón de su propio cuerpo— dieron **659/665**, con los 665 ejecutados, ningún
+lote cortado y el md5 del árbol idéntico al abrir y al cerrar. Los seis rojos quedan caracterizados:
+TC-376 y TC-406 (los de siempre), TC-551 (el intermitente de COR-f) y TC-1000, TC-1039 y TC-1050
+(sensibilidad de lote, los tres pasan aislados). **Semgrep 126/0**, sin huérfanos nuevos, 17/17
+bloques de JS parsean y celular **38 ALTA**, todo en su línea base exacta.
+
 **Lo que la medición destapó y la lectura no.** `sglSyncGLS` se perdió en el reemplazo del bloque
 —la pestaña tiraba su error y el bull's eye **no se dibujaba**—; `C.N1`, el respaldo de color de
 los patrones, **no existe** en ese objeto; y el primer barrido dejó **tres** sobrevivientes: una

@@ -1922,8 +1922,11 @@ mismos ocho rangos. El resto del PPT no se tocó. **PR7-g.**
 
 **COBERTURA: NUEVE casos nuevos, TC-1042 a TC-1050**, y los nueve caen **0/9 contra `f6d51f8`** con
 el mismo archivo de casos y sólo el `index.html` distinto, **por sus condiciones y CERO
-excepciones**. **CERO casos adaptados**: ningún caso existente afirmaba la paleta vieja ni los
-cinco estados.
+excepciones** —dos de ellos lo pagaron en su primera versión y se cerraron con una guarda y con una
+**forma vacía que trae todas las claves**—. **SEIS casos adaptados**, los seis consecuencia
+autorizada y **ninguno aflojado**: **TC-201** y **TC-GR-15** quedaron **más fuertes**, y los cuatro
+conteos de globos —**TC-471**, **TC-500**, **TC-502** y **TC-535**— se movieron con su antes y su
+después escrito donde vive cada condición.
 **36/36 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
 vivo **idéntico** antes y después y las **36 anclas verificadas ANTES** de correr. Al menos **dos
 por grupo**, y **cinco no revierten nada: la aplican DE MÁS**, porque las condiciones que las matan
@@ -1941,6 +1944,34 @@ denominador de determinismo.
 riesgo** de SGL, contractilidad, PDF, informe, guardado de estudios y Configuración: los **665**
 casos cuyo cuerpo toca alguna de esas seis zonas, seleccionados por el **patrón de su propio
 cuerpo** y no a ojo (`scripts/_lotes_pr7.sh`). Los demás **no se ejecutaron**, y se declara.
+**659/665 en QUINCE lotes**, con los **665 ejecutados**, **ningún lote cortado por tiempo** y el md5
+de `index.html` **idéntico** antes y después (`d6e31de8`).
+Los **SEIS** rojos son **TC-376** y **TC-406**, los dos de siempre; **TC-551**, el intermitente que
+**COR-f** declara —mide el chorro de la orejuela sin pausar la animación— y que pasa **1/1 corrido
+aislado**; y **TC-1000**, **TC-1039** y **TC-1050**, los tres de **sensibilidad de lote**, que pasan
+**3/3 corridos aislados**. Los dos primeros de esos tres son **preexistentes** —TC-1000 es de P9 y
+TC-1039 de PR6— y **TC-1050 es de esta tanda y se declara** (**PR7-i**). **Ningún rojo nuevo que no
+quede caracterizado.**
+⚠️ **LA PASADA DIO 655/665 Y CINCO DE LOS DIEZ ROJOS ERAN MÍOS, los cinco consecuencia autorizada
+del globo nuevo y de la paleta**, y quedaron adaptados: **TC-500** (el registro de globos, 149 →
+**150**), **TC-471** (el mismo conteo visto desde Válvulas), **TC-502** (las tarjetas sin botón de
+Referencias, setenta y cinco → **setenta y seis**, con `sgl-num` en su lista), **TC-535** (los
+globos de 44 px, sesenta y nueve → **setenta**) y **TC-201**, que quedó **MÁS FUERTE**. **Los cinco
+lotes afectados se rehicieron enteros con el archivo de casos final**, con el md5 del árbol idéntico
+al abrir y al cerrar; no se rehizo la pasada completa y se declara con su motivo: **`index.html` no
+cambió** y lo único que se movió fue el archivo de casos — el mismo criterio con que la 3A, el
+prompt 4, P9, P10 y PR6 no rehicieron la suya.
+⚠️ **Y TC-201 ERA EL ÚNICO QUE CAÍA POR EXCEPCIÓN**: su denominador afirmaba que el bull's eye del
+informe usa «rojo = normal» leyendo `GE_STRAIN`, que esta tanda retiró. **Hoy exige la propiedad
+que de verdad protege y que no depende de qué colores use cada uno**: que la paleta del informe y la
+rampa del mapa de territorios **no compartan ningún color**. Dos escalas que comparten un color
+pueden terminar en el **mismo PDF** significando cosas distintas.
+⚠️ **TC-GR-15 TAMBIÉN SE ADAPTÓ Y QUEDÓ MÁS FUERTE**: escribía un **valor de strain** dentro de
+`strainEstado`, o sea un valor en el lugar de un **índice** —en el modelo viejo eso nunca fue un
+índice válido, y pasaba porque el restaurador no acotaba—. Hoy siembra por `strainSet` con el número
+y el tramo que ese número deriva, y mide que vuelvan **los dos**, más que la clave de los números
+entre al estudio. Y **deja la pizarra limpia**: los casos corren en UNA página y TC-201 toma su
+propia foto de `strainEstado` al abrir.
 **Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
 nuevos.** **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta —y
 el botón nuevo mide **44 px** de alto y la casilla **44**, medido—.

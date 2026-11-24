@@ -13844,13 +13844,23 @@ caso('TC-GR-15', 'Contractilidad y strain segmentarios viajan con el estudio', `
     __t.limpiar(); __t.set('nombre','Segmentos'); __t.set('ci','1313');
     // Segmentos marcados como los dejaria el diagrama: 1 = normal, 2 = hipoquinesia, etc.
     contrEstado['seg1'] = 2; contrEstado['seg7'] = 3; contrEstado['seg13'] = 1;
-    strainEstado['seg1'] = -8; strainEstado['seg7'] = -12;
+    /* ⚠️ ADAPTADO EN PR7 (23/11/2026), Y QUEDO MAS FUERTE. Este caso escribia
+       un valor de strain -8 en strainEstado, o sea un VALOR DE STRAIN en el lugar de un INDICE:
+       en el modelo viejo -cinco estados, 0 a 4- eso no era un indice valido, y pasaba porque el
+       restaurador no acotaba y strainColor caia en su respaldo.
+       Desde PR7 el restaurador ACOTA el indice a [0, 8] -un indice fuera de rango es un estado
+       que la paleta no tiene-, asi que el -8 entra como 0.
+       ANTES: sembraba indices imposibles y medía que volvieran tal cual.
+       AHORA: siembra por strainSet, que es la unica escritura, con el NUMERO y el TRAMO que ese
+       numero deriva -el -8 es del tramo 3 y el -12 del 2-, y mide que vuelvan LOS DOS. */
+    strainSet('seg1', strainTramoDe(-8), -8);
+    strainSet('seg7', strainTramoDe(-12), -12);
     const g = await __t.guardar();
 
     // Se deja OTRO juego de segmentos en pantalla: si no se repusieran, se verian estos.
     __t.limpiar(); __t.set('nombre','Ruido Segmentos'); __t.set('ci','RS');
     contrEstado['seg1'] = 4; contrEstado['seg2'] = 4;
-    strainEstado['seg1'] = -20; strainEstado['seg3'] = -19;
+    strainSet('seg1', 8, -25); strainSet('seg3', 7, 12);
 
     __t.reabrir(g.estudioId);
     const contr  = JSON.parse(JSON.stringify(contrEstado));
@@ -13858,20 +13868,35 @@ caso('TC-GR-15', 'Contractilidad y strain segmentarios viajan con el estudio', `
     const ficha  = getInformes().find(i => i.estudioId === g.estudioId) || {};
     const guardado = {
       contr:  (ficha.campos || {}).contractilidad,
-      strain: (ficha.campos || {}).strain_sgl
+      strain: (ficha.campos || {}).strain_sgl,
+      strainNum: (ficha.campos || {}).strain_sgl_num
     };
+    const num = k => { try { return strainNumDe(k) } catch (e) { return 'NO HAY LECTOR' } };
     await __t.borrar(g.estudioId);
+    /* ⚠️ LA PIZARRA SE DEJA LIMPIA (PR7). Este caso deja claves en strainEstado y strainNum, y
+       los mil casos corren en UNA pagina: TC-201 toma su propia foto de strainEstado al abrir y
+       la compara al cerrar, asi que lo que este caso le deje es su denominador. Un caso que
+       ensucia se lo deja a los que siguen en su lote. */
+    const _foto = { est: strainSnapshot().est, num: strainSnapshot().num };
+    sglReset();
     return { extra: [
       ['la contractilidad se serializo al estudio, no quedo solo en memoria',
         (guardado.contr || '').indexOf('seg7') > -1],
       ['el strain tambien',  (guardado.strain || '').indexOf('seg7') > -1],
+      ['y sus NUMEROS, en su propia clave (PR7)',
+        (guardado.strainNum || '').indexOf('"seg7":-12') > -1, String(guardado.strainNum)],
       ['los tres segmentos de contractilidad vuelven con su valor',
         contr.seg1 === 2 && contr.seg7 === 3 && contr.seg13 === 1],
-      ['y el strain de los dos suyos',  strain.seg1 === -8 && strain.seg7 === -12],
+      ['y el TRAMO de los dos de strain',
+        strain.seg1 === 3 && strain.seg7 === 2, JSON.stringify(strain)],
+      /* Se miden sobre la FOTO y no sobre el estado vivo: sglReset() ya corrio, y leer el estado
+         vivo mediría la limpieza en vez de la restauracion. */
+      ['y su NUMERO (PR7)', _foto.num.indexOf('"seg1":-8') >= 0 && _foto.num.indexOf('"seg7":-12') >= 0,
+        _foto.num],
       ['no quedo NINGUN segmento del paciente que estaba en pantalla',
         contr.seg2 === undefined && strain.seg3 === undefined],
       ['ni su valor pisado en el segmento que compartian',
-        contr.seg1 !== 4 && strain.seg1 !== -20]
+        contr.seg1 !== 4 && strain.seg1 !== 8 && _foto.num.indexOf('-25') < 0, _foto.num]
     ] };
   })();
 `);
@@ -24830,8 +24855,24 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
       /* ── 0 · EL BULL'S EYE DEL INFORME, ANTES DE TOCAR NADA ── */
       const svgAntes = (document.getElementById('sgl-svg-bullseye')||{}).innerHTML || '';
       const estAntes = JSON.stringify(strainEstado);
-      R.geNormalEsRojo = GE_STRAIN[0].color.toUpperCase() === '#DC2626';
-      R.geUltimoEsAzul = GE_STRAIN[GE_STRAIN.length-1].color.toUpperCase() === '#1D4ED8';
+      /* ⚠️ ADAPTADO EN PR7 (23/11/2026), Y QUEDO MAS FUERTE. Este denominador afirmaba que el
+         bull is eye del INFORME usa «rojo = normal» leyendo GE_STRAIN, que es exactamente lo que
+         esta tanda cambio: hoy la paleta del informe es propia, de violeta a azul, y GE_STRAIN no
+         existe -el acceso pelado tiraba ReferenceError y se llevaba el caso entero-.
+         ANTES: que el informe use rojo para normal y azul para discinesia.
+         AHORA: la propiedad que de verdad protege este caso, y que no depende de QUE colores use
+         cada uno: que la paleta del informe y la rampa de este diagrama NO COMPARTAN NINGUNO.
+         Dos escalas que comparten un color pueden terminar en el MISMO PDF significando cosas
+         distintas, que es el defecto que el comentario de este modulo documenta. */
+      R.palInforme = (() => { try { return STRAIN_PAL.map(x => x.color.toUpperCase()) }
+                              catch (e) { return [] } })();
+      R.palTieneNueve = R.palInforme.length === 9;
+      R.palNoEsLaDelVisor = (() => { try {
+        const ramp = [0, 10, 20, 30].map(v => _strTono(v).replace(/\s/g, '').toUpperCase());
+        const hex = c => { const m = c.replace('#','').match(/../g) || [];
+          return 'RGB(' + m.map(x => parseInt(x, 16)).join(',') + ')' };
+        return R.palInforme.every(c => ramp.indexOf(hex(c)) < 0);
+      } catch (e) { return false } })();
 
       const mkJpeg = () => {
         const c = document.createElement('canvas'); c.width = 600; c.height = 500;
@@ -24943,8 +24984,15 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
       R.nums1 = numerosDibujados();
       R.unaVezPorTerr1 = R.nums1.length === 2;
       /* Y NO usa la paleta GE: el rojo de "normal" de aquel no puede aparecer aca. */
-      R.sinRojoGE = Object.keys(p1).every(k => p1[k] !== 'rgb(220,38,38)');
-      R.sinAzulGE = Object.keys(p1).every(k => p1[k] !== 'rgb(29,78,216)');
+      /* ⚠️ ADAPTADAS EN PR7: estas dos nombraban el rojo y el azul de la paleta VIEJA del
+         informe. Hoy se exige que no aparezca NINGUNO de los ocho tramos de la paleta nueva, que
+         es la misma pregunta sobre la paleta que de verdad hay. */
+      R.sinColorInforme = (() => { try {
+        const hex = c => { const m = c.replace('#','').match(/../g) || [];
+          return 'rgb(' + m.map(x => parseInt(x, 16)).join(',') + ')' };
+        const pal = STRAIN_PAL.map(x => hex(x.color));
+        return Object.keys(p1).every(k => pal.indexOf(String(p1[k]).replace(/\s/g, '')) < 0);
+      } catch (e) { return false } })();
 
       /* ── 2 · DOS vistas: anterior e inferior dejan de ser grises ── */
       medStrainVistaSiguiente(); await new Promise(r=>setTimeout(r,110));
@@ -25012,7 +25060,8 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
     } finally { window.alert = alertOrig; }
 
     return { extra: [
-      ['el bull.s eye del informe usa ROJO = normal (denominador)', R.geNormalEsRojo && R.geUltimoEsAzul, R.geNormalEsRojo],
+      ['DENOMINADOR: la paleta del informe tiene sus nueve entradas y NO comparte ningun color con la rampa de este diagrama',
+        R.palTieneNueve && R.palNoEsLaDelVisor, R.palInforme.join(',')],
       ['el canvas del visor existe y se rotula',     R.hayCanvas && R.tituloPanel, R.hayCanvas],
       /* 1 vista · la A4C resuelve inferoseptal (3,9) y anterolateral (6,12) -- los numeros de
          EE_SEGS, que es la lista que usa el bulls eye del informe. */
@@ -25021,8 +25070,7 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
       ['el valor sale UNA vez por territorio',       R.unaVezPorTerr1, R.nums1.join(' ')],
       ['14 y 16 grises: los comparten DOS paredes',  R.g1_sep14 && R.g1_lat16, R.g1_sep14],
       ['el apex (17) gris: el metodo no lo mide',    R.apex1Gris, R.apex1Gris],
-      ['NO aparece el rojo de la paleta GE',         R.sinRojoGE, R.sinRojoGE],
-      ['ni su azul',                                 R.sinAzulGE, R.sinAzulGE],
+      ['NO aparece NINGUN color de la paleta del informe', R.sinColorInforme, R.sinColorInforme],
       /* 2 vistas */
       ['2 vistas: suma anterior (1,7,13) e inferior (4,10,15)', R.a2cSuma6, R.seg2],
       ['con dos, 14 y 16 SIGUEN grises',             R.g2_sep14 && R.g2_lat16 && R.apex2Gris, R.g2_sep14],
@@ -67514,7 +67562,10 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        144 -> 148 en la 3A: entran vd-strain-pl, tavi-pvl-ext, otr-cortri y diast-valsalva.
        Los dos que el caso nombra por clave siguen estando, que es lo que distingue un censo
        que crecio de uno que perdio una entrada. */
-    Object.keys(VINFO).length === 149 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+    /* ⚠️ ADAPTADO EN PR7 (23/11/2026): 149 -> 150, por sgl-num, el globo del interruptor de datos
+       numericos del bull is eye de strain. NO esta en Valvulas, que es la pestana que este caso
+       mide: lo que cambia es el DENOMINADOR del registro, no lo que esta condicion afirma. */
+    Object.keys(VINFO).length === 150 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
       && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO)
       && ('masa-ref' in VINFO) && ('masa-ref-ei' in VINFO) && ('wi-aplica' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
@@ -79075,7 +79126,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      no una afirmacion sobre las ocho tarjetas de valvulas que este caso mide. */
   /* ADAPTADO EN PANT-37: 142 -> 143 por el globo wi-aplica del boton «What if». Es el
      DENOMINADOR del registro y no una de las tarjetas que este caso mide. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 149 entradas',
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 150 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -79116,12 +79167,14 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        afirma. El rotulo y el numero se mueven JUNTOS, que es la deriva que PANT-3 corrigio aca
        mismo. */
     /* ⚠️ ADAPTADO EN PANT-38 (commit 4): 143 -> 144, por clnk-guia.
+       ⚠️ ADAPTADO EN PR7 (23/11/2026): 149 -> 150. La nueva es sgl-num, el globo del interruptor
+       de datos numericos del bull is eye de strain.
        ⚠️ ADAPTADO EN LA TAREA 1 (18/11/2026): 148 -> 149. La nueva es ev-indep, el globo del
        titulo del panel de Evidencia.
        ⚠️ ADAPTADO EN LA 3A: 144 -> 148. Las cuatro entradas nuevas son vd-strain-pl,
        tavi-pvl-ext, otr-cortri y diast-valsalva. NINGUNA esta en Valvulas: lo que cambia es el
        denominador del registro, no lo que este caso afirma sobre las tarjetas de esa pestana. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 149 && ('wi-aplica' in (REG() || {})),
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 150 && ('wi-aplica' in (REG() || {})),
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -80561,7 +80614,10 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
        una fuente que no tuvieran, asi que una ficha publicaria un criterio que no existe.
        Es la convencion que esta condicion ya declara para inf-min, tga-esq y tavi-calc. El
        limite que declara no cambia; cambia su denominador. */
-  ex.push(['(C3) LIMITE DECLARADO: setenta y cinco tarjetas sin boton, porque Referencias no tiene esa entrada',
+  /* ⚠️ ADAPTADO EN PR7: setenta y cinco -> SETENTA Y SEIS. La nueva es sgl-num, el globo del
+     interruptor de datos numericos: es DESCRIPTIVO -explica como se usa el control- y por eso no
+     tiene entrada en Referencias ni la necesita. */
+  ex.push(['(C3) LIMITE DECLARADO: setenta y seis tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ⚠️ ADAPTADA EN LA TAREA 1 (18/11/2026): 74 -> 75. La entrada nueva es ev-indep, el globo
        del titulo del panel de Evidencia. No tiene ficha en Referencias por la MISMA razon que
        inf-min, tga-3d y clnk-guia: dice de QUE es la aplicacion y de donde salen las guias que
@@ -80618,6 +80674,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       + 'masa-ref,masa-ref-ei,mca-eco,mca-score,mca-sec,mca-vi,'
       + 'mch-adic,mch-ex,mch-hvi,mch-msub,mch-score,mch-sec,'
       + 'otr-cortri,'
+      + 'sgl-num,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,tavi-calc,tavi-pvl-ext,'
       + 'tdf-eco,tdf-sec,tdf-vol,'
       + 'tep-eco-dx,tep-mcconnell,tga-3d,tga-esq,tv-sec,va-morf-tipos,'
@@ -93672,7 +93729,10 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      Lo que estas condiciones exigen no cambia; cambia cuantos globos tienen que cumplirlo, y el
      conteo ES el denominador: agregar uno sin mover el numero lo saca de la medicion.
      Los TRES numeros se mueven JUNTOS. */
-  /* ⚠️ ADAPTADAS EN LA TAREA 1 (18/11/2026): SESENTA Y OCHO -> SESENTA Y NUEVE. La entrada nueva
+  /* ⚠️ ADAPTADAS EN PR7 (23/11/2026): SESENTA Y NUEVE -> SETENTA. La entrada nueva es sgl-num, el
+     globo del interruptor de datos numericos del bull is eye de strain, que mide 44 x 44 como los
+     demas y cuya caja no tapa a ningun vecino -medido en el mismo barrido-.
+     ⚠️ ADAPTADAS EN LA TAREA 1 (18/11/2026): SESENTA Y OCHO -> SESENTA Y NUEVE. La entrada nueva
      es ev-indep. Las tres corren sobre tapTodos, que es la concatenacion de los dos grupos, y se
      exige ADEMAS el reparto -68 de fuera del panel y 1 adentro-: asi el caso no puede quedar
      verde si el globo del panel desaparece y aparece otro en cualquier otra parte.
@@ -93680,15 +93740,15 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      dar sus CINCO puntos propios. Verificado por mutacion en un worktree: quitarle la clase al
      globo nuevo, achicarlo por debajo de 44 px y taparlo con un vecino ponen en rojo (K0), (K1)
      y (K2) respectivamente. */
-  ex.push(['(K0) DENOMINADOR: los SESENTA Y NUEVE globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
-    tapTodos.length === 69 && tapK.length === 68 && tapEv.length === 1
+  ex.push(['(K0) DENOMINADOR: los SETENTA globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
+    tapTodos.length === 70 && tapK.length === 69 && tapEv.length === 1
       && tapTodos.filter((x) => !x.k).length === 1
       && !!document.querySelector('#cm3d-ib.vinfo-btn-44')
       && tapTodos.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapTodos)]);
-  ex.push(['(K1) los sesenta y nueve miden 44x44 tambien con el mouse',
-    tapTodos.length === 69 && tapTodos.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapTodos)]);
+  ex.push(['(K1) los setenta miden 44x44 tambien con el mouse',
+    tapTodos.length === 70 && tapTodos.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapTodos)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapTodos.length === 69 && tapTodos.every((x) => x.propios === 5), JSON.stringify(tapTodos)]);
+    tapTodos.length === 70 && tapTodos.every((x) => x.propios === 5), JSON.stringify(tapTodos)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,

@@ -57,25 +57,57 @@ PYEOF
 )
 N=$(echo $IDS | wc -w | tr -d ' ')
 echo "  casos de riesgo seleccionados por el patron de su propio cuerpo: $N" | tee "$LOG"
+echo "  md5 de index.html al abrir: $(md5 -q index.html | cut -c1-8)" | tee -a "$LOG"
 
-i=0; lote=0; acc=""
-TOT_OK=0; TOT_N=0
-for id in $IDS; do
-  acc="$acc,$id"; i=$((i+1))
-  if [ $i -ge $TAM ]; then
-    lote=$((lote+1))
-    echo "  ── lote $lote ($i casos)" | tee -a "$LOG"
-    node scripts/test_clinico.mjs --solo "${acc#,}" 2>&1 | grep -E "RESULTADO|^  TC-.*✗" | tee -a "$LOG"
-    acc=""; i=0
-  fi
+# ** TOPE POR LOTE, y no es precaucion teorica: la PRIMERA pasada de esta tanda se quedo CLAVADA
+#    en el lote 4, que trae TC-238 -uno de los tres casos que CLAUDE.md declara como «esperaban
+#    una promesa que solo un clic resuelve, asi que no salian rojos: cortaban su lote»-. Un `node`
+#    al 0 % de CPU que no imprime nada es indistinguible de uno lento. Con el tope, el lote se
+#    corta, SE DICE en el log y la corrida sigue con el siguiente.
+#    Es el mecanismo que la tanda EQ dejo escrito en `_lotes_eq_1419.sh`.
+TOPE=${LOTE_TOPE:-420}
+
+echo "$IDS" | tr ' ' '\n' | grep -c . > /dev/null
+LISTA=$(mktemp)
+echo "$IDS" | tr ' ' '\n' | grep . > "$LISTA"
+TOTAL=$(grep -c . "$LISTA")
+
+I=1; LOTE=0; EJEC=0
+while [ "$I" -le "$TOTAL" ]; do
+  LOTE=$((LOTE + 1))
+  J=$((I + TAM - 1))
+  [ "$J" -gt "$TOTAL" ] && J=$TOTAL
+  SEL=$(sed -n "${I},${J}p" "$LISTA" | paste -sd, -)
+  NSEL=$(sed -n "${I},${J}p" "$LISTA" | grep -c .)
+  echo "" | tee -a "$LOG"
+  echo "  -- LOTE $LOTE: casos $I a $J ($NSEL) --" | tee -a "$LOG"
+  node scripts/test_clinico.mjs --solo "$SEL" >> "$LOG" 2>&1 &
+  NPID=$!
+  ESP=0
+  while kill -0 "$NPID" 2>/dev/null; do
+    sleep 5
+    ESP=$((ESP + 5))
+    if [ "$ESP" -ge "$TOPE" ]; then
+      echo "  LOTE $LOTE CORTADO POR TIEMPO a los ${ESP} s - el ultimo caso impreso es el que se colgo" | tee -a "$LOG"
+      kill "$NPID" 2>/dev/null
+      sleep 2
+      pkill -f "remote-debugging-port=0 --user-data" 2>/dev/null
+      break
+    fi
+  done
+  wait "$NPID" 2>/dev/null
+  # ** EL CONTADOR POR LOTE: una CLASE con dos glifos UTF-8 multibyte no empareja con el grep -E
+  #    de macOS en locale C, asi que se cuentan por separado con el caracter completo.
+  NN=$(sed -n "/-- LOTE $LOTE:/,\$p" "$LOG" | grep -cE '^  TC-.* (✓|✗)$')
+  EJEC=$((EJEC + NN))
+  echo "  ejecutados en el lote: $NN de $NSEL" | tee -a "$LOG"
+  I=$((J + 1))
 done
-if [ -n "$acc" ]; then
-  lote=$((lote+1))
-  echo "  ── lote $lote ($i casos)" | tee -a "$LOG"
-  node scripts/test_clinico.mjs --solo "${acc#,}" 2>&1 | grep -E "RESULTADO|^  TC-.*✗" | tee -a "$LOG"
-fi
+rm -f "$LISTA"
+
 echo "" | tee -a "$LOG"
-echo "  ── TOTALES" | tee -a "$LOG"
+echo "  md5 de index.html al cerrar: $(md5 -q index.html | cut -c1-8)" | tee -a "$LOG"
+echo "  -- TOTALES (ejecutados: $EJEC de $TOTAL)" | tee -a "$LOG"
 grep -oE "RESULTADO: [0-9]+/[0-9]+" "$LOG" | awk -F'[ /]' '{ok+=$2; n+=$3} END{printf "  %d/%d\n", ok, n}' | tee -a "$LOG"
-echo "  ── ROJOS" | tee -a "$LOG"
+echo "  -- ROJOS" | tee -a "$LOG"
 grep -E "^  TC-.*✗" "$LOG" | sed 's/^ *//' | cut -c1-110 | sort -u | tee -a "$LOG"

@@ -138,6 +138,14 @@ al dibujo y al texto mas de media pulgada de las dos y media que la diapositiva 
 titulo y el filete del pie; la barra mide 0,42 y rotula los mismos ocho rangos. **El resto del PPT
 no se toco.**
 
+### PR7-i · TC-1050 es sensible al lote, y se declara
+
+Pasa **3/3 corrido aislado** y sale rojo en su lote 15, junto con **TC-1000** (de P9) y **TC-1039**
+(de PR6), que son **preexistentes** y se comportan igual. Los tres generan el PDF de verdad
+envolviendo el constructor de jsPDF, y en esta batería hay veintitrés casos que hacen lo mismo: uno
+que vuelve temprano deja la envoltura puesta. **No se tocó ninguna condición** y no se aflojó nada;
+queda con su medición para la próxima tanda que mire el lote 15.
+
 ### PR7-h · El interruptor no se apaga con «Nuevo estudio», y es deliberado
 
 `strainNumModo` vive solo en memoria y «Nuevo estudio» no lo apaga: seguir cargando numeros es lo
