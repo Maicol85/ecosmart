@@ -2053,9 +2053,62 @@ consumen `_scN` y `scUsarComoSGL`, que con `Math.round` pelado mostraba −15,8 
 «5», y la convención de esta casa es que un valor **sin** signo se toma **negativo**. Era la sonda,
 no la app.
 
+**COBERTURA: SEIS casos nuevos, TC-1058 a TC-1063**, uno por grupo de la lista de verificación de
+la orden, y los seis caen **0/6 contra `1932582`** con el mismo archivo de casos y sólo el
+`index.html` distinto, **por condiciones** —TC-1058 por dieciséis, TC-1059 por cinco, TC-1060 por
+dos, TC-1062 por cuatro y TC-1063 por siete— y TC-1061 por su **denominador declarado**, que es
+que la regla de la celda no existe en ese árbol.
+**CINCO casos adaptados, ninguno aflojado**: **TC-1057** —el selector de los iconos, el motivo
+también en el `aria-label`, el atributo `disabled` que ya no está, la caja de 14 px con su
+`::after` de 44, y la condición de la lista dentro de la celda **INVERTIDA**: antes exigía un
+renglón por celda y ahora exige **cero**—; **TC-471**, **TC-500** y **TC-502** por el globo nuevo
+(155 → **156** entradas y 81 → **82** tarjetas sin ficha); y **TC-535** de 80 a **70** globos con
+piso de 44 px de **caja**, consecuencia autorizada de la orden. **Los once caen 0/11 contra la
+base con el archivo de casos FINAL**, que es lo que confirma que los adaptados siguen
+discriminando.
+
+**26/26 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, sobre el árbol
+**ya sellado** (md5 `a5ce3ab2`), con las **26 anclas verificadas ANTES** de correr y el md5 del
+vivo idéntico antes y después. **Al menos dos por grupo**, y **cuatro no revierten nada: la
+aplican DE MÁS**, porque las condiciones que las matan son **controles negativos**.
+⚠️ **EL PRIMER BARRIDO DEJÓ DOS SOBREVIVIENTES Y LAS DOS ERAN HUECOS REALES**, cerrados con
+condiciones nuevas y **sin aflojar una sola mutación**: (1) el **control del estilo clásico** era
+demasiado débil —pedía que «hubiera un 7,49 por ahí», y las tablas de ese estilo las dibuja
+`drawTablaCompacta` y se quedan en 7,49 pase lo que pase, así que la condición pasaba igual
+mientras la narrativa y el rótulo de barra se iban a 10 pt; hoy se miden esos **dos** caminos, que
+son los que los dos estilos comparten—; y (2) la escena del traspaso de «Usar como SGL global»
+**no caía en un medio exacto** —con los diecisiete de la verificación el promedio de 17 da
+−11,70588…, y los dos redondeos dan lo mismo—, así que hoy se siembran **doce segmentos en −16 y
+cuatro en −15**, que promedian exactamente **−15,75**.
+
+**VERIFICACIÓN. LA SUITE COMPLETA NO SE CORRIÓ, POR ORDEN EXPRESA.** Se corrieron los **lotes de
+riesgo**: los **697** casos cuyo cuerpo toca el PDF, el SGL, los cuadros, el informe, el guardado
+de estudios o Configuración, seleccionados por el **patrón de su propio cuerpo** y no a ojo
+(`scripts/_lotes_pr9.sh`). Los demás **no se ejecutaron**, y se declara.
+**691/697 en DIECISÉIS lotes**, con los **697 ejecutados**, **ningún lote cortado por tiempo** y el
+md5 de `index.html` **idéntico** al abrir y al cerrar (`a5ce3ab2`).
+Los **SEIS** rojos son **TC-376** y **TC-406**, los dos de siempre; **TC-551**, **TC-1000** y
+**TC-1039**, los tres de sensibilidad de lote que la orden declara; y **TC-490**, que **no estaba
+en ninguna lista** y queda caracterizado: es **intermitente incluso corrido aislado** —1 de 3 en el
+árbol vivo— y **falla 3 de 3 contra `1932582`** con el mismo archivo de casos y sólo el
+`index.html` distinto, o sea **preexistente**, y si algo falla MÁS en la línea base. Cae por su
+propio **denominador** —«con IM severa hay chorro dibujado en las ocho cámaras» devuelve la lista
+vacía—, que es el modo en que una medición dice que no midió nada. **Ningún rojo de esta tanda.**
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **Sin huérfanos nuevos.** **17 de 17**
+bloques de JS inline parsean. **CELULAR: 60 hallazgos a 360 px y 68 a 390, con 19 ALTA en cada
+ancho y 38 en total** — la línea base **exacta**.
+
+⚠️ **Y EL CORREDOR DE LOTES LE FALTABA EL `pkill` DE LOS CHROME HUÉRFANOS, que es la trampa que
+esta casa ya tiene escrita para el barrido de mutaciones.** El arnés del suite deja su árbol de
+Chrome con el servidor escuchando al terminar cada lote y se van acumulando: medido, los cuatro
+primeros lotes tardaron unos seis minutos cada uno y el séptimo **más de una hora**, con catorce
+Chrome vivos. Matándolos, diez casos vuelven a tardar **83 s** —8,3 s por caso—. `_mut_pr8.py` ya
+tenía esa línea; a `_lotes_*.sh` le faltaba. El corredor gana además `LOTE_DESDE` y `LOTE_HASTA`
+para retomar una corrida cortada sin rehacer lo ya medido.
+
 **El mapa, en `docs/mapa/pr9-tabla-pdf-sgl.md`; las fichas, en `docs/mapa/tests-fichas-1058.md`;
 la guía manual, en `docs/GUIA_PRUEBA_PR9.md` (18 pasos); lo declarado, en `docs/PENDIENTES.md` →
-PR9-a a PR9-e.**
+PR9-a a PR9-f.**
 
 **La tanda PR8 (2026-11-24) — los cuadros, el copiado con formato, el PDF Tipo Word, el SGL y la
 tabla de cálculos de strain.** CINCO tareas y CUATRO commits. Sello **`v20261124-1851`**, md5

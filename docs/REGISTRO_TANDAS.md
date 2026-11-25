@@ -1,3 +1,72 @@
+## PR9 — la tabla de cálculos, el PDF «Tipo Word», los recuadros y el ingreso del SGL (2026-11-24/25)
+
+**Sello** `v20261124-2316` · **md5** `a5ce3ab2` · **196.277** líneas · línea base `1932582`, que
+es a la vez `origin/main`. **Sin push.**
+
+**Commits:** `a4bda4f` (TAREA 1: la tabla en una línea por celda) · `f251c47` (TAREAS 2 y 3: el
+cuerpo único del PDF «Tipo Word» y el recuadro que pisaba) · `47c0faf` (TAREA 4: el valor
+imposible del SGL, el cartel de FEVI/SGL y el redondeo) · `a230baf` (cobertura: TC-1058 a
+TC-1063, el insertador y el barrido de 26 mutaciones) · `a0488f6` (el sello y la documentación).
+
+⚠️ **LAS TAREAS 2 Y 3 SALIERON EN UN SOLO COMMIT**, y se declara: las dos estaban ya aplicadas
+sobre el mismo archivo cuando se midieron juntas, y partirlas habría exigido rehacer el A/B del
+papel dos veces sobre árboles intermedios. **La verificación sí es por tarea.**
+
+**Qué hizo.**
+
+**La tabla «Cálculos de strain»** pasa de **660 × 377 px a 429 × 100**, y título + encabezado +
+las tres filas de **350 a 85 px**. Una línea por celda —nombre corto, valor o una raya, y los tres
+iconos al final de la misma línea—; los rangos de segmentos al globo; la lista de lo que falta
+**fuera del cuerpo**, en el `title` y en el `aria-label` del icono apagado; la frase de
+introducción a un globo nuevo (`sc-caja`, el registro va a 156 entradas); los iconos en **SVG de
+14 × 14 con `currentColor`**, sin emoji ni imagen, con el toque en 44 px por un `::after`.
+El icono apagado **deja de llevar `disabled`** —un botón `disabled` no emite eventos de mouse y su
+`title` no se vería— y su clic **dice** el motivo.
+
+**El PDF «Tipo Word»** tenía **cuatro cuerpos de letra a la vez** —8,56 la narrativa, 9,1 los
+datos, 9,2 el EN SUMA y 9,63 los títulos—: hoy **10 pt para todo el cuerpo**, títulos en negrita al
+mismo tamaño, ficha/firma/pie en 8 pt uniformes, puestos con `setFontSize` directo para que el
+ajuste A4 no pueda bajarlos de los 9 pt que la orden fija como piso. **Los renglones en blanco
+irregulares se van**: la separación entre líneas de datos es siempre 4,9 mm y la de entre secciones
+siempre 6,9. El estudio largo baja de **tres hojas a dos**, sin título huérfano y con un único
+cuerpo por hoja.
+
+**El recuadro de nota del PDF** no era más alto de lo que el PDF calcula —el alto medido y el
+dibujado salen de la misma cuenta, con texto corto, largo, muy largo y con el ancho recortado—:
+lo que estaba mal es que la **línea de base** de lo que sigue caía **exactamente** en su borde
+inferior, así que sus mayúsculas lo pisaban **2,44 mm**, siempre lo mismo. Se cierra con
+`_SEP(H) = H × 0,78`, usado al medir **y** al dibujar, en los **nueve** estilos.
+
+**El ingreso del SGL** gana su regla —dos cifras enteras, con signo y un decimal—, cerrada por el
+filtro en vivo de la casilla, la validación al confirmar y la limpieza al restaurar. **El cartel
+de FEVI/SGL** dice de dónde sale cada mitad y el resultado se borra al cambiar la FEVI
+(`scRender` entra a `ESPEJOS_VIVOS`). **El redondeo** era asimétrico —`Math.round` lleva el medio
+hacia +∞, así que el strain negativo se redondeaba siempre hacia cero— y se corrige en un solo
+lugar, `_scRed`, redondeando el valor absoluto y reponiendo el signo.
+
+**Cobertura.** TC-1058 a TC-1063, los seis cayendo **0/6** contra `1932582`; cinco casos
+adaptados —TC-1057, TC-471, TC-500, TC-502 y TC-535—, y los once cayendo **0/11** contra la base
+con el archivo de casos final. **26/26 mutaciones dirigidas muertas**, con dos huecos reales
+cerrados en el segundo barrido: el control del estilo clásico era demasiado débil y la escena del
+traspaso de «Usar como SGL global» no caía en un medio exacto.
+
+**Verificación.** Lotes de riesgo: **691/697 en dieciséis lotes**, con los 697 ejecutados y el md5
+idéntico al abrir y al cerrar. Los seis rojos son TC-376 y TC-406, los dos de siempre; TC-551,
+TC-1000 y TC-1039, los tres de sensibilidad de lote que la orden declara; y TC-490, **preexistente
+y caracterizado** (1 de 3 aislado en el árbol vivo, 3 de 3 rojo contra la base). Semgrep **126/0**,
+sin huérfanos nuevos, 17 de 17 bloques de JS inline parsean, celular **38 ALTA**.
+
+**Lo declarado:** `PR9-a` (la razón que PR8 escribió para `vinfo-btn-44` era falsa, y el barrido
+del celular no ve nada de lo que pinta `scRender`), `PR9-b` (el anexo del PDF sigue en color y con
+su propio cuerpo: reportado, no rediseñado), `PR9-c` (la regla acepta dos decimales y redondea al
+primero), `PR9-d` (el valor imposible se limpia al restaurar y no en disco), `PR9-e` (el estudio
+largo de la verificación no agota el caso peor), `PR9-f` (la firma y el pie quedan en su tamaño) y
+`PR9-g` (TC-490 preexistente, y el corredor de lotes que dejaba Chrome huérfanos).
+
+**Mapa:** `docs/mapa/pr9-tabla-pdf-sgl.md` · **Fichas:** `docs/mapa/tests-fichas-1058.md` ·
+**Guía manual:** `docs/GUIA_PRUEBA_PR9.md` (18 pasos) · **Corredor de lotes:**
+`scripts/_lotes_pr9.sh`.
+
 ## PR8 — los cuadros, el copiado con formato, el PDF Tipo Word, el SGL y la tabla de cálculos (2026-11-24)
 
 **Sello** `v20261124-1851` · **md5** `358a030a` · **195.994** líneas · línea base `d6f8326`.

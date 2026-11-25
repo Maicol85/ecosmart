@@ -138,9 +138,13 @@
     return { hojas: cap.hojas, textos: ts.length, tamanios: tam, huerfanos: huerfanos,
              tamPorHoja: porHojaTam, solapes: solapes, colores: Object.keys(colores).slice(0, 14) };
   };
-  try { R.tipoword = analizar(capturar('tipoword')); } catch (e) { R.err.push('tw: ' + String(e && e.message || e).slice(0,200)); }
-  try { R.clasico  = analizar(capturar('clasico'));  } catch (e) { R.err.push('cl: ' + String(e && e.message || e).slice(0,200)); }
-  try { R.moderno  = analizar(capturar('moderno'));  } catch (e) { R.err.push('mo: ' + String(e && e.message || e).slice(0,200)); }
+  /* LOS NUEVE ESTILOS, que es lo que la orden pide para el recuadro del score: «generá tambien
+     el PDF del score de Wilkins en los otros estilos y confirma que no hay solapamiento». */
+  ['tipoword','clasico','moderno','minimalista','academico','compacto','elegante','bicolor',
+   'institucional'].forEach(function (p) {
+    try { R[p] = analizar(capturar(p)); }
+    catch (e) { R.err.push(p + ': ' + String(e && e.message || e).slice(0,160)); }
+  });
   try { setPdfPlantilla('clasico'); } catch (e) {}
   return R;
 })()

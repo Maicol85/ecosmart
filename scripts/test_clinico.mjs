@@ -165211,6 +165211,16 @@ caso('TC-1059',
     const cuerpoC = C ? C.ops.filter(o => o.y > 30 && o.y < 262) : [];
     R.tamClasico = Array.from(new Set(cuerpoC.map(o => o.fs))).sort((a, b) => a - b).join(',');
     R.hojasClasico = C ? C.hojas : -1;
+    /* /!\ EL CONTROL DEL CLASICO SE MIDE EN SU NARRATIVA Y EN SU ROTULO DE BARRA, Y NO EN QUE
+       «haya un 7,49 por ahi». La mutacion 12 -que le aplica el cuerpo unico TAMBIEN al clasico-
+       SOBREVIVIO al primer barrido: las tablas de ese estilo las dibuja drawTablaCompacta y se
+       quedan en 7,49 pase lo que pase, asi que la condicion vieja pasaba igual mientras la
+       narrativa y el rotulo se iban a 10 pt. Lo que de verdad comparten los dos estilos son esos
+       dos caminos, y es ahi donde hay que mirar. */
+    const iInfC = cuerpoC.findIndex(o => o.t === 'INFORME');
+    R.ptNarrClasico = (iInfC > 0 && C) ? Array.from(new Set(cuerpoC.slice(iInfC + 1)
+      .filter(o => !/bold/.test(o.f)).map(o => o.fs))).sort((a, b) => a - b).join(',') : 'NO';
+    R.ptBarraClasico = iInfC > 0 ? cuerpoC[iInfC].fs : -1;
     /* (D) EL ESTUDIO LARGO, con el score de Wilkins integrado al informe */
     __t.limpiar();
     [['nombre','Largo PR9'],['fecha','2026-11-24'],['edad','71'],['sexo','F'],['peso','64'],
@@ -165261,6 +165271,7 @@ caso('TC-1059',
     ['DENOMINADOR: hay varias lineas de datos seguidas que medir', R.nSaltos >= 5, String(R.nSaltos)],
     ['la separacion entre lineas de datos es SIEMPRE la misma, sin renglones en blanco sueltos', R.saltosDatos === '4.9', String(R.saltosDatos)],
     ['CONTROL: el estilo clasico no se movio y sigue con sus propios cuerpos de letra', R.hojasClasico === 1 && R.tamClasico.indexOf('7.49') >= 0 && R.tamClasico !== '10', R.tamClasico],
+    ['CONTROL: y su narrativa y su rotulo de barra siguen en los suyos, no en los 10 pt de Tipo Word', R.ptNarrClasico === '8.56' && R.ptBarraClasico === 9.1, 'narr=' + R.ptNarrClasico + ' barra=' + R.ptBarraClasico],
     ['el estudio largo entra en dos hojas de cuerpo mas la del anexo', R.hojasLargo <= 2 && R.hojasLargo >= 1, String(R.hojasLargo)],
     ['sin dejar un titulo huerfano al pie de ninguna hoja', R.huerfanos === '', String(R.huerfanos)],
     ['y con el mismo cuerpo de letra en su primera hoja', R.tamHoja1 === '10', String(R.tamHoja1)]
@@ -165599,16 +165610,26 @@ caso('TC-1063',
       const n = td.querySelector('.sc-nom'), v2 = td.querySelector('.sc-val');
       return n ? (n.textContent + '=' + (v2 ? v2.textContent : '?')) : ''; }).filter(Boolean).join(' ');
     R.apicalEnPantalla = /Apical=-15,8 %/.test(R.pantalla);
-    /* (C) «Usar como SGL global» ESCRIBE EL MISMO NUMERO QUE PUBLICA LA CELDA */
+    /* (C) «Usar como SGL global» ESCRIBE EL MISMO NUMERO QUE PUBLICA LA CELDA.
+       /!\ Y LA ESCENA TIENE QUE CAER EN UN MEDIO EXACTO, o la condicion no prueba nada: con los
+       diecisiete de la verificacion el promedio de 17 da -11,70588..., que NO es un medio, y los
+       dos redondeos -el de la casa y el Math.round pelado- dan lo mismo. La mutacion 26
+       SOBREVIVIO al primer barrido por eso. Se siembran DOCE segmentos en -16 y CUATRO en -15,
+       que dan un promedio de 16 de exactamente -15,75: ahi el redondeo de la casa da -15,8 y
+       Math.round da -15,7. */
+    const ids2 = LV3D_SEG_ID.slice(1);
+    ids2.forEach((k, i) => { try { strainEscribir(k, i < 12 ? '-16' : '-15') } catch (e) {} });
+    R.prom16Medio = scPromedio(SC_GRUPOS.g16);
+    if (_hay('scRender')) scRender();
     const campo = document.getElementById('sgl_gls');
     if (campo) campo.value = '';
-    if (_hay('scCalcular')) scCalcular('apical');
-    try { scUsarComoSGL('g17'); } catch (e) {}
+    if (_hay('scCalcular')) scCalcular('g16');
+    try { scUsarComoSGL('g16'); } catch (e) {}
     R.escrito = campo ? campo.value : 'NO HAY';
     R.celda17 = (function () {
       const tds = Array.prototype.slice.call(raiz.querySelectorAll('tbody td'));
       const td = tds.filter(function (x) { const n = x.querySelector('.sc-nom');
-        return n && n.textContent === '17 seg.' })[0];
+        return n && n.textContent === '16 seg.' })[0];
       return td ? td.querySelector('.sc-val').textContent : 'NO HAY'; })();
     R.coinciden = (String(R.escrito).replace('.', ',') + ' %') === R.celda17;
   } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
@@ -165628,7 +165649,8 @@ caso('TC-1063',
     ['DENOMINADOR: los diecisiete valores quedaron cargados, con el positivo positivo', R.cargados === '5,-5,-12,-12,-12,-16,-12,-12,-14,-10,-9,-9,-16,-13,-17,-17,-18', String(R.cargados)],
     ['los nueve resultados son los de la verificacion', R.res === '-11,7|-11,3|-8,7|-11,0|-15,8|-10,1|-13,0|-12,6|0,80', String(R.res)],
     ['y el apical sale -15,8 en la PANTALLA, que es el que el redondeo corrige', R.apicalEnPantalla === true, String(R.pantalla)],
-    ['«Usar como SGL global» escribe el MISMO numero que publica la celda', R.coinciden === true, 'campo=' + R.escrito + ' celda=' + R.celda17]
+    ['DENOMINADOR: la escena del traspaso cae en un MEDIO exacto, donde los dos redondeos difieren', R.prom16Medio === -15.75, String(R.prom16Medio)],
+    ['«Usar como SGL global» escribe el MISMO numero que publica la celda, y con el redondeo de la casa', R.coinciden === true && String(R.escrito) === '-15.8', 'campo=' + R.escrito + ' celda=' + R.celda17]
   ] };
 `);
 

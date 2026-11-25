@@ -125,6 +125,54 @@ exige todos sus segmentos.
 
 **Queda declarado.** No es un defecto: es la regla aplicada.
 
+### PR9-g — TC-490 es intermitente y PREEXISTENTE, y el corredor de lotes dejaba Chrome huérfanos
+
+**TC-490.** Salió rojo en el lote 8 y **no estaba en ninguna lista de rojos conocidos**. Queda
+caracterizado midiendo: corrido **aislado** en el árbol vivo pasa **1 de 3**, y corrido aislado
+contra `1932582` —el cierre de PR8, con el mismo archivo de casos y sólo el `index.html`
+distinto— falla **3 de 3**. O sea que es **preexistente** y, si algo, falla **más** en la línea
+base. Cae por su propio **denominador** —«(A4) con IM severa hay chorro dibujado en las OCHO
+cámaras» devuelve la lista vacía—, que es el modo en que una medición dice que no midió nada:
+el chorro del 3D de la mitral no se dibujó en esa corrida. **No se tocó**, porque no es de esta
+tanda y arreglar un intermitente ajeno sin orden expresa es trabajo de otra.
+
+**El corredor de lotes.** `scripts/_lotes_pr9.sh` —heredado de `_lotes_pr8.sh`— **no mataba los
+Chrome huérfanos entre lotes**, y es la trampa que este archivo ya tiene escrita para el barrido
+de mutaciones: «se juntan zombies reteniendo su Chrome y parece lentitud». Medido en esta tanda:
+los cuatro primeros lotes tardaron unos **seis minutos** cada uno y el séptimo **más de una
+hora**, con **catorce** procesos de Chrome vivos; matándolos, diez casos vuelven a tardar **83 s**
+—8,3 s por caso—. Se le agregó el mismo `pkill -f "remote-debugging-port=0 --user-data"` que
+`_mut_pr8.py` ya tenía, más `LOTE_DESDE` y `LOTE_HASTA` para retomar una corrida cortada sin
+rehacer lo ya medido.
+
+⚠️ **Y LOS CORREDORES DE LAS TANDAS ANTERIORES TIENEN EL MISMO HUECO** —`_lotes_pr8.sh`,
+`_lotes_pr7.sh`, `_lotes_pr6.sh` y los demás—. **No se tocaron**: cambiar el arnés de una tanda
+cerrada no es de esta orden. Queda declarado para que la próxima que corra lotes largos le agregue
+esa línea o use el de PR9 como molde.
+
+### PR9-f — la firma y el pie del PDF quedan en su tamaño, que no es el de la ficha
+
+**Qué se encontró.** La orden pide, en 2.1, que «la ficha del paciente, la firma y el pie **puedan
+ir más chicos, pero también uniformes entre sí**». Medido sobre las llamadas de dibujo del estilo
+«Tipo Word»: la **ficha** quedó uniforme en **8 pt** —antes eran 9,5 la institución y 8,5 las
+filas—, pero la **firma** sale en **8,28** y el **pie** en **6,96 y 5,89**. Son tres tamaños
+distintos, aunque cada bloque es uniforme por dentro.
+
+**Por qué no se unificaron.** Los dos son **caminos compartidos con las otras ocho plantillas**, y
+el punto 2.5 de la misma orden dice que el contenido y las reglas del PDF no cambian:
+- La **firma** deriva su geometría de su cuerpo de letra —`_H`, `_BASE` y `_yMax` salen de él—, y
+  el archivo ya documenta un defecto pagado por validar que una fila entra a un tamaño y
+  estamparla a otro. Tocarla mueve la maqueta de la firma en las **nueve** plantillas.
+- El **pie** está protegido por escrito: escala con `PDF_FS` pero **no** con el ajuste automático,
+  «son los textos más chicos del documento y uno de los tres es la cláusula que valida
+  `clinical-disclaimer-guard`, que no se achica para ganar un renglón en otra parte de la hoja».
+
+**Qué puede causar.** Nada visible: entre 8 y 8,28 pt hay un 3 %. Lo que queda abierto es si el
+médico quiere la firma también en 8.
+
+**Cómo se corregiría.** Una clave más en `_TBL_ESTILOS.tipoword` que el bloque de firma lea, con
+su propia medición de la maqueta. **Queda declarado, no corregido.**
+
 ### PR9-e — el «estudio largo» de la verificación no agota el caso peor
 
 **Qué se encontró.** El estudio largo que las sondas montan —un ETE con las cuatro válvulas, la
