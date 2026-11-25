@@ -24847,7 +24847,7 @@ caso('TC-200', 'Strain: SGL por territorios de pared con 1, 2 y 3 vistas, sin to
    dice donde cayo el gris.
 
    NO DEPENDE DEL PENDRIVE.                                                                    */
-caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio, y NO toca el del informe', `
+caso('TC-201', 'Mapa de strain del visor: SEIS sectores, uno por pared, coloreados con la paleta de la pestania SGL, y NO toca el bull is eye del informe', `
   return (async () => {
     const R = {};
     const alertOrig = window.alert; window.alert = () => {};
@@ -24935,27 +24935,43 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
       R.hayCanvas = !!document.getElementById('cine-str-be');
       R.tituloPanel = /Strain por territorios \\(método manual\\)/.test(document.getElementById('cine-med-barra').innerHTML);
 
-      /* Se lee el PIXEL de cada uno de los 17 SEGMENTOS, con la misma geometria que el
-         dibujante. 0 = arriba, horario.
-         SE MUESTREA AL 22 % DEL SECTOR, no en su centro angular: el rotulo y el numero de
-         cada territorio van centrados en su segmento del anillo MEDIO, asi que muestrear el
-         centro devuelve el color de una letra. Ya me paso una vez con los sextantes. */
+      /* ⚠️ ADAPTADO EN PR13 (25/11/2026): SE LEE EL PIXEL DE CADA UNA DE LAS SEIS PAREDES, y
+         ya no de diecisiete segmentos. El diagrama pasó de 17 segmentos -con los tres de una
+         pared del MISMO color y el numero solo en el del anillo medio- a SEIS sectores, uno por
+         pared, del disco central al borde. Decision de Maicol del 25/11/2026: con dieciseis
+         segmentos con valor se leia como dieciseis mediciones cuando el metodo da SEIS.
+         /!\ Y LA GEOMETRIA SE LE PREGUNTA AL DIBUJANTE, no se recalcula. Esta funcion tenia
+         cy0 = S*0.42 y r0 = S*0.335 COPIADOS, y en PR13 el radio paso a derivarse de lo que la
+         leyenda y el descargo necesitan: con los numeros copiados, la condicion habria quedado
+         muestreando en otro lado. _strBullsRepintar devuelve lo que el dibujante publica
+         -cx, cy, r y rIn-, asi que el que mide y el que dibuja no pueden discrepar.
+         /!\ SE MUESTREA EN DOS RADIOS QUE EVITAN EL TEXTO -el nombre va a 0,79 r y el numero a
+         0,51 r- Y QUE CRUZAN LAS DOS FRONTERAS QUE TENIAN LOS ANILLOS VIEJOS, 0,47 y 0,72: si
+         quedara un anillo, las dos muestras de una pared darian colores distintos. */
+      /* /!\ CON GUARDA Y NO PELADO: contra un arbol anterior a PR13, _STR_SECTORES no existe y
+         el acceso pelado tira ReferenceError que se lleva el caso ENTERO -- la condicion sale
+         roja y las de abajo NO LLEGAN A EVALUARSE. Es la leccion de TC-827, y la pague dos veces
+         seguidas: en PR12 con _strColorPct y aca con los sectores. */
+      const _SECS = (function () { try {
+        return (typeof _STR_SECTORES !== 'undefined' && _STR_SECTORES.length) ? _STR_SECTORES : [];
+      } catch (e) { return [] } })();
+      R.haySectores = _SECS.length === 6;
       const leer = () => {
+        if (!_SECS.length) return { apex: 'SIN _STR_SECTORES' };
+        const geo = _strBullsRepintar() || { cx:0, cy:0, r:1, rIn:0 };
         const c = document.getElementById('cine-str-be');
-        const g = c.getContext('2d'), S = c.width, cx0 = S/2, cy0 = S*0.42, r0 = S*0.335;
+        const g = c.getContext('2d'), dpr = c.width / parseFloat(c.style.width || c.width);
         const out = {};
-        _STR_ANILLOS.forEach(SG => {
-          let px, py;
-          if (SG.r0 <= 0) {                       // el apex: al costado del rotulo "17"
-            px = Math.round(cx0 + r0 * 0.12); py = Math.round(cy0 + r0 * 0.12);
-          } else {
-            const am = ((SG.a[0] + (SG.a[1]-SG.a[0]) * 0.22) - 90) * Math.PI/180;
-            const rr = r0 * (SG.r0 + SG.r1) / 2;
-            px = Math.round(cx0 + Math.cos(am)*rr); py = Math.round(cy0 + Math.sin(am)*rr);
-          }
-          const d = g.getImageData(px,py,1,1).data;
-          out[SG.seg] = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
+        const pix = (x, y) => { const d = g.getImageData(Math.round(x*dpr), Math.round(y*dpr), 1, 1).data;
+                                return 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')'; };
+        _SECS.forEach(sc => {
+          const am = ((sc.a[0] + sc.a[1]) / 2 - 90) * Math.PI/180;
+          const a = pix(geo.cx + Math.cos(am)*geo.r*0.33, geo.cy + Math.sin(am)*geo.r*0.33);
+          const b = pix(geo.cx + Math.cos(am)*geo.r*0.92, geo.cy + Math.sin(am)*geo.r*0.92);
+          out[sc.pared] = a;
+          out['~' + sc.pared] = b;                 // la segunda muestra, para exigir UN solo color
         });
+        out.apex = pix(geo.cx + geo.rIn*0.45, geo.cy + geo.rIn*0.45);
         return out;
       };
       /* Los numeros que el dibujante imprime, capturados en la frontera de la API: contar
@@ -24969,7 +24985,11 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
           /* Solo los VALORES de territorio: llevan decimal. Se excluyen los rotulos de la
              leyenda («0 %», «−30 %») y el SGL, que no son valores por territorio -- contarlos
              hacia que la condicion diera 4 sobre un dibujo con 2 territorios. */
-          if (str.indexOf('%') >= 0 && str.indexOf('.') >= 0 && str.indexOf('SGL') < 0) vistos.push(str);
+          /* ⚠️ ADAPTADO EN PR13: el numero de cada pared pasó a la COMA decimal, el formato que
+             la pestania SGL usa en su tabla de calculos. Con el punto solo, esta condicion
+             contaba CERO valores sobre un diagrama que si los dibuja. */
+          if (str.indexOf('%') >= 0 && (str.indexOf(',') >= 0 || str.indexOf('.') >= 0)
+              && str.indexOf('SGL') < 0) vistos.push(str);
           return fo.apply(this, arguments); };
         _strBullsRepintar();
         CanvasRenderingContext2D.prototype.fillText = fo;
@@ -24981,22 +25001,20 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
         const m = STRAIN_PAL[0].color.replace('#','').match(/../g) || [];
         return 'rgb(' + m.map(x => parseInt(x, 16)).join(',') + ')';
       } catch (e) { return 'rgb(212,212,208)' } })();
-      const pint = o => Object.keys(o).filter(k => o[k] !== GRIS).map(Number).sort((x,y)=>x-y);
+      /* Las paredes CON COLOR, en orden, y una comprobacion de que cada sector es de UN SOLO
+         color del disco al borde -que es lo que reemplaza a los anillos-. */
+      const WS = _SECS.map(s => s.pared);
+      const pint = o => WS.filter(w => o[w] !== GRIS).slice().sort();
+      const unSolo = o => WS.every(w => o[w] === o['~' + w]);
       const p1 = leer();
       R.px1 = JSON.stringify(pint(p1));
-      /* LA A4C APORTA INFEROSEPTAL (3, 9) Y ANTEROLATERAL (6, 12), segun EE_SEGS -- la misma
-         lista de 17 segmentos que usa el bulls eye del INFORME. El pedido los traia cruzados
-         (inferoseptal 2/8); con eso el mismo PDF llevaria dos dianas que nombran distinto el
-         mismo segmento. */
+      /* LA A4C APORTA INFEROSEPTAL Y ANTEROLATERAL: son las dos paredes de su trazado, partido
+         en el apex, y es el mismo reparto que _STR_VISTAS declara. */
       R.seg1 = pint(p1).join(',');
-      R.a4cPintaSus4 = R.seg1 === '3,6,9,12';
-      R.apex1Gris = p1[17] === GRIS;
-      /* 14 y 16 los comparten DOS paredes: con una sola vista no alcanzan. */
-      R.g1_sep14 = p1[14] === GRIS;
-      R.g1_lat16 = p1[16] === GRIS;
-      /* Un territorio pinta TODOS sus segmentos del MISMO color: es un solo valor medido. */
-      R.mismoColorSepto   = p1[3] === p1[9];
-      R.mismoColorLateral = p1[6] === p1[12];
+      R.a4cPintaSus2 = R.seg1 === 'Anterolateral,Inferoseptal';
+      R.apex1Gris = p1.apex === GRIS;
+      /* (PR13) NINGUN SECTOR TIENE ANILLOS: una sola muestra de color del disco al borde. */
+      R.unSolo1 = unSolo(p1);
       R.nums1 = numerosDibujados();
       R.unaVezPorTerr1 = R.nums1.length === 2;
       /* ⚠️ INVERTIDA EN PR12: antes exigia que NO apareciera ninguno de los ocho tramos de la
@@ -25012,17 +25030,33 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
         return ks.length > 0
             && ks.every(k => pal.indexOf(String(p1[k]).replace(/\\s/g, '')) >= 0);
       } catch (e) { return false } })();
+      /* (PR13) LOS NUEVE ROTULOS DE LA LEYENDA, en los bordes entre cuadritos, con los dos
+         extremos diciendo que la escala ACOTA: medido, -20,01 y -30,1 caen en el mismo color que
+         -16, y +20,01 y +30,1 en el del +15. Sin esos dos signos la leyenda diria que la escala
+         termina ahi. */
+      R.leyenda = (function () {
+        const vistos = [];
+        const fo = CanvasRenderingContext2D.prototype.fillText;
+        CanvasRenderingContext2D.prototype.fillText = function (t) { vistos.push(String(t)); return fo.apply(this, arguments); };
+        _strBullsRepintar();
+        CanvasRenderingContext2D.prototype.fillText = fo;
+        const esp = (typeof _strBordes === 'function') ? _strBordes() : [];
+        return { esperados: esp, estan: esp.filter(t => vistos.indexOf(t) >= 0).length,
+                 nueve: esp.length === 9 && esp.every(t => vistos.indexOf(t) >= 0),
+                 acota: esp.length === 9 && esp[0].indexOf('≤') === 0 && esp[8].indexOf('≥') === 0,
+                 textoEntero: vistos.join(' ').indexOf('no grad') >= 0
+                           && vistos.join(' ').indexOf('severidad') >= 0 };
+      })();
 
       /* ── 2 · DOS vistas: anterior e inferior dejan de ser grises ── */
       medStrainVistaSiguiente(); await new Promise(r=>setTimeout(r,110));
       await parEn('a2c.dcm',100,100,300,70,78,250);
       const p2 = leer();
       R.seg2 = pint(p2).join(',');
-      /* +A2C: anterior (1,7,13) e inferior (4,10,15). 14, 16 y 17 siguen grises. */
-      R.a2cSuma6 = R.seg2 === '1,3,4,6,7,9,10,12,13,15';
-      R.g2_sep14 = p2[14] === GRIS;
-      R.g2_lat16 = p2[16] === GRIS;
-      R.apex2Gris = p2[17] === GRIS;
+      /* +A2C: suma Anterior e Inferior. Las dos del eje largo siguen grises, y el apex SIEMPRE. */
+      R.a2cSuma4 = R.seg2 === 'Anterior,Anterolateral,Inferior,Inferoseptal';
+      R.apex2Gris = p2.apex === GRIS;
+      R.unSolo2 = unSolo(p2);
       R.nums2 = numerosDibujados();
       R.unaVezPorTerr2 = R.nums2.length === 4;
 
@@ -25031,10 +25065,10 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
       await parEn('a3c.dcm',100,100,300,40,95,255);
       const p3 = leer();
       R.seg3 = pint(p3).join(',');
-      /* Con las TRES: los seis territorios, y ahi recien 14 y 16 se pintan -- por PROMEDIO de
-         las dos paredes que los comparten. El 17 queda gris SIEMPRE: el metodo no lo mide. */
-      R.sinGrisEn3 = R.seg3 === '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16';
-      R.apex3Gris  = p3[17] === GRIS;
+      /* Con las TRES, las SEIS paredes con color. El apex queda gris SIEMPRE: no lo mide. */
+      R.sinGrisEn3 = R.seg3 === WS.slice().sort().join(',');
+      R.apex3Gris  = p3.apex === GRIS;
+      R.unSolo3 = unSolo(p3);
       /* ⚠️ ADAPTADAS EN PR12 (25/11/2026): ESTAS CUATRO SE MEDIAN POR EL COLOR DEL PIXEL Y HOY SE
          MIDEN POR EL NUMERO. Con la rampa de intensidad, dos pct distintos daban dos colores
          distintos SIEMPRE, asi que comparar pixeles alcanzaba. Con los ocho tramos de cinco puntos
@@ -25065,27 +25099,22 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
       const _CPc = (function () { try {
         return (typeof _strColorPct === 'function') ? _strColorPct : null } catch (e) { return null } })();
       const _tramoDe = v => (_CPc ? _hx2(_CPc(v)) : 'SIN _strColorPct');
-      const _prom = (a, b) => (typeof T3[a] === 'number' && typeof T3[b] === 'number')
-                              ? (T3[a] + T3[b]) / 2 : null;
-      const pr14 = _prom('Anteroseptal', 'Inferoseptal');
-      const pr16 = _prom('Anterolateral', 'Inferolateral');
-      R.p14Promedia = pr14 !== null && Math.abs(pr14 - T3['Anteroseptal']) > 1e-9
-                   && Math.abs(pr14 - T3['Inferoseptal']) > 1e-9
-                   && p3[14] === _tramoDe(pr14);
-      R.p16Promedia = pr16 !== null && Math.abs(pr16 - T3['Anterolateral']) > 1e-9
-                   && Math.abs(pr16 - T3['Inferolateral']) > 1e-9
-                   && p3[16] === _tramoDe(pr16);
+      /* ⚠️ ACA VIVIAN «14 y 16 grises: los comparten DOS paredes», «con dos, 14 y 16 SIGUEN
+         grises» y «14 y 16 PROMEDIAN sus dos paredes». LAS TRES SE RETIRARON EN PR13 y no se
+         aflojaron: los segmentos 14 y 16 ERAN los dos unicos que dos paredes compartian, y
+         desaparecieron con los anillos. Con un sector por pared no hay nada que promediar ni
+         ningun segmento que dos paredes puedan reclamar. Lo que esas tres protegian -que una
+         pared no herede el valor de otra- lo cubre hoy la condicion de que cada pared lleve el
+         color del TRAMO de SU valor, y la de que cada sector sea de UN solo color. */
       R.px3 = JSON.stringify(pint(p3));
       /* (G) PR12: EL COLOR DE CADA PARED ES EL TRAMO DE SU VALOR MEDIDO. Reemplaza a la condicion
          de intensidad del bloque 4, que afirmaba la escala que esta tanda cambio. */
-      const SEGDE = { Anterior:7, Anterolateral:12, Inferolateral:11,
-                      Inferior:10, Inferoseptal:9, Anteroseptal:8 };
       R.colorPorTramo = (function () {
         const mal = [];
-        Object.keys(SEGDE).forEach(function (w) {
+        WS.forEach(function (w) {
           if (typeof T3[w] !== 'number') { mal.push(w + ' sin valor'); return; }
           const esp = _tramoDe(T3[w]);
-          if (p3[SEGDE[w]] !== esp) mal.push(w + ' ' + p3[SEGDE[w]] + ' != ' + esp);
+          if (p3[w] !== esp) mal.push(w + ' ' + p3[w] + ' != ' + esp);
         });
         R.colorPorTramoQue = mal.join(' | ') || 'las seis paredes con el color de su tramo';
         return mal.length === 0;
@@ -25127,26 +25156,29 @@ caso('TC-201', 'Bull.s eye del visor: 17 segmentos AHA coloreados por territorio
     } finally { window.alert = alertOrig; }
 
     return { extra: [
-      ['DENOMINADOR: la paleta tiene sus nueve entradas y el visor SACA su color de ella (PR12)',
-        R.palTieneNueve && R.palEsLaDelVisor, R.palInforme.join(',')],
+      ['DENOMINADOR: la paleta tiene sus nueve entradas, el visor SACA su color de ella (PR12) y el diagrama tiene SEIS sectores (PR13)',
+        R.palTieneNueve && R.palEsLaDelVisor && R.haySectores,
+        R.palInforme.join(',') + ' | sectores=' + R.haySectores],
       ['el canvas del visor existe y se rotula',     R.hayCanvas && R.tituloPanel, R.hayCanvas],
       /* 1 vista · la A4C resuelve inferoseptal (3,9) y anterolateral (6,12) -- los numeros de
          EE_SEGS, que es la lista que usa el bulls eye del informe. */
-      ['1 vista: se pintan los segmentos 3,6,9,12',  R.a4cPintaSus4, R.seg1],
-      ['los del mismo territorio, del MISMO color',  R.mismoColorSepto && R.mismoColorLateral, R.mismoColorSepto],
-      ['el valor sale UNA vez por territorio',       R.unaVezPorTerr1, R.nums1.join(' ')],
-      ['14 y 16 grises: los comparten DOS paredes',  R.g1_sep14 && R.g1_lat16, R.g1_sep14],
+      ['PR13: 1 vista pinta SUS DOS paredes y las otras cuatro quedan grises', R.a4cPintaSus2, R.seg1],
+      ['PR13: cada sector es de UN SOLO color del disco al borde -- sin anillos', R.unSolo1 && R.unSolo2 && R.unSolo3,
+        R.unSolo1 + '/' + R.unSolo2 + '/' + R.unSolo3],
+      ['el valor sale UNA vez por pared',            R.unaVezPorTerr1, R.nums1.join(' ')],
       ['el apex (17) gris: el metodo no lo mide',    R.apex1Gris, R.apex1Gris],
       ['TODO color del diagrama sale de la paleta de la pestania SGL (PR12)', R.usaPaletaInforme, R.usaPaletaInforme],
+      ['PR13: la leyenda lleva los NUEVE rotulos y los dos extremos acotan', R.leyenda.nueve && R.leyenda.acota,
+        R.leyenda.esperados.join(' ') + ' | estan ' + R.leyenda.estan],
+      ['PR13: y el texto explicativo sale entero',   R.leyenda.textoEntero, R.leyenda.textoEntero],
       /* 2 vistas */
-      ['2 vistas: suma anterior (1,7,13) e inferior (4,10,15)', R.a2cSuma6, R.seg2],
-      ['con dos, 14 y 16 SIGUEN grises',             R.g2_sep14 && R.g2_lat16 && R.apex2Gris, R.g2_sep14],
-      ['y el valor sigue una vez por territorio',    R.unaVezPorTerr2, R.nums2.join(' ')],
+      ['PR13: 2 vistas suman Anterior e Inferior -- cuatro paredes', R.a2cSuma4, R.seg2],
+      ['con dos, el apex sigue gris',                R.apex2Gris, R.apex2Gris],
+      ['y el valor sigue una vez por pared',         R.unaVezPorTerr2, R.nums2.join(' ')],
       /* 3 vistas */
       ['3 vistas: el anteroseptal toma valor propio', R.septoYaNoIgual, R.px3],
       ['3 vistas: el inferolateral tambien',         R.lateralYaNoIgual, R.lateralYaNoIgual],
-      ['SOLO con TRES se pintan los 16, y 17 gris',  R.sinGrisEn3 && R.apex3Gris, R.seg3],
-      ['14 y 16 PROMEDIAN sus dos paredes',          R.p14Promedia && R.p16Promedia, R.p14Promedia + '/' + R.p16Promedia],
+      ['SOLO con TRES se pintan las SEIS, y el apex gris', R.sinGrisEn3 && R.apex3Gris, R.seg3],
       ['y los seis valores, una vez cada uno',       R.unaVezPorTerr3, R.nums3.join(' ')],
       ['PR12: el color de cada pared es el TRAMO de su valor', R.colorPorTramo, R.colorPorTramoQue],
       ['capturar manda la imagen al slot',           R.capturoAlSlot, R.slotsAntes + ' -> ' + R.slotsDespues],
@@ -166145,6 +166177,410 @@ caso('TC-1067',
     ['el dibujante sigue devolviendo donde termina la leyenda', R.leyLy, LEY.ly],
     ['CONTROL NEGATIVO: la paleta de la motilidad sigue siendo otra',
      R.motilidad === 'sin color en comun', R.motilidad]
+  ] };
+`);
+
+caso('TC-1068',
+ 'PR13 (TAREA 1): la leyenda del mapa del visor lleva los NUEVE rotulos en los bordes entre cuadritos -- con los dos extremos diciendo que la escala acota --, el cuadrado de sin dato en su propia fila y el texto explicativo ENTERO en hasta dos renglones dentro del canvas',
+`
+  /* GUARDA EN TODO ACCESO: contra el arbol anterior (e4ee124) _strBordes no existe y un acceso
+     pelado tira ReferenceError que se lleva el caso ENTERO -- la leccion de TC-827. */
+  const _fn = n => { try { return typeof window[n] === 'function' ? window[n] : null } catch (e) { return null } };
+  const _v  = n => { try { return eval(n) } catch (e) { return undefined } };
+  const R = {};
+  __t.limpiar();
+  try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+  const DIB = _fn('_strBullsDibujar'), BOR = _fn('_strBordes'), AG = _fn('_strAgregar'),
+        TR = _fn('strainTramoDe'), CP = _fn('_strColorPct'), GR = _fn('_strGris');
+  const PAL = _v('STRAIN_PAL'), MAR = _v('STRAIN_MARCAS');
+  R.hay = !!(DIB && BOR && AG && TR && CP && GR && PAL && MAR);
+  if (!R.hay) return { extra: [['DENOMINADOR: el dibujante y los nueve bordes existen', false,
+      'DIB=' + !!DIB + ' BOR=' + !!BOR + ' PAL=' + (PAL ? PAL.length : 0)]] };
+
+  /* (A) LOS NUEVE ROTULOS, DERIVADOS DE SUS DUENIOS Y NO ESCRITOS. Las ocho marcas son el borde
+     izquierdo de cada tramo y el noveno es el borde derecho del ultimo. */
+  const bor = BOR();
+  R.nueve = bor.length === 9;
+  R.rotulos = bor.join(' ');
+  R.derivados = (function () {
+    const esp = MAR.map(function (x, i) {
+      const t = (x > 0 ? '+' : (x < 0 ? '−' : '')) + Math.abs(x);
+      return i === 0 ? ('≤ ' + t) : t;
+    });
+    return esp.every(function (t, i) { return bor[i] === t });
+  })();
+  /* (B) LOS DOS EXTREMOS ACOTAN, Y LA MEDICION LO JUSTIFICA: lo que cae por debajo de -20 y por
+     encima de +20 toma el color del primer y del ultimo tramo. */
+  R.acotan = bor[0].indexOf('≤') === 0 && bor[8].indexOf('≥') === 0;
+  R.clampAbajo = TR(-20.01) === 1 && TR(-25) === 1 && TR(-30.1) === 1 && TR(-20) === 1;
+  R.clampArriba = TR(20) === 8 && TR(20.01) === 8 && TR(30.1) === 8;
+  R.mismoColorQue16 = String(CP(-30.1)) === String(CP(-16));
+
+  /* (C) EL DIBUJO: se instrumenta el contexto para registrar CADA texto con su rectangulo REAL.
+     Es lo que el pedido llama verificar con rectangulos y no con CSS. */
+  const vals = [-16.3, -30.1, -10.1, -11.4, -27.3, -23.1];
+  const nom  = ['Inferoseptal','Anterolateral','Inferior','Anterior','Anteroseptal','Inferolateral'];
+  const vis  = ['a4c','a4c','a2c','a2c','a3c','a3c'];
+  const RES = AG(vals.map(function (p, i) {
+    return { vista: vis[i], pared: nom[i], pct: p, ld: 100, ls: 100 + p } }));
+  const medir = function (S, conTitulo) {
+    const cv = document.createElement('canvas'); cv.width = S; cv.height = S;
+    const g = cv.getContext('2d');
+    const T = [];
+    const ft = g.fillText.bind(g);
+    g.fillText = function (t, x, y) {
+      let w = 0; try { w = g.measureText(t).width } catch (e) {}
+      const al = g.textAlign, bl = g.textBaseline;
+      const mm = String(g.font).match(/(\\d+(?:\\.\\d+)?)px/);
+      const px = parseFloat(mm ? mm[1] : 10);
+      const x0 = al === 'center' ? x - w/2 : (al === 'right' ? x - w : x);
+      const top = bl === 'middle' ? y - px*0.39 : y - px*0.8;
+      const bot = bl === 'middle' ? y + px*0.39 : y + px*0.22;
+      T.push({ t: String(t), x0: x0, x1: x0 + w, top: top, bot: bot, w: w });
+      return ft(t, x, y);
+    };
+    const fin = DIB(g, S, RES, conTitulo);
+    g.fillText = ft;
+    return { S: S, T: T, fin: fin };
+  };
+  const M3 = medir(300, false), M6 = medir(640, true);
+
+  /* Los nueve rotulos DIBUJADOS, en orden, sin pisarse y centrados en los nueve bordes. */
+  const chequear = function (M) {
+    const S = M.S, lw = S * 0.70, lx = S/2 - lw/2, bw = lw / 8;
+    const rot = M.T.filter(function (t) { return bor.indexOf(t.t) >= 0 })
+                   .sort(function (a, b) { return a.x0 - b.x0 });
+    let pisan = 0;
+    for (let i = 0; i + 1 < rot.length; i++) if (rot[i].x1 > rot[i+1].x0) pisan++;
+    const enBorde = rot.length === 9 && rot.every(function (t) {
+      const c = (t.x0 + t.x1)/2, i = bor.indexOf(t.t);
+      return Math.abs(c - (lx + bw*i)) < 1.2;
+    });
+    const expl = M.T.filter(function (t) { return t.t.indexOf('referencia de colores') >= 0
+                                               || t.t.indexOf('severidad') >= 0 });
+    const texto = expl.map(function (t) { return t.t }).join(' ');
+    const fuera = M.T.filter(function (t) { return t.x0 < -0.5 || t.x1 > S + 0.5
+                                                || t.bot > S + 0.5 || t.top < -0.5 });
+    const gris = M.T.filter(function (t) { return t.t === 'sin datos' });
+    const rotY = rot.length ? rot[0].bot : 0;
+    return { nRot: rot.length, pisan: pisan, enBorde: enBorde,
+             explRenglones: expl.length, explTexto: texto,
+             explCompleto: texto.indexOf('no grad') >= 0 && texto.indexOf('severidad') >= 0,
+             explDentro: expl.length > 0 && expl.every(function (t) { return t.x0 >= 0 && t.x1 <= S }),
+             explCentrado: expl.length > 0 && expl.every(function (t) { return Math.abs((t.x0+t.x1)/2 - S/2) < 1.2 }),
+             grisEnSuFila: gris.length === 1 && gris[0].top > rotY,
+             fuera: fuera.map(function (t) { return t.t }),
+             ly: M.fin ? M.fin.ly : null,
+             descargoEntra: M.fin ? (M.fin.ly + 28*M.fin.esc + 2 <= S) : false };
+  };
+  R.p = chequear(M3); R.c = chequear(M6);
+
+  /* (D) EL ESPACIO DE DIBUJO NO DEPENDE DEL ANCHO DE LA VENTANA, y eso es lo que hace que los
+     tres anchos del pedido den lo mismo: el canvas dibuja siempre en S unidades y el CSS lo
+     escala con max-width. Se afirma la propiedad, y la medicion en los tres anchos esta en
+     scripts/_probe_pr13.mjs y en scripts/_probe_pr13dom.mjs. */
+  R.escalaPorCss = (function () {
+    try {
+      const m = String(_v('_strBullsRepintar'));
+      return m.indexOf('max-width') >= 0 || m.indexOf('style.width') >= 0;
+    } catch (e) { return false }
+  })();
+
+  return { extra: [
+    ['DENOMINADOR: el dibujante, los nueve bordes y la paleta existen', R.hay, R.rotulos],
+    ['los rotulos son NUEVE y salen de STRAIN_MARCAS, no escritos', R.nueve && R.derivados, R.rotulos],
+    ['los dos extremos dicen que la escala acota', R.acotan, bor[0] + ' .. ' + bor[8]],
+    ['y la medicion lo justifica: por debajo de -20 cae en el tramo 1', R.clampAbajo && R.mismoColorQue16,
+      'clamp=' + R.clampAbajo + ' mismoColorQue-16=' + R.mismoColorQue16],
+    ['y por encima de +20, en el 8', R.clampArriba, R.clampArriba],
+    ['los nueve se dibujan EN EL BORDE entre cuadritos y no en el centro', R.p.enBorde && R.c.enBorde,
+      'pantalla=' + R.p.nRot + ' captura=' + R.c.nRot],
+    ['y no se pisan entre si', R.p.pisan === 0 && R.c.pisan === 0, R.p.pisan + '/' + R.c.pisan],
+    ['el cuadrado de sin dato queda en su PROPIA fila', R.p.grisEnSuFila && R.c.grisEnSuFila,
+      R.p.grisEnSuFila + '/' + R.c.grisEnSuFila],
+    ['el texto explicativo sale ENTERO en hasta dos renglones', R.p.explCompleto && R.c.explCompleto
+      && R.p.explRenglones <= 2 && R.c.explRenglones <= 2, R.p.explRenglones + ' renglones: ' + R.p.explTexto],
+    ['centrado y sin cortarse a ningun lado', R.p.explDentro && R.p.explCentrado && R.c.explDentro && R.c.explCentrado,
+      R.p.explDentro + '/' + R.c.explDentro],
+    ['nada queda fuera del canvas, en los dos tamanios', R.p.fuera.length === 0 && R.c.fuera.length === 0,
+      R.p.fuera.concat(R.c.fuera).join(' | ') || 'nada'],
+    ['y en la captura las dos lineas del descargo siguen entrando', R.c.descargoEntra, R.c.ly],
+    ['el canvas se escala por CSS, asi que el dibujo no depende del ancho de la ventana', R.escalaPorCss, R.escalaPorCss]
+  ] };
+`);
+
+caso('TC-1069',
+ 'PR13 (TAREA 2): el mapa del visor son SEIS sectores -- uno por pared, del disco al borde, sin anillos --, cada uno con el color que la pestania SGL da a su valor, su nombre y su numero con coma DENTRO del sector, el gris con Sin dato, el disco con 17 y el pie diciendo cuantas vistas y cuantas paredes',
+`
+  const _fn = n => { try { return typeof window[n] === 'function' ? window[n] : null } catch (e) { return null } };
+  const _v  = n => { try { return eval(n) } catch (e) { return undefined } };
+  const R = {};
+  __t.limpiar();
+  try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+  const DIB = _fn('_strBullsDibujar'), AG = _fn('_strAgregar'), CP = _fn('_strColorPct'),
+        GR = _fn('_strGris'), TR = _fn('strainTramoDe'), ESC = _fn('strainEscribir'), COL = _fn('strainColor');
+  const SEC = _v('_STR_SECTORES'), RD = _v('_STR_R_DISCO');
+  R.hay = !!(DIB && AG && CP && GR && SEC && SEC.length === 6 && typeof RD === 'number');
+  R.anillosRetirados = (_v('_STR_ANILLOS') === undefined) && (_v('_STR_SEG_FUENTE') === undefined)
+                    && (_v('_STR_SEG_ROTULO') === undefined);
+  if (!R.hay) return { extra: [['DENOMINADOR: hay SEIS sectores y un disco central', false,
+      'SEC=' + (SEC ? SEC.length : 0) + ' RD=' + RD]] };
+
+  R.paredes = SEC.map(function (s) { return s.pared }).join(',');
+  R.angulos = SEC.map(function (s) { return s.a[1] - s.a[0] }).join(',');
+  R.sesenta = SEC.every(function (s) { return s.a[1] - s.a[0] === 60 });
+  R.anteriorArriba = SEC[0].pared === 'Anterior' && SEC[0].a[0] === 330 && SEC[0].a[1] === 390;
+
+  const vals = [-16.3, -30.1, -10.1, -11.4, -27.3, -23.1];
+  const nom  = ['Inferoseptal','Anterolateral','Inferior','Anterior','Anteroseptal','Inferolateral'];
+  const vis  = ['a4c','a4c','a2c','a2c','a3c','a3c'];
+  const mkT = n => vals.slice(0, n).map(function (p, i) {
+    return { vista: vis[i], pared: nom[i], pct: p, ld: 100, ls: 100 + p } });
+  const RES = AG(mkT(6)), RES4 = AG(mkT(4));
+
+  /* El color que la PESTANIA da a cada valor, por su camino real: se escribe el numero en un
+     segmento y se lee strainColor. Es el cruce que el pedido pide. */
+  const seg = (function () { try { return LV3D_SEG_ID[1] } catch (e) { return null } })();
+  const colorDeLaPestania = function (p) {
+    if (!(ESC && COL && seg)) return null;
+    try { ESC(seg, (p > 0 ? '+' : '') + p); return String(COL(seg)); } catch (e) { return 'ERR' }
+  };
+
+  const medir = function (S, conTitulo, Rs) {
+    const cv = document.createElement('canvas'); cv.width = S; cv.height = S;
+    const g = cv.getContext('2d');
+    const T = [];
+    const ft = g.fillText.bind(g);
+    g.fillText = function (t, x, y) {
+      let w = 0; try { w = g.measureText(t).width } catch (e) {}
+      const al = g.textAlign, bl = g.textBaseline;
+      const mm = String(g.font).match(/(\\d+(?:\\.\\d+)?)px/);
+      const px = parseFloat(mm ? mm[1] : 10);
+      const x0 = al === 'center' ? x - w/2 : (al === 'right' ? x - w : x);
+      const top = bl === 'middle' ? y - px*0.39 : y - px*0.8;
+      const bot = bl === 'middle' ? y + px*0.39 : y + px*0.22;
+      T.push({ t: String(t), x0: x0, x1: x0 + w, top: top, bot: bot, w: w });
+      return ft(t, x, y);
+    };
+    const fin = DIB(g, S, Rs, conTitulo);
+    g.fillText = ft;
+    const d = g.getImageData(0, 0, S, S).data;
+    const pix = function (x, y) { const i = ((y|0)*S + (x|0))*4; return d[i] + ',' + d[i+1] + ',' + d[i+2] };
+    const hex = function (c) { return (String(c).replace('#','').match(/../g) || [])
+      .map(function (v) { return parseInt(v, 16) }).join(',') };
+    const porPared = {}; if (Rs) Rs.terr.forEach(function (t) { porPared[t.pared] = t });
+    const sobreTexto = function (X, Y) { return T.some(function (t) {
+      return X >= t.x0 - 1.5 && X <= t.x1 + 1.5 && Y >= t.top - 1.5 && Y <= t.bot + 1.5 }) };
+    const enSector = function (x, y, a0, a1) {
+      const dx = x - fin.cx, dy = y - fin.cy, dd = Math.sqrt(dx*dx + dy*dy);
+      if (dd < fin.rIn || dd > fin.r) return false;
+      const gg = (Math.atan2(dy, dx) * 180/Math.PI + 90 + 720) % 360;
+      return (gg >= a0 && gg <= a1) || (gg + 360 >= a0 && gg + 360 <= a1);
+    };
+    const out = SEC.map(function (sc) {
+      const am = ((sc.a[0] + sc.a[1])/2 - 90) * Math.PI/180;
+      /* CRUZA LAS DOS FRONTERAS QUE TENIAN LOS ANILLOS -0,47 y 0,72- y descarta las muestras que
+         caen sobre un texto: si quedara un anillo, dos de estas darian colores distintos. */
+      const pts = [0.28,0.33,0.40,0.63,0.68,0.90,0.96]
+        .map(function (f) { return { x: fin.cx + Math.cos(am)*fin.r*f, y: fin.cy + Math.sin(am)*fin.r*f } })
+        .filter(function (p) { return !sobreTexto(p.x, p.y) });
+      const cols = pts.map(function (p) { return pix(p.x, p.y) });
+      const t = porPared[sc.pared];
+      const espVisor = t ? hex(CP(t.pct)) : hex(GR());
+      const espPest = t ? hex(colorDeLaPestania(t.pct)) : null;
+      /* El nombre y el numero del sector, y si sus CUATRO esquinas entran en el poligono. */
+      const rango = fin.r - fin.rIn;
+      const ptsTxt = [fin.rIn + rango*0.72, fin.rIn + rango*0.36].map(function (rho) {
+        return { x: fin.cx + Math.cos(am)*rho, y: fin.cy + Math.sin(am)*rho } });
+      const mios = T.filter(function (tt) { return ptsTxt.some(function (p) {
+        return Math.abs((tt.x0+tt.x1)/2 - p.x) < 1.5 && Math.abs((tt.top+tt.bot)/2 - p.y) < 1.5 }) });
+      const entran = mios.length === 2 && mios.every(function (tt) {
+        return [[tt.x0,tt.top],[tt.x1,tt.top],[tt.x0,tt.bot],[tt.x1,tt.bot]]
+          .every(function (q) { return enSector(q[0], q[1], sc.a[0], sc.a[1]) }) });
+      return { pared: sc.pared, nMuestras: cols.length,
+               unSoloColor: cols.length >= 4 && cols.every(function (c) { return c === cols[0] }),
+               color: cols[0], esperadoVisor: espVisor, esperadoPestania: espPest,
+               igualAlVisor: cols[0] === espVisor,
+               igualALaPestania: espPest === null || cols[0] === espPest,
+               textos: mios.map(function (tt) { return tt.t }), textoEntra: entran };
+    });
+    const disco = pix(fin.cx + fin.rIn*0.45, fin.cy + fin.rIn*0.45);
+    return { S: S, sect: out, disco: disco, grisEsperado: hex(GR()),
+             hay17: T.some(function (t) { return t.t === '17' }),
+             sinDato: T.filter(function (t) { return t.t === 'Sin dato' }).length,
+             pie: T.map(function (t) { return t.t }).filter(function (t) { return t.indexOf('SGL') === 0 || t.indexOf('pared') >= 0 }) };
+  };
+
+  const M3 = medir(300, false, RES), M6 = medir(640, true, RES), M4 = medir(300, false, RES4);
+  const todos = function (M, k) { return M.sect.every(function (x) { return x[k] }) };
+  R.unSolo = todos(M3,'unSoloColor') && todos(M6,'unSoloColor') && todos(M4,'unSoloColor');
+  R.colorVisor = todos(M3,'igualAlVisor') && todos(M6,'igualAlVisor') && todos(M4,'igualAlVisor');
+  R.colorPest = todos(M3,'igualALaPestania') && todos(M6,'igualALaPestania');
+  R.textoEntra = todos(M3,'textoEntra') && todos(M6,'textoEntra') && todos(M4,'textoEntra');
+  R.malTexto = M3.sect.concat(M6.sect).filter(function (x) { return !x.textoEntra })
+                 .map(function (x) { return x.pared + ':' + x.textos.join('+') }).join(' | ');
+  R.discoGris = M3.disco === M3.grisEsperado && M6.disco === M6.grisEsperado;
+  R.hay17 = M3.hay17 && M6.hay17;
+  R.sinDato6 = M3.sinDato === 0; R.sinDato4 = M4.sinDato === 2;
+  R.coma = M3.sect.filter(function (x) { return x.textos.some(function (t) { return t.indexOf(',') >= 0 }) }).length;
+  R.conPunto = M3.sect.filter(function (x) { return x.textos.some(function (t) {
+    return /\\d\\.\\d/.test(t) }) }).length;
+  R.pie = M3.pie.join(' | ');
+  R.pieDice = M3.pie.some(function (t) { return t.indexOf('3 vistas') >= 0 && t.indexOf('6 paredes') >= 0
+    && t.indexOf('el ápex (17) no lo mide este método') >= 0 });
+  R.pie4 = M4.pie.some(function (t) { return t.indexOf('4 paredes') >= 0 });
+
+  return { extra: [
+    ['DENOMINADOR: hay SEIS sectores, uno por pared, y un disco central', R.hay, R.paredes],
+    ['PR13: los anillos y el reparto por segmento SE RETIRARON', R.anillosRetirados, R.anillosRetirados],
+    ['cada sector mide 60 grados y Anterior va arriba', R.sesenta && R.anteriorArriba, R.angulos],
+    ['cada sector es de UN SOLO color del disco al borde -- sin anillos', R.unSolo,
+      M3.sect.map(function (x) { return x.pared + ':' + x.nMuestras }).join(' ')],
+    ['y ese color es el que la paleta da a su valor', R.colorVisor,
+      M3.sect.map(function (x) { return x.color + (x.igualAlVisor ? '' : '!=' + x.esperadoVisor) }).join(' ')],
+    ['CRUZADO contra la pestania SGL: el mismo valor, el mismo color', R.colorPest,
+      M3.sect.map(function (x) { return x.esperadoPestania }).join(' ')],
+    ['el nombre y el numero entran DENTRO del poligono del sector', R.textoEntra, R.malTexto || 'los doce entran'],
+    ['el numero va con COMA, como la pestania', R.coma === 6 && R.conPunto === 0,
+      'conComa=' + R.coma + ' conPunto=' + R.conPunto],
+    ['una pared sin dato sale gris y dice Sin dato', R.sinDato6 && R.sinDato4,
+      'con seis=' + M3.sinDato + ' con cuatro=' + M4.sinDato],
+    ['el disco central queda gris y lleva el 17', R.discoGris && R.hay17, M3.disco + ' vs ' + M3.grisEsperado],
+    ['el pie dice las vistas, las paredes y que el apex no se mide', R.pieDice, R.pie],
+    ['y las paredes del pie son las que de verdad tienen valor', R.pie4, M4.pie.join(' | ')]
+  ] };
+`);
+
+caso('TC-1070',
+ 'PR13 (TAREA 2c): el color del texto del mapa es el de la pestania SGL donde alcanza y se endurece donde no, con contraste de 4,5 a 1 o mas en los NUEVE colores de la paleta -- y la paleta no se toca',
+`
+  const _fn = n => { try { return typeof window[n] === 'function' ? window[n] : null } catch (e) { return null } };
+  const _v  = n => { try { return eval(n) } catch (e) { return undefined } };
+  const R = {};
+  __t.limpiar();
+  const TXS = _fn('_strTxtSobre'), PAL = _v('STRAIN_PAL'), CTXT = _fn('strainColorTxt');
+  R.hay = !!(TXS && PAL && PAL.length === 9);
+  if (!R.hay) return { extra: [['DENOMINADOR: la regla de color de texto del mapa existe', false,
+      'TXS=' + !!TXS + ' PAL=' + (PAL ? PAL.length : 0)]] };
+
+  const lum = function (c) {
+    const m = (String(c).replace('#','').match(/../g) || []).map(function (h) { return parseInt(h,16)/255 });
+    const f = function (u) { return u <= 0.03928 ? u/12.92 : Math.pow((u+0.055)/1.055, 2.4) };
+    return 0.2126*f(m[0]) + 0.7152*f(m[1]) + 0.0722*f(m[2]);
+  };
+  const ratio = function (a, b) { const x = lum(a), y = lum(b);
+    return Math.round(((Math.max(x,y)+0.05)/(Math.min(x,y)+0.05)) * 100) / 100 };
+
+  R.delMapa = PAL.map(function (p, i) { return i + ':' + ratio(TXS(i), p.color) }).join('  ');
+  R.minMapa = Math.min.apply(null, PAL.map(function (p, i) { return ratio(TXS(i), p.color) }));
+  R.todosPasan = PAL.every(function (p, i) { return ratio(TXS(i), p.color) >= 4.5 });
+  /* La regla de la PESTANIA, sin endurecer: es STRAIN_PAL[i].txt, la que lee strainColorTxt. */
+  R.dePestania = PAL.map(function (p, i) { return i + ':' + ratio(p.txt, p.color) }).join('  ');
+  R.minPestania = Math.min.apply(null, PAL.map(function (p) { return ratio(p.txt, p.color) }));
+  R.cuantosFallanEnLaPestania = PAL.filter(function (p) { return ratio(p.txt, p.color) < 4.5 }).length;
+  /* DONDE ALCANZA, ES EXACTAMENTE EL DE LA PESTANIA: ocho de los nueve. */
+  R.igualQueLaPestania = PAL.map(function (p, i) { return (TXS(i) === p.txt) ? 1 : 0 }).join('');
+  R.cuantosIguales = PAL.filter(function (p, i) { return TXS(i) === p.txt }).length;
+  R.losQueCambian = PAL.map(function (p, i) { return (TXS(i) === p.txt) ? null : i })
+                       .filter(function (x) { return x !== null }).join(',');
+  /* Y LA PALETA NO SE TOCA: su txt sigue siendo el que la pestania publica. */
+  R.pestaniaIntacta = (function () {
+    try {
+      if (!CTXT) return 'no hay strainColorTxt';
+      const ESC = _fn('strainEscribir'), seg = LV3D_SEG_ID[1];
+      ESC(seg, '-18');
+      return String(CTXT(seg)) === String(PAL[1].txt) ? 'intacta' : 'CAMBIO';
+    } catch (e) { return 'ERR' }
+  })();
+  /* El mapa NO escribe con el oscuro fijo que tenia antes de PR12: sobre el violeta intenso daba
+     1,89 y es lo que el medico vio como ilegible. */
+  R.noUsaElOscuroFijo = TXS(1) !== '#111827' && ratio('#111827', PAL[1].color) < 2.5;
+
+  return { extra: [
+    ['DENOMINADOR: la regla del mapa y la paleta de nueve existen', R.hay, R.delMapa],
+    ['los NUEVE colores llegan a 4,5 a 1 o mas', R.todosPasan, 'minimo=' + R.minMapa],
+    ['la regla de la pestania NO alcanzaba en uno, y esta medido', R.cuantosFallanEnLaPestania === 1,
+      R.dePestania + ' | minimo=' + R.minPestania],
+    ['donde alcanza es EXACTAMENTE el de la pestania: ocho de los nueve', R.cuantosIguales === 8,
+      R.igualQueLaPestania + ' cambia el ' + R.losQueCambian],
+    ['y la pestania sigue publicando su propio color', R.pestaniaIntacta === 'intacta', R.pestaniaIntacta],
+    ['el mapa ya no escribe con el oscuro fijo sobre el violeta intenso', R.noUsaElOscuroFijo,
+      TXS(1) + ' / el oscuro daba ' + ratio('#111827', PAL[1].color)]
+  ] };
+`);
+
+caso('TC-1071',
+ 'PR13 (TAREA 3): la formula del strain por pared se verifica por el camino real del codigo -- 100 a 80 da -20,0 por ciento, 100 a 120 da +20,0 y 100 a 100 da 0 --, es un cociente que no depende de la calibracion, y los seis valores conocidos dan un SGL de -19,7',
+`
+  const _fn = n => { try { return typeof window[n] === 'function' ? window[n] : null } catch (e) { return null } };
+  const _v  = n => { try { return eval(n) } catch (e) { return undefined } };
+  const R = {};
+  __t.limpiar();
+  const CALC = _fn('_strainCalcular'), AG = _fn('_strAgregar'), INI = _fn('_strainIniciar');
+  R.hay = !!(CALC && AG);
+  if (!R.hay) return { extra: [['DENOMINADOR: el calculo del strain por pared existe', false,
+      'CALC=' + !!CALC + ' AG=' + !!AG]] };
+
+  /* POR EL CAMINO REAL Y SIN REIMPLEMENTAR LA FORMULA: se siembran los LARGOS de los dos arcos
+     en el estado del visor y se lee lo que _strainCalcular devuelve. */
+  try { if (INI) INI(); } catch (e) {}
+  const st = _v('_strain');
+  R.hayEstado = !!(st && st.vistas);
+  if (!R.hayEstado) return { extra: [['DENOMINADOR: el estado del strain del visor existe', false, 'sin _strain']] };
+  const PT = [{x:100,y:400},{x:300,y:120},{x:500,y:400}];
+  const mk = function (aA, aB) { return { arcoAcm: aA, arcoBcm: aB, bordeCm: aA + aB, Lcm: 7,
+    cuerdaCm: 1, metodo: 'libre', imagen: 'a4c.dcm',
+    eje: { apex: PT[1], M: { x:300, y:400 }, L: 280 }, pts: PT.slice(), cmPorPx: 0.01 } };
+  const sembrar = function (pares) {
+    ['a4c','a2c','a3c'].forEach(function (k) { st.vistas[k] = { d: null, s: null } });
+    Object.keys(pares).forEach(function (k) {
+      st.vistas[k] = { d: mk(pares[k][0], pares[k][2]), s: mk(pares[k][1], pares[k][3]) };
+    });
+    st.vista = Object.keys(pares)[0];
+    try { return CALC() } catch (e) { return null }
+  };
+  const pct = function (r) { return (r && r.terr)
+    ? r.terr.map(function (t) { return Math.round(t.pct * 1e6) / 1e6 }) : null };
+
+  R.menos20 = pct(sembrar({ a4c: [100, 80, 100, 80] }));
+  R.mas20   = pct(sembrar({ a4c: [100, 120, 100, 120] }));
+  R.cero    = pct(sembrar({ a4c: [100, 100, 100, 100] }));
+  /* ES UN COCIENTE: escalar los DOS largos por el mismo factor no mueve el resultado, asi que no
+     depende de la calibracion mm/px de la imagen. */
+  R.escala7   = pct(sembrar({ a4c: [700, 560, 700, 560] }));
+  R.escala013 = pct(sembrar({ a4c: [1.3, 1.04, 1.3, 1.04] }));
+
+  R.ok20  = JSON.stringify(R.menos20) === JSON.stringify([-20, -20]);
+  R.okMas = JSON.stringify(R.mas20) === JSON.stringify([20, 20]);
+  R.ok0   = JSON.stringify(R.cero) === JSON.stringify([0, 0]);
+  R.cociente = JSON.stringify(R.escala7) === JSON.stringify([-20, -20])
+            && JSON.stringify(R.escala013) === JSON.stringify([-20, -20]);
+
+  /* LOS SEIS VALORES CONOCIDOS, por el mismo camino, y su SGL. */
+  const r6 = sembrar({ a4c: [100, 83.7, 100, 69.9], a2c: [100, 89.9, 100, 88.6],
+                       a3c: [100, 72.7, 100, 76.9] });
+  R.seis = pct(r6);
+  R.seisRedondo = r6 ? r6.terr.map(function (t) { return Math.round(t.pct * 10) / 10 }) : null;
+  R.suma = R.seisRedondo ? Math.round(R.seisRedondo.reduce(function (a, b) { return a + b }, 0) * 10) / 10 : null;
+  R.sgl = r6 ? Math.round(r6.sgl * 1e6) / 1e6 : null;
+  R.sglUno = r6 ? r6.sgl.toFixed(1) : null;
+  R.esPromedio = r6 ? Math.abs(r6.sgl - (R.seis.reduce(function (a, b) { return a + b }, 0) / 6)) < 1e-9 : false;
+  /* Y el SGL que el dibujante publica sale del mismo numero, con coma. */
+  const FMT = _fn('_strFmt');
+  R.sglPublicado = (FMT && r6) ? FMT(r6.sgl) : null;
+
+  return { extra: [
+    ['DENOMINADOR: el calculo y el estado del visor existen', R.hay && R.hayEstado, JSON.stringify(R.menos20)],
+    ['100 a 80 da -20,0 por ciento', R.ok20, JSON.stringify(R.menos20)],
+    ['100 a 120 da +20,0 por ciento', R.okMas, JSON.stringify(R.mas20)],
+    ['100 a 100 da 0', R.ok0, JSON.stringify(R.cero)],
+    ['es un COCIENTE: escalar los dos largos no cambia el resultado', R.cociente,
+      JSON.stringify(R.escala7) + ' y ' + JSON.stringify(R.escala013)],
+    ['los seis valores conocidos salen exactos', JSON.stringify(R.seisRedondo) === JSON.stringify([-16.3,-30.1,-10.1,-11.4,-27.3,-23.1]),
+      JSON.stringify(R.seisRedondo)],
+    ['su suma es -118,3 y el SGL es su promedio', R.suma === -118.3 && R.esPromedio, R.suma + ' / ' + R.sgl],
+    ['y el SGL publicado es -19,7 con coma', R.sglUno === '-19.7' && R.sglPublicado === '-19,7 %',
+      R.sglUno + ' -> ' + R.sglPublicado]
   ] };
 `);
 
