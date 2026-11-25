@@ -165003,6 +165003,636 @@ caso('TC-1057',
   ] };
 `);
 
+caso('TC-1058',
+ 'PR9 (TAREA 1): la tabla «Calculos de strain» en UNA linea por celda, con los nombres cortos, la lista de lo que falta SOLO en el tooltip y en el aria-label del icono apagado, iconos finos de un color sin emoji ni imagen, el circulo de informacion sin title, y la caja dentro de sus medidas',
+`
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const R = {};
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    try { showTab('sgl'); } catch (e) {}
+    try { const h = document.querySelector('#sacc-sgl .sacc-hdr');
+      if (h && h.getAttribute('aria-expanded') !== 'true') secToggle('sgl'); } catch (e) {}
+    if (_hay('sglOnShow')) sglOnShow();
+    if (_hay('scRender')) scRender();
+    const raiz = document.getElementById('sgl-calc');
+    R.existe = !!raiz;
+    if (!raiz) return { extra: [['la tabla existe', false, 'NO']] };
+    const tds = Array.prototype.slice.call(raiz.querySelectorAll('tbody td'));
+    const conten = tds.filter(td => td.querySelector('.sc-lin'));
+    R.celdas = tds.length; R.conContenido = conten.length;
+    /* (A) UNA sola linea por celda, y la celda NO escribe lo que falta */
+    R.lineasPorCelda = conten.map(td => td.querySelectorAll('.sc-lin').length).join(',');
+    R.celdasConFalta = conten.filter(td => String(td.textContent || '').indexOf('Falta') >= 0).length;
+    R.nodosFalta = raiz.querySelectorAll('.sc-falta').length;
+    /* (B) los nombres CORTOS, sin los rangos de segmentos */
+    R.nombres = conten.map(td => td.querySelector('.sc-nom').textContent).join('|');
+    /* /!\ SIN EXPRESIONES REGULARES CON BARRA INVERTIDA: el cuerpo de un caso es un template
+       literal y la barra no sobrevive, asi que /\\d/ llega como la letra d. Se busca el
+       parentesis a mano. */
+    R.nombreConRango = conten.filter(function (td) {
+      const t = td.querySelector('.sc-nom').textContent;
+      return t.indexOf('(') >= 0 && t.indexOf(')') > t.indexOf('('); }).length;
+    /* (C) EL MOTIVO, en el title Y en el aria-label del icono apagado */
+    const iconos = Array.prototype.slice.call(raiz.querySelectorAll('tbody .sc-ico'));
+    R.nIconos = iconos.length;
+    const apag = iconos.filter(b => b.getAttribute('aria-disabled') === 'true');
+    R.nApagados = apag.length;
+    const bCalc = apag.filter(b => String(b.getAttribute('title') || '').indexOf('Calcular') === 0)[0];
+    R.titCalc = bCalc ? String(bCalc.getAttribute('title')) : 'NO HAY';
+    R.ariaCalc = bCalc ? String(bCalc.getAttribute('aria-label')) : 'NO HAY';
+    R.motivoEnTitle = R.titCalc.indexOf('Falta:') > 0;
+    R.motivoEnAria  = R.ariaCalc.indexOf('Falta:') > 0;
+    /* y NOMBRA segmentos del bull is eye, con «y N mas» a partir del cuarto */
+    R.titNombraSeg = R.titCalc.indexOf('Anterior basal') > 0 || R.titCalc.indexOf('Anteroseptal') > 0;
+    R.titResume = R.titCalc.indexOf(' y 14 m') > 0;
+    /* (D) NINGUN icono apagado lleva el atributo disabled: un boton disabled no emite eventos
+       de mouse y su title, que es el UNICO lugar donde vive el motivo, no se veria nunca */
+    R.disabledNativo = iconos.filter(b => b.disabled).length;
+    /* (E) LOS ICONOS: sin emoji, sin imagen, de un solo color, del tamanio de la letra */
+    R.imgs = raiz.querySelectorAll('img').length;
+    R.svgs = raiz.querySelectorAll('svg').length;
+    R.svgCurrentColor = Array.prototype.slice.call(raiz.querySelectorAll('svg'))
+      .filter(sv => sv.getAttribute('stroke') === 'currentColor').length;
+    /* un emoji vive fuera del plano basico o en el bloque de simbolos: se mira el texto de los
+       botones de accion, que tiene que estar VACIO porque su dibujo es un SVG */
+    const accion = iconos.filter(b => !b.hasAttribute('data-vinfo'));
+    R.accionConTexto = accion.filter(b => String(b.textContent || '').trim() !== '').length;
+    R.nAccion = accion.length;
+    const globos = iconos.filter(b => b.hasAttribute('data-vinfo'));
+    R.nGlobos = globos.length;
+    R.globosConTitle = globos.filter(b => b.getAttribute('title')).length;
+    R.globosGlifo = globos.filter(b => String(b.textContent || '').trim() === 'ⓘ').length;
+    R.cajaMax = Math.max.apply(null, iconos.map(b => {
+      const r = b.getBoundingClientRect(); return Math.round(Math.max(r.width, r.height)); }));
+    R.toque = (function () { try { const a = getComputedStyle(iconos[0], '::after');
+      return a.content === 'none' ? 'SIN ::after' : (parseFloat(a.width) + 'x' + parseFloat(a.height));
+    } catch (e) { return 'ERR' } })();
+    /* (F) LAS MEDIDAS: titulo + encabezado + las tres filas, y el ancho de la caja */
+    const tit = raiz.querySelector('.sc-tit'), th = raiz.querySelector('thead');
+    const filas = Array.prototype.slice.call(raiz.querySelectorAll('tbody tr'));
+    R.altoPartes = Math.round(tit.getBoundingClientRect().height
+      + th.getBoundingClientRect().height
+      + filas.reduce((a, tr) => a + tr.getBoundingClientRect().height, 0));
+    /* /!\ EL ANCHO DE LA CAJA SE MIDE EN LA TABLA, Y NO EN LA CAJA. La ventana del arnes mide
+       756 px, o sea por DEBAJO del corte de 760 de la media query de celular, y ahi la caja
+       toma el ancho disponible a proposito y desplaza por dentro. Lo que la orden pide -que la
+       caja ocupe solo el ancho de su contenido, con tope de 520- se mide en el contenido: la
+       tabla, que lleva width:max-content. El ancho de la CAJA en escritorio lo mide la sonda de
+       dos motores. */
+    R.anchoCaja = Math.round(raiz.querySelector('table').getBoundingClientRect().width);
+    R.cajaEnSuPadre = Math.round(raiz.getBoundingClientRect().width)
+      <= Math.round(raiz.parentNode.getBoundingClientRect().width) + 1;
+    R.nFilas = filas.length;
+    /* (G) y el documento no gana desplazamiento horizontal */
+    R.scrollDoc = Math.round(document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    /* (H) LA FRASE DE INTRODUCCION salio del cuerpo y vive en el globo del titulo */
+    R.notaEnCuerpo = raiz.querySelectorAll('.sc-nota').length;
+    R.cuerpoDiceConsulta = String(raiz.textContent || '').indexOf('De consulta') >= 0;
+    R.globoTitulo = !!raiz.querySelector('.sc-tit [data-vinfo="sc-caja"]');
+    R.textoGlobo = (function () { try { const e = VINFO['sc-caja'];
+      return e ? String(e.lee || '') : 'NO HAY' } catch (x) { return 'ERR' } })();
+    /* (I) CONTROL: con los diecisiete cargados los iconos se prenden y la celda publica su valor */
+    const ids = (typeof LV3D_SEG_ID !== 'undefined') ? LV3D_SEG_ID.slice(1) : [];
+    ids.forEach(k => { try { strainEscribir(k, '-14') } catch (e) {} });
+    if (_hay('scRender')) scRender();
+    const ic2 = Array.prototype.slice.call(raiz.querySelectorAll('tbody .sc-ico'));
+    R.apagadosLuego = ic2.filter(b => b.getAttribute('aria-disabled') === 'true').length;
+    R.faltaLuego = raiz.querySelectorAll('.sc-falta').length;
+    R.altoLuego = Math.round(raiz.getBoundingClientRect().height);
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+  finally {
+    try { if (_hay('sglReset')) sglReset(); } catch (e) {}
+    try { if (_hay('scLimpiarRes')) scLimpiarRes(); } catch (e) {}
+  }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['la tabla existe con sus doce celdas, diez con contenido', R.existe === true && R.celdas === 12 && R.conContenido === 10, R.celdas + '|' + R.conContenido],
+    ['UNA sola linea por celda', R.lineasPorCelda === '1,1,1,1,1,1,1,1,1,1', String(R.lineasPorCelda)],
+    ['la lista de lo que falta NO se escribe dentro de la celda', R.celdasConFalta === 0 && R.nodosFalta === 0, R.celdasConFalta + '|' + R.nodosFalta],
+    ['los nombres son los cortos, sin el rango de segmentos', R.nombres === '17 seg.|Basal|DA|A. sparing|16 seg.|Medio|CD|FEVI/SGL|Apical|CX' && R.nombreConRango === 0, String(R.nombres) + '|rangos=' + R.nombreConRango],
+    ['el motivo vive en el title del icono apagado', R.motivoEnTitle === true, R.titCalc],
+    ['y tambien en su aria-label', R.motivoEnAria === true, R.ariaCalc],
+    ['nombrando los segmentos del bull is eye y resumiendo a partir del cuarto', R.titNombraSeg === true && R.titResume === true, R.titNombraSeg + '|' + R.titResume],
+    ['ningun icono apagado lleva el atributo disabled, para que su tooltip se pueda ver', R.disabledNativo === 0, String(R.disabledNativo)],
+    ['DENOMINADOR: la tabla tiene veintidos iconos, diez globos y doce de accion', R.nIconos === 22 && R.nGlobos === 10 && R.nAccion === 12, R.nIconos + '|' + R.nGlobos + '|' + R.nAccion],
+    ['los iconos de accion son SVG de un solo color, sin emoji y sin imagen', R.imgs === 0 && R.svgs === 12 && R.svgCurrentColor === 12 && R.accionConTexto === 0, 'img=' + R.imgs + ' svg=' + R.svgs + ' cc=' + R.svgCurrentColor + ' conTexto=' + R.accionConTexto],
+    ['los globos usan el glifo de texto de esta casa y NINGUNO lleva title', R.globosGlifo === 10 && R.globosConTitle === 0, R.globosGlifo + '|' + R.globosConTitle],
+    ['los iconos se VEN en 14 px o menos', R.cajaMax <= 14 && R.cajaMax > 0, String(R.cajaMax)],
+    ['y se TOCAN en 44 px por el ::after, que no agranda la fila', R.toque === '44x44', String(R.toque)],
+    ['titulo, encabezado y las TRES filas entran en 120 px', R.nFilas === 3 && R.altoPartes <= 120 && R.altoPartes > 0, R.altoPartes + ' px'],
+    ['la tabla no pasa de 520 px de ancho y la caja no desborda a su contenedor', R.anchoCaja <= 520 && R.anchoCaja > 0 && R.cajaEnSuPadre === true, R.anchoCaja + ' px|' + R.cajaEnSuPadre],
+    ['el documento no gana desplazamiento horizontal', R.scrollDoc <= 0, String(R.scrollDoc)],
+    ['la frase de introduccion salio del cuerpo', R.notaEnCuerpo === 0 && R.cuerpoDiceConsulta === false, R.notaEnCuerpo + '|' + R.cuerpoDiceConsulta],
+    ['y vive en el globo pegado al titulo', R.globoTitulo === true && R.textoGlobo.indexOf('De consulta') === 0, R.globoTitulo + '|' + R.textoGlobo.slice(0, 40)],
+    /* Quedan TRES apagados a proposito: el Calcular de FEVI/SGL -que necesita la FEVI y el
+       campo de SGL, que esta escena no carga- y las DOS flechas de «Usar como SGL global», que
+       esperan a que su celda este calculada. Los otros nueve Calcular se prenden. */
+    ['CONTROL: con los diecisiete cargados los iconos se prenden, sin lista de faltantes', R.apagadosLuego === 3 && R.faltaLuego === 0, R.apagadosLuego + '|' + R.faltaLuego],
+    ['y la caja sigue sin crecer', R.altoLuego <= 140 && R.altoLuego > 0, R.altoLuego + ' px']
+  ] };
+`);
+
+caso('TC-1059',
+ 'PR9 (TAREA 2): el PDF «Tipo Word» con UN solo cuerpo de letra para los datos, la narrativa y el EN SUMA, la separacion uniforme entre lineas de datos, el ETT normal en UNA hoja A4, el estudio largo sin titulo huerfano ni linea cortada, y las otras ocho plantillas sin moverse',
+`
+  /* /!\ EL CUERPO VA ENVUELTO EN UNA FUNCION ASYNC. El runner evalua el caso dentro de
+     (function(){ ... })(), que no admite await; veintinueve casos de esta bateria usan esta
+     misma envoltura por lo mismo. */
+  return (async function () {
+  const R = { err: null };
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    const J = window.jspdf && window.jspdf.jsPDF;
+    R.hayPdf = !!J;
+    if (!J) return { extra: [['DENOMINADOR: la biblioteca de PDF cargo', false, 'NO HAY jsPDF']] };
+    /* Captura POR DOCUMENTO: _pdfAjustarA4 genera el PDF varias veces -una por paso de la
+       escalera que mide, mas la final-, asi que un contador compartido entre instancias suma
+       las hojas de todas las pasadas. El ultimo documento es el que se entrega. */
+    const capturar = function (plant) {
+      let ops = [], pags = 1, fsz = 0, fnt = '';
+      const docs = [];
+      try { setPdfPlantilla(plant); } catch (e) {}
+      window.jspdf.jsPDF = function (o) {
+        const d = new J(o); ops = []; pags = 1; const mios = ops;
+        docs.push(function () { return { hojas: pags, ops: mios } });
+        const asf = d.setFontSize; d.setFontSize = function (sz) { fsz = sz; return asf.apply(this, arguments) };
+        const af = d.setFont; d.setFont = function (n, st) { fnt = n + '/' + (st || ''); return af.apply(this, arguments) };
+        const at = d.text; d.text = function (t, x, yy) {
+          mios.push({ t: String(t), y: Math.round(yy * 100) / 100,
+                      fs: Math.round(fsz * 100) / 100, f: fnt, p: pags });
+          return at.apply(this, arguments) };
+        const ap = d.addPage; d.addPage = function () { pags++; return ap.apply(this, arguments) };
+        d.save = function () { return this };
+        return d; };
+      try { _pdfAjustarA4(); } catch (e) { R.err = 'pdf ' + plant + ': ' + String(e && e.message || e).slice(0, 120); }
+      window.jspdf.jsPDF = J;
+      return docs.length ? docs[docs.length - 1]() : null;
+    };
+    /* (A) EL ETT NORMAL */
+    [['nombre','Normal PR9'],['fecha','2026-11-24'],['edad','54'],['sexo','M'],['peso','78'],
+     ['talla','172'],['ai_diam','36'],['siv','9'],['ddfvi','48'],['dsfvi','30'],['ppvi','9'],
+     ['fevi','62'],['onda_e','78'],['onda_a','60'],['tde','190'],['e_sep','8'],['e_lat','11'],
+     ['tapse','21'],['vmax_it','2.1'],
+     ['informe_texto','Ventriculo izquierdo de dimensiones y funcion normales.\\nValvulas sin alteraciones significativas.'],
+     ['en_suma','Ecocardiograma dentro de limites normales.']].forEach(p => __t.set(p[0], p[1]));
+    await esp(600);
+    const N = capturar('tipoword');
+    R.hojasNormal = N ? N.hojas : -1;
+    /* El CUERPO del documento: lo que cae entre el encabezado y el pie */
+    const cuerpo = N ? N.ops.filter(o => o.y > 30 && o.y < 262) : [];
+    R.tamCuerpo = Array.from(new Set(cuerpo.map(o => o.fs))).sort((a, b) => a - b).join(',');
+    R.ptCuerpo = cuerpo.length ? Math.min.apply(null, cuerpo.map(o => o.fs)) : 0;
+    /* Los TRES bloques que la orden nombra: datos numericos, narrativa y EN SUMA */
+    const iInf = cuerpo.findIndex(o => o.t === 'INFORME');
+    const iSum = cuerpo.findIndex(o => /^EN SUMA/.test(o.t));
+    R.hayTresBloques = iInf > 0 && iSum > iInf;
+    R.ptDatos = iInf > 0 ? Array.from(new Set(cuerpo.slice(0, iInf).map(o => o.fs))).join(',') : 'NO';
+    R.ptNarrativa = (iInf > 0 && iSum > iInf) ? Array.from(new Set(cuerpo.slice(iInf + 1, iSum).map(o => o.fs))).join(',') : 'NO';
+    R.ptSuma = iSum > 0 ? Array.from(new Set(cuerpo.slice(iSum + 1).map(o => o.fs))).join(',') : 'NO';
+    /* (B) SEPARACION UNIFORME entre lineas de datos: los saltos entre dos renglones NORMALES
+       consecutivos de la misma seccion tienen que ser todos iguales. Un renglon en blanco suelto
+       abria 8,8 mm donde el resto abria 5,5, que es lo que el medico vio. */
+    const saltos = {};
+    for (let i = 1; i < (iInf > 0 ? iInf : cuerpo.length); i++) {
+      const a = cuerpo[i - 1], b = cuerpo[i];
+      if (/bold/.test(a.f) || /bold/.test(b.f)) continue;
+      if (a.p !== b.p) continue;
+      const g = Math.round((b.y - a.y) * 10) / 10;
+      saltos[g] = (saltos[g] || 0) + 1;
+    }
+    R.saltosDatos = Object.keys(saltos).sort().join(',');
+    R.nSaltos = Object.keys(saltos).reduce((a, k) => a + saltos[k], 0);
+    /* (C) LAS OTRAS PLANTILLAS NO SE TOCAN */
+    const C = capturar('clasico');
+    const cuerpoC = C ? C.ops.filter(o => o.y > 30 && o.y < 262) : [];
+    R.tamClasico = Array.from(new Set(cuerpoC.map(o => o.fs))).sort((a, b) => a - b).join(',');
+    R.hojasClasico = C ? C.hojas : -1;
+    /* (D) EL ESTUDIO LARGO, con el score de Wilkins integrado al informe */
+    __t.limpiar();
+    [['nombre','Largo PR9'],['fecha','2026-11-24'],['edad','71'],['sexo','F'],['peso','64'],
+     ['talla','158'],['ao_sin','43'],['ao_st','35'],['ao_tub','47'],['ai_diam','48'],['ai_area','28'],
+     ['ai_vol','96'],['ad_area','21'],['vci_diam','21'],['pmad','8'],['siv','13'],['ddfvi','56'],
+     ['dsfvi','40'],['ppvi','12'],['vdfvi','160'],['vsfvi','78'],['fevi','49'],['sgl','-13'],
+     ['tapse','16'],['s_prime','9'],['vd_bas','41'],['onda_e','102'],['onda_a','48'],['tde','150'],
+     ['thp','130'],['e_sep','5'],['e_lat','7'],['vmax_it','3.2'],['pap_med','34'],
+     ['vmax_ao','4.6'],['gmedio_ao','55'],['itv_tsvi','16'],['itv_ao','96'],['diam_tsvi','20'],
+     ['vm_morf','Reumatica'],['im_grado','3'],['im_vc','6'],['em_area_thp','1.1'],
+     ['va_morf','Calcificada'],['ia_grado','3'],['vt_morf','Normal'],['it_grado','3'],
+     ['wilkins_movilidad','2'],['wilkins_engrosamiento','2'],['wilkins_calcificacion','1'],
+     ['wilkins_subvalvular','2'],
+     ['informe_texto','Ventriculo izquierdo de dimensiones aumentadas con funcion sistolica levemente deprimida.\\nValvula mitral reumatica con estenosis moderada.\\nInsuficiencia mitral moderada.\\nValvula aortica calcificada con estenosis severa.\\nInsuficiencia aortica moderada.\\nDilatacion de la raiz aortica.\\nHipertension pulmonar probable.'],
+     ['en_suma','Estenosis mitral reumatica moderada.\\nEstenosis aortica severa.\\nInsuficiencia mitral moderada.\\nHipertension pulmonar probable.']].forEach(p => __t.set(p[0], p[1]));
+    try { calcWilkins(); } catch (e) {}
+    await esp(500);
+    try { amiloIntegrar('wilk'); } catch (e) {}
+    await esp(400);
+    R.wilkIntegrado = (function () { try { return (amiloEnInforme() || []).map(d => d.k).join(',') } catch (e) { return 'ERR' } })();
+    const L = capturar('tipoword');
+    R.hojasLargo = L ? L.hojas : -1;
+    /* TITULO HUERFANO: un texto en negrita -y no en negrita cursiva, que es como las otras ocho
+       plantillas dibujan los items del EN SUMA- que es el ULTIMO del cuerpo de su hoja */
+    const porHoja = {};
+    (L ? L.ops : []).forEach(o => { if (o.y > 30 && o.y < 262) (porHoja[o.p] = porHoja[o.p] || []).push(o) });
+    R.huerfanos = Object.keys(porHoja).filter(function (pg) {
+      const arr = porHoja[pg], u = arr[arr.length - 1];
+      return /bold/.test(u.f) && !/bolditalic/.test(u.f);
+    }).map(pg => 'p' + pg).join(',');
+    /* y LOS MISMOS TAMANIOS en las dos hojas del cuerpo -la hoja del modulo es un anexo y la
+       dibuja otra funcion, que la orden deja expresamente fuera- */
+    R.tamHoja1 = porHoja['1'] ? Array.from(new Set(porHoja['1'].map(o => o.fs))).sort((a, b) => a - b).join(',') : 'NO';
+    try { setPdfPlantilla('clasico'); } catch (e) {}
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+  finally { try { __t.limpiar(); } catch (e) {} try { setPdfPlantilla('clasico'); } catch (e) {} }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['DENOMINADOR: la biblioteca de PDF cargo y el estudio largo lleva el Wilkins integrado', R.hayPdf === true && R.wilkIntegrado === 'wilk', R.hayPdf + '|' + R.wilkIntegrado],
+    ['el ETT normal sale en UNA hoja A4', R.hojasNormal === 1, String(R.hojasNormal)],
+    ['DENOMINADOR: ese documento trae los tres bloques -datos, INFORME y EN SUMA-', R.hayTresBloques === true, String(R.hayTresBloques)],
+    ['UN SOLO tamanio de letra en el cuerpo, en negrita y en normal', R.tamCuerpo === '10', String(R.tamCuerpo)],
+    ['los datos numericos, la narrativa y el EN SUMA al MISMO tamanio', R.ptDatos === '10' && R.ptNarrativa === '10' && R.ptSuma === '10', 'datos=' + R.ptDatos + ' narr=' + R.ptNarrativa + ' suma=' + R.ptSuma],
+    ['y ese tamanio nunca baja de 9 pt', R.ptCuerpo >= 9, String(R.ptCuerpo)],
+    /* CINCO saltos: tres dentro del ventriculo izquierdo -y uno de ellos es el par FEVI /
+       Masa idx, que es justo donde el renglon en blanco abria 8,8 mm- y dos dentro de la
+       valvula mitral. */
+    ['DENOMINADOR: hay varias lineas de datos seguidas que medir', R.nSaltos >= 5, String(R.nSaltos)],
+    ['la separacion entre lineas de datos es SIEMPRE la misma, sin renglones en blanco sueltos', R.saltosDatos === '4.9', String(R.saltosDatos)],
+    ['CONTROL: el estilo clasico no se movio y sigue con sus propios cuerpos de letra', R.hojasClasico === 1 && R.tamClasico.indexOf('7.49') >= 0 && R.tamClasico !== '10', R.tamClasico],
+    ['el estudio largo entra en dos hojas de cuerpo mas la del anexo', R.hojasLargo <= 2 && R.hojasLargo >= 1, String(R.hojasLargo)],
+    ['sin dejar un titulo huerfano al pie de ninguna hoja', R.huerfanos === '', String(R.huerfanos)],
+    ['y con el mismo cuerpo de letra en su primera hoja', R.tamHoja1 === '10', String(R.tamHoja1)]
+  ] };
+  })();
+`);
+
+caso('TC-1060',
+ 'PR9 (TAREA 3): un recuadro de texto variable del PDF nunca pisa lo que viene debajo — con texto corto, largo y muy largo y con el ancho recortado —, y entre la franja de titulo de una tarjeta y su primer subtitulo queda un aire uniforme',
+`
+  const R = { err: null, casos: [] };
+  try {
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    const J = window.jspdf && window.jspdf.jsPDF;
+    R.hayPdf = !!J;
+    R.hayFn = (typeof amiloDibujarSecciones === 'function');
+    if (!J || !R.hayFn) return { extra: [['DENOMINADOR: la biblioteca de PDF y el dibujante de secciones existen',
+      false, 'pdf=' + !!J + ' fn=' + R.hayFn]] };
+    /* Alto de una mayuscula en mm a partir del cuerpo en puntos: 1 pt = 0,3528 mm y para
+       helvetica la mayuscula mide ~0,717 del cuerpo. */
+    const CAP = 0.3528 * 0.717;
+    const CORTO = 'Salvedad corta.';
+    const LARGO = 'Salvedad. El score de Wilkins evalua la anatomia valvular: no puntua la calcificacion comisural ni el grado de insuficiencia mitral. Segun la guia EAE/ASE 2009 de estenosis valvular (apartado B.2.1, folio 14), ningun score ha demostrado ser superior a otro y todos tienen un valor predictivo limitado del resultado de la comisurotomia mitral con balon.';
+    const MUYLARGO = LARGO + ' ' + LARGO + ' ' + LARGO;
+    const medir = function (nota, ancho) {
+      const d = new J({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const ops = []; let fsz = 0, fnt = '';
+      const asf = d.setFontSize; d.setFontSize = function (s) { fsz = s; return asf.apply(this, arguments) };
+      const af = d.setFont; d.setFont = function (n, st) { fnt = n + '/' + (st || ''); return af.apply(this, arguments) };
+      const at = d.text; d.text = function (t, x, y) {
+        ops.push({ k: 't', t: String(t), y: Math.round(y * 1000) / 1000,
+                   fs: Math.round(fsz * 1000) / 1000, f: fnt }); return at.apply(this, arguments) };
+      const ar = d.rect; d.rect = function (x, y, w, h) {
+        ops.push({ k: 'r', y: Math.round(y * 1000) / 1000, w: Math.round(w * 1000) / 1000,
+                   h: Math.round(h * 1000) / 1000 }); return ar.apply(this, arguments) };
+      d.save = function () { return this };
+      const secs = [{ tit: 'SCORE DE PRUEBA', txt:
+        'Puntaje total | 7 de 16\\n!! ' + nota + '\\n## Desglose por criterio\\n'
+        + 'Movilidad valvular | 2 de 4\\nEngrosamiento valvular | 2 de 4' }];
+      amiloDibujarSecciones(d, secs, { mL: 9, pgW: ancho, tema: [26, 61, 122], yIni: 30, yFin: 281 });
+      /* EL RECUADRO DE LA NOTA: el unico relleno alto y ancho que no es la franja de titulo ni
+         el filete de la izquierda. */
+      const rects = ops.filter(o => o.k === 'r');
+      const nota2 = rects.filter(o => o.h > 7.5 && o.w > 20)[0] || null;
+      const barra = rects.filter(o => Math.abs(o.h - 7) < 0.01)[0] || null;
+      const ts = ops.filter(o => o.k === 't');
+      if (!nota2) return { ok: false, motivo: 'SIN RECUADRO' };
+      const abajo = nota2.y + nota2.h;
+      /* El PRIMER texto cuya linea de base cae EN el borde de abajo o por debajo. Una base
+         exactamente en el borde es el DEFECTO, no «adentro»: ahi las mayusculas suben hacia
+         adentro del recuadro. */
+      let sig = null;
+      for (let i = 0; i < ts.length; i++) { if (ts[i].y >= abajo - 0.01) { sig = ts[i]; break; } }
+      if (!sig) return { ok: false, motivo: 'NADA DESPUES DEL RECUADRO' };
+      const tope = sig.y - sig.fs * CAP;
+      /* Y el aire entre la franja de titulo y su primera fila */
+      const prim = ts.filter(o => barra && o.y > barra.y + barra.h)[0] || null;
+      const aire = (barra && prim) ? ((prim.y - prim.fs * CAP) - (barra.y + barra.h)) : null;
+      return { ok: true, lineas: ts.filter(o => /italic/.test(o.f)).length,
+               abajo: Math.round(abajo * 100) / 100,
+               tope: Math.round(tope * 100) / 100,
+               /* POSITIVO = pisa */
+               pisa: Math.round((abajo - tope) * 100) / 100,
+               sig: sig.t.slice(0, 26),
+               aire: aire === null ? null : Math.round(aire * 100) / 100 };
+    };
+    R.casos = [
+      ['corto a todo el ancho',   medir(CORTO, 192)],
+      ['largo a todo el ancho',   medir(LARGO, 192)],
+      ['muy largo',               medir(MUYLARGO, 192)],
+      ['largo en 90 mm de ancho', medir(LARGO, 90)],
+      ['largo en 60 mm de ancho', medir(LARGO, 60)]
+    ];
+    R.todosOk = R.casos.every(c => c[1].ok === true);
+    R.pisan = R.casos.filter(c => c[1].ok && c[1].pisa > 0).map(c => c[0] + '=' + c[1].pisa).join(' | ');
+    R.aires = R.casos.filter(c => c[1].ok).map(c => c[1].aire).join(',');
+    R.aireMin = R.casos.filter(c => c[1].ok).reduce((a, c) => Math.min(a, c[1].aire), 999);
+    R.aireUnico = Array.from(new Set(R.casos.filter(c => c[1].ok).map(c => c[1].aire))).length;
+    /* DENOMINADOR: el texto largo parte en varios renglones y el angosto en mas todavia */
+    R.lineas = R.casos.filter(c => c[1].ok).map(c => c[1].lineas).join(',');
+    R.siguiente = R.casos.filter(c => c[1].ok).map(c => c[1].sig).join('|');
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['DENOMINADOR: los cinco escenarios dibujaron su recuadro y algo debajo', R.todosOk === true, JSON.stringify(R.casos.map(c => c[0] + '=' + (c[1].ok ? 'ok' : c[1].motivo)))],
+    ['DENOMINADOR: el texto se parte en mas renglones cuanto mas largo o mas angosto', (function () { const n = String(R.lineas).split(',').map(Number); return n[0] === 1 && n[1] > n[0] && n[2] > n[1] && n[3] > n[1]; })(), String(R.lineas)],
+    ['DENOMINADOR: lo que sigue al recuadro es el subtitulo, en los cinco', String(R.siguiente).split('|').every(x => x.indexOf('Desglose') === 0), String(R.siguiente)],
+    ['el bloque que sigue NUNCA empieza antes del borde de abajo del recuadro', R.pisan === '', String(R.pisan)],
+    ['y entre la franja de titulo y su primer subtitulo queda aire de verdad', R.aireMin >= 2, String(R.aires)],
+    ['el mismo aire en los cinco escenarios', R.aireUnico === 1, String(R.aires)]
+  ] };
+`);
+
+caso('TC-1061',
+ 'PR9 (TAREA 4.1): un segmento del bull is eye no acepta mas de dos cifras enteras — ni escribiendo, ni pegando, ni por el gesto que formaba el -1718 —, avisa cuando se rechaza, trata como «Sin dato» un valor imposible ya guardado, y los valores normales siguen entrando igual',
+`
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const R = { avisos: [] };
+  const _t0 = window.toast;
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    try { showTab('sgl'); } catch (e) {}
+    if (_hay('sglOnShow')) sglOnShow();
+    R.hayRegla = _hay('strainTxtValido') && _hay('strainNumValido');
+    if (!R.hayRegla) return { extra: [['DENOMINADOR: la regla de la celda existe', false, 'NO HAY']] };
+    /* (A) LA REGLA, sobre el TEXTO */
+    R.acepta = ['-17', '17', '+18', '12,5', '-20', '-12.55', ''].filter(x => strainTxtValido(x)).length;
+    R.rechaza = ['-1718', '1718', '100', '-100', '999', 'abc', '1,5.5', '-1718.4']
+      .filter(x => !strainTxtValido(x)).length;
+    R.numValido = strainNumValido(-17) && strainNumValido(99.9) && !strainNumValido(-1718)
+      && !strainNumValido(100) && !strainNumValido(-100);
+    /* (B) EL GESTO EXACTO: -17, confirmar, reabrir, caret al final y teclear 1 y 8 */
+    const seg = document.querySelector('#sgl-svg-bullseye [data-strainid]');
+    R.haySeg = !!seg;
+    const id = seg && seg.getAttribute('data-strainid');
+    if (!strainNumModoOn()) { try { strainNumToggle() } catch (e) {} }
+    strainCajaAbrir(id, seg);
+    let c = document.querySelector('[data-strain-caja]');
+    R.cajaAbre = !!c;
+    R.maxlength = c && c.getAttribute('maxlength');
+    R.inputmode = c && c.getAttribute('inputmode');
+    if (c) { c.value = '-17'; c.dispatchEvent(new Event('input', { bubbles: true })); strainCajaCerrar(true); }
+    R.tras17 = String(strainNum[id]);
+    strainCajaAbrir(id, seg);
+    c = document.querySelector('[data-strain-caja]');
+    R.reabreCon = c ? c.value : 'NO HAY';
+    if (c) {
+      /* se pierde la seleccion -que es lo que pasa al TOCAR la casilla- y se escribe detras */
+      c.setSelectionRange(c.value.length, c.value.length);
+      c.value = c.value + '1'; c.dispatchEvent(new Event('input', { bubbles: true }));
+      R.trasDigito1 = c.value;
+      c.value = c.value + '8'; c.dispatchEvent(new Event('input', { bubbles: true }));
+      R.trasDigito2 = c.value;
+      strainCajaCerrar(true);
+    }
+    R.tras1718 = String(strainNum[id]);
+    /* (C) PEGAR un numero largo */
+    strainCajaAbrir(id, seg);
+    c = document.querySelector('[data-strain-caja]');
+    if (c) { c.value = '-123456'; c.dispatchEvent(new Event('input', { bubbles: true }));
+             R.trasPegarCaja = c.value; strainCajaCerrar(true); }
+    R.trasPegar = String(strainNum[id]);
+    /* (D) EL CAMINO DE ABAJO, con el aviso espiado */
+    window.toast = function (m) { R.avisos.push(String(m)); };
+    R.devuelve = String(strainEscribir(id, '-1718'));
+    R.trasEscribir = String(strainNum[id]);
+    R.aviso = R.avisos.filter(m => m.indexOf('dos cifras enteras') >= 0).length;
+    window.toast = _t0;
+    /* (E) LOS NORMALES SIGUEN ENTRANDO */
+    R.norm = ['-17', '+5', '12,5'].map(x => { strainEscribir(id, x); return String(strainNum[id]) }).join('/');
+    R.tramoNorm = String(strainIdx(id));
+    /* (F) UN VALOR IMPOSIBLE YA GUARDADO EN DISCO */
+    const ids = LV3D_SEG_ID.slice(1);
+    const est = {}, nums = {};
+    ids.forEach(k => { est[k] = strainTramoDe(-12); nums[k] = -12; });
+    est[ids[14]] = 1; nums[ids[14]] = -1718;
+    R.avisos = [];
+    window.toast = function (m) { R.avisos.push(String(m)); };
+    _restaurarStrain({ strain_sgl_ver: STRAIN_VER,
+                       strain_sgl: JSON.stringify(est), strain_sgl_num: JSON.stringify(nums) });
+    window.toast = _t0;
+    R.avisoViejo = R.avisos.filter(m => m.indexOf('imposible') >= 0).length;
+    R.avisosTotal = R.avisos.length;
+    R.restMalo = String(strainNum[ids[14]]);
+    R.restMaloTramo = String(strainIdx(ids[14]));
+    R.restOtro = String(strainNum[ids[0]]);
+    R.restOtroTramo = String(strainIdx(ids[0]));
+    /* y ese segmento NO entra a los promedios: la celda exige todos sus segmentos */
+    R.promConMalo = String(scPromedio(SC_GRUPOS.g17));
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+  finally {
+    window.toast = _t0;
+    try { if (_hay('sglReset')) sglReset(); } catch (e) {}
+    try { if (strainNumModoOn()) strainNumToggle(); } catch (e) {}
+  }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['DENOMINADOR: la regla de la celda existe y el bull is eye tiene segmentos', R.hayRegla === true && R.haySeg === true && R.cajaAbre === true, R.hayRegla + '|' + R.haySeg + '|' + R.cajaAbre],
+    ['la regla acepta los SIETE valores validos', R.acepta === 7, String(R.acepta)],
+    ['y rechaza los OCHO imposibles, entre ellos 1718 y -1718', R.rechaza === 8, String(R.rechaza)],
+    ['la regla sobre el NUMERO tambien, que es la que usa la restauracion', R.numValido === true, String(R.numValido)],
+    ['la casilla trae su tope de caracteres y su teclado numerico', R.maxlength === '6' && R.inputmode === 'decimal', R.maxlength + '|' + R.inputmode],
+    ['DENOMINADOR: con -17 escrito, la casilla REABRE con ese valor adentro', R.tras17 === '-17' && R.reabreCon === '-17', R.tras17 + '|' + R.reabreCon],
+    ['escribir -17 y despues 18 en la misma celda NO forma -1718', R.trasDigito1 === '-17' && R.trasDigito2 === '-17' && R.tras1718 === '-17', R.trasDigito1 + '|' + R.trasDigito2 + '|' + R.tras1718],
+    ['pegar un numero largo tampoco entra', R.trasPegarCaja === '-17' && R.trasPegar === '-17', R.trasPegarCaja + '|' + R.trasPegar],
+    ['escribir un valor imposible no se guarda y avisa', R.devuelve === 'null' && R.trasEscribir === '-17' && R.aviso >= 1, R.devuelve + '|' + R.trasEscribir + '|avisos=' + R.aviso],
+    ['los valores normales siguen entrando igual que antes', R.norm === '-17/5/-12.5' && R.tramoNorm !== '0', R.norm + '|tramo=' + R.tramoNorm],
+    ['un valor imposible ya guardado queda como Sin dato, en gris', R.restMalo === 'undefined' && R.restMaloTramo === '0', R.restMalo + '|' + R.restMaloTramo],
+    ['se avisa UNA sola vez por restauracion', R.avisoViejo === 1 && R.avisosTotal === 1, R.avisoViejo + '|' + R.avisosTotal],
+    ['CONTROL: no se borra nada mas, los demas segmentos vuelven como estaban', R.restOtro === '-12' && R.restOtroTramo === strainTramoDe(-12).toString(), R.restOtro + '|' + R.restOtroTramo],
+    ['y ese segmento no contamina los promedios', R.promConMalo === 'null', String(R.promConMalo)]
+  ] };
+`);
+
+caso('TC-1062',
+ 'PR9 (TAREA 4.2): el cartel de FEVI/SGL nombra SOLO lo que falta y dice que la FEVI se tomo de la aplicacion, la FEVI sale del mismo valor que usa el informe, el campo de SGL llenado a mano cuenta igual, y cambiar la FEVI borra el resultado ya calculado',
+`
+  /* /!\ EL CUERPO VA ENVUELTO EN UNA FUNCION ASYNC. El runner evalua el caso dentro de
+     (function(){ ... })(), que no admite await; veintinueve casos de esta bateria usan esta
+     misma envoltura por lo mismo. */
+  return (async function () {
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const R = {};
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const celdaVal = function (nom) {
+    const r = document.getElementById('sgl-calc'); if (!r) return 'NO HAY';
+    const tds = Array.prototype.slice.call(r.querySelectorAll('tbody td'));
+    const td = tds.filter(function (x) { const n = x.querySelector('.sc-nom');
+      return n && n.textContent === nom })[0];
+    return td ? td.querySelector('.sc-val').textContent : 'NO HAY';
+  };
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    try { showTab('sgl'); } catch (e) {}
+    if (_hay('sglOnShow')) sglOnShow();
+    R.hay = _hay('scMotivo') && _hay('scValor') && _hay('_scFevi');
+    if (!R.hay) return { extra: [['DENOMINADOR: la celda FEVI/SGL y su motivo existen', false, 'NO HAY']] };
+    const C = SC_COLS[3].cel[1];
+    R.esFsgl = !!C && C.tipo === 'fsgl' && C.nom === 'FEVI/SGL';
+    /* (A) SIN NINGUNA DE LAS DOS */
+    __t.set('fevi', ''); __t.set('sgl_gls', ''); __t.set('sgl', '');
+    await esp(80);
+    R.sinNada = scMotivo(C);
+    /* (B) CON LA FEVI CARGADA Y EL SGL VACIO: nombra SOLO el SGL y dice la FEVI de la app */
+    __t.set('fevi', '50');
+    await esp(80);
+    R.conFevi = scMotivo(C);
+    R.nombraSoloSgl = R.conFevi.indexOf('Falta: SGL global') === 0
+      && R.conFevi.indexOf('FEVI tomada de la app: 50') > 0;
+    /* y ese texto es el que se ve en el tooltip del icono apagado */
+    if (_hay('scRender')) scRender();
+    R.tooltip = (function () {
+      const r = document.getElementById('sgl-calc');
+      const tds = Array.prototype.slice.call(r.querySelectorAll('tbody td'));
+      const td = tds.filter(function (x) { const n = x.querySelector('.sc-nom');
+        return n && n.textContent === 'FEVI/SGL' })[0];
+      if (!td) return 'NO HAY';
+      const b = td.querySelector('.sc-ico[aria-disabled="true"]');
+      return b ? String(b.getAttribute('title')) : 'NO APAGADO';
+    })();
+    /* (C) SIN LA FEVI */
+    __t.set('fevi', ''); __t.set('sgl_gls', '-17');
+    await esp(80);
+    R.sinFevi = scMotivo(C);
+    /* (D) CON LAS DOS: calcula */
+    __t.set('fevi', '50');
+    await esp(80);
+    R.conAmbos = scMotivo(C);
+    R.valor = scValor(C);
+    /* (E) LA FEVI ES EL MISMO VALOR QUE USA EL INFORME */
+    R.mismaFevi = (_scFevi() === v('fevi'));
+    /* (F) SE CALCULA Y, AL CAMBIAR LA FEVI, EL RESULTADO SE BORRA */
+    if (_hay('scCalcular')) scCalcular('fsgl');
+    R.calculado = celdaVal('FEVI/SGL');
+    __t.set('fevi', '60');
+    /* el barrido de espejos corre con un rebote de 220 ms */
+    await esp(500);
+    R.trasCambiar = celdaVal('FEVI/SGL');
+    /* (G) EL CAMPO DE SGL LLENADO A MANO CUENTA IGUAL */
+    __t.set('sgl_gls', '-20');
+    await esp(80);
+    R.aManoMotivo = scMotivo(C);
+    R.aManoValor = scValor(C);
+    /* (H) CONTROL NEGATIVO: un SGL en cero no alcanza */
+    __t.set('sgl_gls', '0');
+    await esp(80);
+    R.enCero = scMotivo(C);
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+  finally {
+    try { if (_hay('sglReset')) sglReset(); } catch (e) {}
+    try { __t.set('fevi', ''); __t.set('sgl_gls', ''); __t.set('sgl', ''); } catch (e) {}
+    try { if (_hay('scLimpiarRes')) scLimpiarRes(); } catch (e) {}
+  }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['DENOMINADOR: la celda FEVI/SGL es la que se mide', R.hay === true && R.esFsgl === true, R.hay + '|' + R.esFsgl],
+    ['sin ninguna de las dos, el cartel las nombra a las dos', R.sinNada === 'Falta: FEVI en la app y SGL global', String(R.sinNada)],
+    ['con la FEVI cargada y el SGL vacio nombra SOLO el SGL global y dice la FEVI de la app', R.nombraSoloSgl === true, String(R.conFevi)],
+    ['y ese texto es el que se ve en el tooltip del icono apagado', String(R.tooltip).indexOf('Falta: SGL global') > 0 && String(R.tooltip).indexOf('FEVI tomada de la app: 50') > 0, String(R.tooltip)],
+    ['sin la FEVI, lo dice', R.sinFevi === 'Falta: FEVI en la app', String(R.sinFevi)],
+    ['con las dos cargadas no falta nada y calcula', R.conAmbos === '' && R.valor === '2,94', R.conAmbos + '|' + R.valor],
+    ['la FEVI sale del MISMO valor que usa el informe', R.mismaFevi === true, String(R.mismaFevi)],
+    ['DENOMINADOR: el resultado quedo calculado en la celda', R.calculado === '2,94', String(R.calculado)],
+    ['y al cambiar la FEVI en la aplicacion, ese resultado se borra', R.trasCambiar === '—', String(R.trasCambiar)],
+    ['el campo de SGL llenado a mano cuenta igual para la formula', R.aManoMotivo === '' && R.aManoValor === '3,00', R.aManoMotivo + '|' + R.aManoValor],
+    ['CONTROL: un SGL global en cero no alcanza y lo dice', String(R.enCero).indexOf('distinto de cero') > 0, String(R.enCero)]
+  ] };
+  })();
+`);
+
+caso('TC-1063',
+ 'PR9 (TAREA 4.4): el redondeo de los promedios y las razones del strain es el mismo para positivos y negativos — el medio se aleja del cero —, sale de UN solo lugar, y los diecisiete valores de la verificacion dan los nueve resultados esperados',
+`
+  const _hay = n => { try { return typeof window[n] === 'function' } catch (e) { return false } };
+  const R = {};
+  try {
+    __t.limpiar();
+    try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+    try { showTab('sgl'); } catch (e) {}
+    if (_hay('sglOnShow')) sglOnShow();
+    R.hay = _hay('_scRed') && _hay('_scN');
+    if (!R.hay) return { extra: [['DENOMINADOR: el redondeo tiene un dueno unico', false, 'NO HAY _scRed']] };
+    /* (A) EL MEDIO SE ALEJA DEL CERO, igual en los dos signos */
+    R.r1 = [_scRed(-15.75, 1), _scRed(15.75, 1), _scRed(-11.25, 1), _scRed(11.25, 1)].join(',');
+    R.r2 = [_scRed(-0.125, 2), _scRed(0.125, 2), _scRed(-2.455, 2), _scRed(2.455, 2)].join(',');
+    R.sim1 = (_scRed(-15.75, 1) === -_scRed(15.75, 1)) && (_scRed(-11.25, 1) === -_scRed(11.25, 1));
+    R.sim2 = (_scRed(-0.125, 2) === -_scRed(0.125, 2)) && (_scRed(-2.455, 2) === -_scRed(2.455, 2));
+    R.aleja = (_scRed(-15.75, 1) === -15.8) && (_scRed(15.75, 1) === 15.8)
+           && (_scRed(-11.25, 1) === -11.3) && (_scRed(11.25, 1) === 11.3);
+    /* CONTROL NEGATIVO: lo que NO cae en el medio se redondea igual que siempre */
+    R.normal = (_scRed(-15.74, 1) === -15.7) && (_scRed(-15.76, 1) === -15.8)
+            && (_scRed(15.74, 1) === 15.7) && (_scRed(15.76, 1) === 15.8);
+    /* y el formato publica con COMA */
+    R.fmt = [_scN(-15.75, 1), _scN(15.75, 1), _scN(0.805, 2)].join('/');
+    /* (B) LOS DIECISIETE DE LA VERIFICACION. El positivo va con su signo mas explicito: la
+       convencion de esta casa es que un valor SIN signo se toma NEGATIVO. */
+    const V = ['+5','-5','-12','-12','-12','-16', '-12','-12','-14','-10','-9','-9',
+               '-16','-13','-17','-17', '-18'];
+    const ids = LV3D_SEG_ID.slice(1);
+    ids.forEach((k, i) => { try { strainEscribir(k, V[i]) } catch (e) {} });
+    R.cargados = ids.map(k => strainNum[k]).join(',');
+    R.res = [
+      _scN(scPromedio(SC_GRUPOS.g17), 1), _scN(scPromedio(SC_GRUPOS.g16), 1),
+      _scN(scPromedio(SC_GRUPOS.basal), 1), _scN(scPromedio(SC_GRUPOS.medio), 1),
+      _scN(scPromedio(SC_GRUPOS.apical), 1),
+      _scN(scPromedio(_scTerr('DA')), 1), _scN(scPromedio(_scTerr('CD')), 1),
+      _scN(scPromedio(_scTerr('CX')), 1), _scN(scApicalSparing(), 2)
+    ].join('|');
+    /* y lo que la PANTALLA publica */
+    if (_hay('scRender')) scRender();
+    SC_COLS.forEach(col => (col.cel || []).forEach(c => { if (c && c.tipo !== 'fsgl') { try { scCalcular(c.k) } catch (e) {} } }));
+    const raiz = document.getElementById('sgl-calc');
+    R.pantalla = Array.prototype.map.call(raiz.querySelectorAll('tbody td'), function (td) {
+      const n = td.querySelector('.sc-nom'), v2 = td.querySelector('.sc-val');
+      return n ? (n.textContent + '=' + (v2 ? v2.textContent : '?')) : ''; }).filter(Boolean).join(' ');
+    R.apicalEnPantalla = /Apical=-15,8 %/.test(R.pantalla);
+    /* (C) «Usar como SGL global» ESCRIBE EL MISMO NUMERO QUE PUBLICA LA CELDA */
+    const campo = document.getElementById('sgl_gls');
+    if (campo) campo.value = '';
+    if (_hay('scCalcular')) scCalcular('apical');
+    try { scUsarComoSGL('g17'); } catch (e) {}
+    R.escrito = campo ? campo.value : 'NO HAY';
+    R.celda17 = (function () {
+      const tds = Array.prototype.slice.call(raiz.querySelectorAll('tbody td'));
+      const td = tds.filter(function (x) { const n = x.querySelector('.sc-nom');
+        return n && n.textContent === '17 seg.' })[0];
+      return td ? td.querySelector('.sc-val').textContent : 'NO HAY'; })();
+    R.coinciden = (String(R.escrito).replace('.', ',') + ' %') === R.celda17;
+  } catch (e) { R.err = String(e && e.message || e).slice(0, 220); }
+  finally {
+    try { if (_hay('sglReset')) sglReset(); } catch (e) {}
+    try { const c = document.getElementById('sgl_gls'); if (c) c.value = ''; } catch (e) {}
+    try { if (_hay('scLimpiarRes')) scLimpiarRes(); } catch (e) {}
+  }
+  return { extra: [
+    ['sin excepciones', !R.err, R.err],
+    ['DENOMINADOR: el redondeo sale de UN solo lugar', R.hay === true, String(R.hay)],
+    ['el medio se redondea alejandose del cero, con UN decimal', R.aleja === true, String(R.r1)],
+    ['y da el MISMO resultado en valor absoluto para los dos signos', R.sim1 === true, String(R.r1)],
+    ['lo mismo con DOS decimales, que es lo que usan las razones', R.sim2 === true, String(R.r2)],
+    ['CONTROL: lo que no cae en el medio se redondea como siempre', R.normal === true, 'ok=' + R.normal],
+    ['el formato publica con coma decimal', R.fmt === '-15,8/15,8/0,81', String(R.fmt)],
+    ['DENOMINADOR: los diecisiete valores quedaron cargados, con el positivo positivo', R.cargados === '5,-5,-12,-12,-12,-16,-12,-12,-14,-10,-9,-9,-16,-13,-17,-17,-18', String(R.cargados)],
+    ['los nueve resultados son los de la verificacion', R.res === '-11,7|-11,3|-8,7|-11,0|-15,8|-10,1|-13,0|-12,6|0,80', String(R.res)],
+    ['y el apical sale -15,8 en la PANTALLA, que es el que el redondeo corrige', R.apicalEnPantalla === true, String(R.pantalla)],
+    ['«Usar como SGL global» escribe el MISMO numero que publica la celda', R.coinciden === true, 'campo=' + R.escrito + ' celda=' + R.celda17]
+  ] };
+`);
+
+
 
 
 try {
