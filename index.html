@@ -153342,76 +153342,51 @@ function _strCtrlEn(p) {
    propósito** la graduación del SGL; el único corte que aplica —el −16 % del HFA-ICOS— está
    definido para speckle tracking, que no es este método. La leyenda lo sigue diciendo.
 
-   TAMPOCO PUBLICA ATRIBUCIÓN CORONARIA, y la forma de 17 segmentos lo hace MÁS importante de
-   declarar, no menos: la diana se ve igual que la del informe —que sí trae territorio por
-   segmento en `EE_SEGS`— y eso invita a leerle una atribución que este método no sostiene. Lo
-   que se mide es la pared ENTERA, no basal/medio/apical: los tres segmentos de un territorio
-   llevan el MISMO número porque es una sola medición repartida, no tres. Y un mismo segmento
-   puede repartirse entre dos arterias según la dominancia y la longitud de la DA. El diagrama
-   muestra los territorios y la atribución la hace el médico. Decisión de Maicol (2026-09-20).
+   TAMPOCO PUBLICA ATRIBUCIÓN CORONARIA: un mismo territorio puede repartirse entre dos arterias
+   según la dominancia y la longitud de la DA. El diagrama muestra las paredes y la atribución la
+   hace el médico. Decisión de Maicol (2026-09-20).
+
+   ⚠️ Y DESDE PR13 (25/11/2026) EL DIAGRAMA SON SEIS SECTORES, UNO POR PARED, Y NO DIECISIETE
+   SEGMENTOS. Hasta entonces tenía la forma de 17 segmentos del modelo AHA con los tres segmentos
+   de una pared pintados del MISMO color y el número sólo en el del anillo medio, y eso se leía
+   como dieciséis mediciones cuando el método da SEIS —uno por pared, de la base al ápex—. El
+   propio comentario de `_strainAceptar` ya tenía medido por qué partirlo no agrega información:
+   «dividir cada contorno en k partes iguales DE SU PROPIA longitud devuelve el global k veces»,
+   dispersión exactamente cero. Decisión de Maicol (2026-11-25): el valor por segmento queda
+   DIFERIDO hasta tener seguimiento automático de puntos. Declarado en `PENDIENTES.md` → PR13-a.
 
    UN SOLO DIBUJANTE para la pantalla y para la captura, parametrizado por tamaño. Con dos
    —uno en SVG y otro en canvas— se desincronizan, que es lo que el donut de la CIA resolvió
    compartiendo la geometría. Acá se dibuja siempre en canvas con la API 2D: es el camino que
    `bullseyeDataURL` ya usa, y `html2canvas` no existe en este proyecto. */
 
-/* LA DIANA DE 17 SEGMENTOS DEL MODELO AHA, coloreada POR TERRITORIO.
+/* EL DIAGRAMA: SEIS SECTORES, UNO POR PARED (PR13, 2026-11-25).
 
-   Cuatro anillos, en la orientación estándar —anterior arriba, septo a la izquierda, lateral a
-   la derecha— y en grados con 0 = arriba, sentido horario:
-     · basal   (1-6)   — seis sectores de 60°
-     · medio   (7-12)  — seis sectores de 60°, mismo reparto angular
-     · apical  (13-16) — CUATRO sectores de 90°, no seis
-     · ápex    (17)    — el círculo del centro
+   Cada pared es un sector de 60° que va del DISCO CENTRAL al borde externo, sin división en
+   anillos, en la orientación estándar —anterior arriba, septo a la izquierda, lateral a la
+   derecha— y en grados con 0 = arriba, sentido horario. Los ángulos son LOS MISMOS que tenía el
+   anillo basal del diagrama de diecisiete, así que una pared no se mueve de lugar.
 
-   ⚠️ LA NUMERACIÓN SALE DE `EE_SEGS`, QUE YA EXISTE EN ESTE ARCHIVO y es la que usa el bull's
-   eye del INFORME. El pedido traía los dos septales y los dos laterales cruzados —inferoseptal
-   2/8 y anteroseptal 3/9, cuando `EE_SEGS` dice 2 «Anteroseptal basal» y 3 «Inferoseptal
-   basal»—. Aplicado así, el mismo PDF podía llevar dos dianas de 17 segmentos donde el
-   segmento 2 se llama anteroseptal en una y se pinta como inferoseptal en la otra. Decisión de
-   Maicol (2026-09-20): manda `EE_SEGS`. Es además la asignación con la que ya coincide la
-   corrección de vistas→paredes del mismo día. */
-const _STR_ANILLOS = [
-  /* r0/r1 son fracciones del radio; `a` es [desde, hasta] en grados. */
-  { seg:1,  r0:0.72, r1:1.00, a:[330, 390] }, { seg:6,  r0:0.72, r1:1.00, a:[30, 90] },
-  { seg:5,  r0:0.72, r1:1.00, a:[90, 150] },  { seg:4,  r0:0.72, r1:1.00, a:[150, 210] },
-  { seg:3,  r0:0.72, r1:1.00, a:[210, 270] }, { seg:2,  r0:0.72, r1:1.00, a:[270, 330] },
-  { seg:7,  r0:0.47, r1:0.72, a:[330, 390] }, { seg:12, r0:0.47, r1:0.72, a:[30, 90] },
-  { seg:11, r0:0.47, r1:0.72, a:[90, 150] },  { seg:10, r0:0.47, r1:0.72, a:[150, 210] },
-  { seg:9,  r0:0.47, r1:0.72, a:[210, 270] }, { seg:8,  r0:0.47, r1:0.72, a:[270, 330] },
-  { seg:13, r0:0.24, r1:0.47, a:[315, 405] }, { seg:16, r0:0.24, r1:0.47, a:[45, 135] },
-  { seg:15, r0:0.24, r1:0.47, a:[135, 225] }, { seg:14, r0:0.24, r1:0.47, a:[225, 315] },
-  { seg:17, r0:0.00, r1:0.24, a:[0, 360] }
-];
+   El disco del centro sigue siendo el ápex (17) y sigue GRIS: este método no lo mide. */
+const _STR_SECTORES = Object.freeze([
+  Object.freeze({ pared:'Anterior',      a:[330, 390] }),
+  Object.freeze({ pared:'Anterolateral', a:[30, 90] }),
+  Object.freeze({ pared:'Inferolateral', a:[90, 150] }),
+  Object.freeze({ pared:'Inferior',      a:[150, 210] }),
+  Object.freeze({ pared:'Inferoseptal',  a:[210, 270] }),
+  Object.freeze({ pared:'Anteroseptal',  a:[270, 330] })
+]);
+/* El radio del disco central, en fracción del radio del diagrama. Es el mismo que tenía el
+   segmento 17 cuando el diagrama era de diecisiete, así que el centro no cambia de tamaño. */
+const _STR_R_DISCO = 0.24;
 
-/* De qué territorio toma su color cada segmento. Un territorio pinta VARIOS segmentos con el
-   MISMO color —es el mismo valor medido— y el número se imprime UNA sola vez, en el segmento
-   del anillo MEDIO, que es el que todos los territorios tienen.
-
-   Los tres casos que no son de una sola pared:
-     · 14 (septal apical) lo comparten anteroseptal e inferoseptal
-     · 16 (lateral apical) lo comparten anterolateral e inferolateral
-     · 17 (ápex) no es de ninguna pared
-   Los dos primeros se pintan con el PROMEDIO y sólo si las DOS paredes tienen valor; el ápex
-   queda SIEMPRE gris, porque este método no lo mide. Decisión de Maicol (2026-09-20).
-   Pintarlos con una sola pared sería publicar sobre un segmento que esa vista no resuelve —es
-   la herencia de «pared ancha» que este mismo diagrama sacó horas antes, por la puerta de al
-   lado—. */
-const _STR_SEG_FUENTE = {
-  1:['Anterior'],      7:['Anterior'],       13:['Anterior'],
-  2:['Anteroseptal'],  8:['Anteroseptal'],
-  3:['Inferoseptal'],  9:['Inferoseptal'],
-  4:['Inferior'],     10:['Inferior'],       15:['Inferior'],
-  5:['Inferolateral'],11:['Inferolateral'],
-  6:['Anterolateral'],12:['Anterolateral'],
-  14:['Anteroseptal', 'Inferoseptal'],       // promedio, y sólo con las dos
-  16:['Anterolateral', 'Inferolateral'],     // idem
-  17:[]                                      // el ápex no se pinta nunca
-};
-
-/* El segmento del anillo MEDIO de cada territorio: ahí va el número, una sola vez. */
-const _STR_SEG_ROTULO = { Anterior:7, Anterolateral:12, Inferolateral:11,
-                          Inferior:10, Inferoseptal:9, Anteroseptal:8 };
+/* ⚠️ ACÁ VIVÍAN `_STR_ANILLOS` —las diecisiete entradas con su radio y su ángulo—,
+   `_STR_SEG_FUENTE` —de qué pared tomaba su color cada segmento, con el 14 y el 16 promediando
+   dos— y `_STR_SEG_ROTULO` —en qué segmento del anillo medio iba el número—. Las tres salieron
+   en PR13 con el diagrama de diecisiete: con un sector por pared no hay segmentos que compartir
+   ni un anillo medio donde poner el número.
+   Ninguna otra parte del archivo las leía: censado, sus únicos consumidores eran este dibujante
+   y la condición de TC-201 que muestreaba los píxeles segmento por segmento. */
 
 /* ⚠️ ACÁ VIVÍAN `_STR_GRIS` —el gris propio, `#9E9E9E`— y `_strTono`, la rampa de intensidad
    teal. Las dos salieron en PR12: el gris y el color de un territorio son ahora los de
@@ -153431,135 +153406,284 @@ function _strColorPct(pct) {
   return _strPalColor((typeof strainTramoDe === 'function') ? strainTramoDe(pct) : 0);
 }
 
-/* Dibuja el diagrama completo en un contexto 2D. `S` es el tamaño del lado. */
+/* EL COLOR DEL TEXTO: LA REGLA DE LA PESTAÑA SGL, ENDURECIDA SÓLO DONDE NO ALCANZA.
+   La pestaña ya tiene una regla y es `STRAIN_PAL[i].txt` —la que lee `strainColorTxt`—, así que
+   se usa ésa y no una propia: los dos diagramas escriben el número del mismo color sobre el
+   mismo tramo. Medido sobre los nueve colores, esa regla da de 4,55 a 10,88 de contraste en
+   OCHO de los nueve, y **3,34 en el tramo 7**, por debajo del 4,5 que esta casa exige. Donde no
+   alcanza se deriva, con el mismo criterio con que `_medTextoSobre` elige entre el oscuro y el
+   blanco: medido, el oscuro sobre el tramo 7 da 5,31.
+   ⚠️ NO SE TOCA LA PALETA NI LA PESTAÑA: lo que se endurece es el color que ESTE diagrama
+   escribe, y en ocho de los nueve es exactamente el de la pestaña. */
+function _strPalTxt(i) {
+  return (typeof STRAIN_PAL !== 'undefined' && STRAIN_PAL[i] && STRAIN_PAL[i].txt)
+    ? STRAIN_PAL[i].txt : '#2B2B2B';
+}
+function _strTxtSobre(i) {
+  const fondo = _strPalColor(i), prop = _strPalTxt(i);
+  try {
+    if (_medContraste(_medLumDe(prop).L, _medLumDe(fondo).L) >= 4.5) return prop;
+    const Lf = _medLumDe(fondo).L;
+    return ((Lf + 0.05) / 0.05) >= (1.05 / (Lf + 0.05)) ? '#0b0f1a' : '#ffffff';
+  } catch (e) { return prop; }
+}
+/* El número, con el MISMO formato que la pestaña SGL publica en su tabla de cálculos: un decimal
+   y COMA. Sale de `_scN`, su dueño, y no de un `toFixed().replace()` escrito acá. */
+function _strFmt(pct) {
+  try { if (typeof _scN === 'function') return _scN(pct, 1) + ' %'; } catch (e) {}
+  return String(Math.round(pct * 10) / 10).replace('.', ',') + ' %';
+}
+/* LOS NUEVE BORDES DE LA ESCALA, DERIVADOS DE SUS DUEÑOS y no escritos: las ocho marcas de
+   `STRAIN_MARCAS` son el borde IZQUIERDO de cada tramo, y el noveno —el borde derecho del
+   último— sale de `STRAIN_MIN + STRAIN_N_TRAMOS * STRAIN_PASO`.
+   ⚠️ LOS EXTREMOS LLEVAN «≤» Y «≥» PORQUE `strainTramoDe` ACOTA, y está medido: −20,01, −25 y
+   −30,1 caen en el tramo 1 —el mismo color que −16— y +20, +25 y +30,1 caen en el 8. Sin esos
+   dos signos la leyenda diría que la escala termina ahí, y un −30,1 se vería del color del −16
+   sin que nada lo explique. Es el defecto que el médico reportó. */
+function _strBordes() {
+  let m = [], mn = -20, pa = 5, nt = 8;
+  try { m = STRAIN_MARCAS.slice(); mn = STRAIN_MIN; pa = STRAIN_PASO; nt = STRAIN_N_TRAMOS; }
+  catch (e) { m = [-20, -15, -10, -5, 0, 5, 10, 15]; }
+  const v = m.concat([mn + nt * pa]);
+  return v.map(function (x, i) {
+    const t = (x > 0 ? '+' : (x < 0 ? '−' : '')) + Math.abs(x);
+    if (i === 0) return '≤ ' + t;
+    if (i === v.length - 1) return '≥ ' + t;
+    return t;
+  });
+}
+/* Parte un texto en hasta `maxL` renglones que entren en `maxW`, por palabras. Devuelve los
+   renglones que de verdad entran: si con `maxL` no alcanza, el último se corta con puntos
+   suspensivos, que es visible, en vez de salirse del canvas, que no avisa. */
+function _strEnvolver(cx2, txt, maxW, maxL) {
+  const pal = String(txt).split(' ');
+  const out = [];
+  let cur = '';
+  for (let i = 0; i < pal.length; i++) {
+    const t = cur ? (cur + ' ' + pal[i]) : pal[i];
+    if (cx2.measureText(t).width <= maxW || !cur) { cur = t; continue; }
+    out.push(cur); cur = pal[i];
+    if (out.length === maxL) break;
+  }
+  if (out.length < maxL && cur) out.push(cur);
+  if (out.length === maxL && cx2.measureText(out[maxL - 1]).width > maxW) {
+    let u = out[maxL - 1];
+    while (u.length > 1 && cx2.measureText(u + '…').width > maxW) u = u.slice(0, -1);
+    out[maxL - 1] = u + '…';
+  }
+  return out;
+}
+/* ¿ESTE PUNTO ESTÁ DENTRO DEL SECTOR? Radio entre el disco y el borde, y ángulo entre los dos
+   lados. El rango angular puede pasarse de 360 —el sector Anterior es [330, 390]—, así que se
+   prueban el ángulo y el ángulo más una vuelta. */
+function _strEnSector(x, y, cxx, cyy, a0, a1, rIn, rOut) {
+  const dx = x - cxx, dy = y - cyy;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d < rIn || d > rOut) return false;
+  let g = (Math.atan2(dy, dx) * 180 / Math.PI + 90 + 720) % 360;
+  return (g >= a0 && g <= a1) || (g + 360 >= a0 && g + 360 <= a1);
+}
+/* EL TAMAÑO DE LETRA MÁS GRANDE CON EL QUE EL TEXTO ENTRA DE VERDAD EN EL SECTOR.
+   ⚠️ NO SE COMPARA CONTRA UNA CUERDA, Y ESA FUE LA PRIMERA VERSIÓN QUE LA MEDICIÓN DESMINTIÓ. Un
+   sector de 60° tiene una cuerda igual a su radio, pero el texto es HORIZONTAL y el sector no:
+   en los cuatro sectores diagonales las esquinas del rectángulo se salían por el lado del
+   sector aunque el ancho «entrara en la cuerda». Acá se prueban las CUATRO esquinas contra el
+   polígono real, que es lo que la orden pide verificar con rectángulos.
+   Devuelve el tamaño, y deja el contexto con esa fuente puesta. */
+function _strFontEnSector(cx2, txt, px, py, cxx, cyy, a0, a1, rIn, rOut, nom, min, negrita) {
+  const pre = negrita ? 'bold ' : '';
+  for (let p = nom; p >= min; p--) {
+    cx2.font = pre + p + 'px system-ui, sans-serif';
+    const w = cx2.measureText(txt).width, h = p * 0.78;
+    const x0 = px - w / 2, x1 = px + w / 2, y0 = py - h / 2, y1 = py + h / 2;
+    if (_strEnSector(x0, y0, cxx, cyy, a0, a1, rIn, rOut)
+     && _strEnSector(x1, y0, cxx, cyy, a0, a1, rIn, rOut)
+     && _strEnSector(x0, y1, cxx, cyy, a0, a1, rIn, rOut)
+     && _strEnSector(x1, y1, cxx, cyy, a0, a1, rIn, rOut)) return p;
+  }
+  cx2.font = pre + min + 'px system-ui, sans-serif';
+  return min;
+}
+
+/* Dibuja el diagrama completo en un contexto 2D. `S` es el tamaño del lado.
+
+   ⚠️ EL RADIO SE DERIVA DE LO QUE EL RESTO NECESITA, Y NO ES UNA CONSTANTE AJUSTADA A MANO. Un
+   canvas que se pasa RECORTA EN SILENCIO —es la trampa que este módulo ya pagó dos veces, con la
+   leyenda y con el descargo de la captura—, así que acá se suma primero cuánto ocupan el SGL, el
+   subtítulo, la leyenda entera y, en la captura, las dos líneas del descargo, y el diagrama se
+   queda con lo que sobra. Las dos salidas usan el MISMO dibujante, así que las dos quedan
+   cubiertas por la misma cuenta. */
 function _strBullsDibujar(cx2, S, R, conTitulo) {
-  /* La diana se achicó al pasar de 6 sextantes a 17 segmentos: abajo van ahora el SGL, la
-     línea del ápex y la leyenda, y en la captura además las dos del descargo. Con el radio
-     anterior la leyenda caía FUERA del canvas — y un canvas no avisa: recorta en silencio y
-     el descargo desaparece de la imagen que va al PDF. Los valores están medidos, no
-     estimados: ver la condición «nada se recorta» de TC-201. */
-  const cx = S / 2, cy = S * 0.42, r = S * (conTitulo ? 0.27 : 0.335);
+  const esc = S / 320;
+  const u = n => n * esc;                 // de unidades de 320 a píxeles del canvas
   const rad = g => (g - 90) * Math.PI / 180;
   cx2.clearRect(0, 0, S, S);
   cx2.fillStyle = '#ffffff'; cx2.fillRect(0, 0, S, S);   // base blanca, como el resto de las imágenes
-  const esc = S / 320;
+
+  /* ── LOS SEIS VALORES ── */
+  const porPared = {};
+  if (R) R.terr.forEach(t => { porPared[t.pared] = t; });
+  const nConDato = _STR_SECTORES.filter(sc => porPared[sc.pared]).length;
+
+  /* ── LA LEYENDA SE MIDE ANTES DE DIBUJAR NADA, porque de su alto sale el radio ──
+     El texto explicativo se parte en hasta DOS renglones dentro del ancho del canvas: entero,
+     centrado y sin salirse. Hasta PR13 se dibujaba de una sola línea y a 300 px medía 347,5 px
+     contra un canvas de 300 — 23,8 px cortados a CADA lado, que es lo que el médico vio. */
+  const LEY_TXT = 'la misma referencia de colores que el bull’s eye de la pestaña SGL; no gradúa severidad';
+  const leyAncho = S - u(16);
+  cx2.font = Math.round(u(8)) + 'px system-ui, sans-serif';
+  const leyLineas = _strEnvolver(cx2, LEY_TXT, leyAncho, 2);
+  /* Lo que va DEBAJO del borde inferior del diagrama, EN UNIDADES DE 320, sumado del código que
+     lo dibuja y no estimado: el tope de la leyenda cae a +34 —ahí entran el SGL, a +15, y el
+     subtítulo, a +26—; de ahí, la primera línea de texto explicativo tiene su base a +46 —barra
+     de 9, rótulos a +19, fila del gris a +26 con 9 de alto y su rótulo a +33— y cada renglón de
+     más suma 11; después van 7 de aire, que cubren el descendente de la última línea.
+     Y en la CAPTURA, las dos líneas del descargo que `_strBullsCanvas` dibuja a +16 y +28 de la
+     base devuelta, más su descendente y su aire: 34. */
+  const uDebajo = 34 + 46 + 11 * (leyLineas.length - 1) + 7 + (conTitulo ? 34 : 0);
+  const uArriba = conTitulo ? 30 : 7;
+  const r = Math.max(u(40), (S - u(uArriba) - u(uDebajo)) / 2);
+  const cx = S / 2, cy = u(uArriba) + r;
 
   if (conTitulo) {
     cx2.fillStyle = '#111827'; cx2.textAlign = 'center';
-    cx2.font = 'bold ' + Math.round(15 * esc) + 'px system-ui, sans-serif';
-    cx2.fillText('Strain por territorios (método manual)', cx, 22 * esc);
+    cx2.font = 'bold ' + Math.round(u(15)) + 'px system-ui, sans-serif';
+    cx2.fillText('Strain por territorios (método manual)', cx, u(22));
   }
 
-  const porPared = {};
-  if (R) R.terr.forEach(t => { porPared[t.pared] = t; });
-  /* Valor de un SEGMENTO: una sola pared lo toma directo; dos paredes exigen que las DOS
-     tengan valor y devuelven el promedio. Con una sola, `null` — gris. */
-  const deSegmento = n => {
-    const f = _STR_SEG_FUENTE[n] || [];
-    if (!f.length) return null;                       // el ápex
-    const vs = f.map(w => porPared[w]).filter(Boolean);
-    if (vs.length !== f.length) return null;          // falta alguna de las que lo comparten
-    if (vs.length === 1) return { pct: vs[0].pct, prom: false };
-    let acc = 0; for (let k2 = 0; k2 < vs.length; k2++) acc += vs[k2].pct;
-    return { pct: acc / vs.length, prom: true };
-  };
-
-  /* Un sector de anillo: arco externo, arco interno al revés, y cierre. Con r0 = 0 degenera en
-     el círculo del centro, así que el ápex entra por el mismo camino y no hay un segundo
-     dibujante que se pueda desincronizar. */
+  /* ── LOS SEIS SECTORES ── */
   const sector = (r0, r1, a0, a1) => {
     cx2.beginPath();
-    if (r0 <= 0) { cx2.arc(cx, cy, r1, 0, 6.2832); cx2.closePath(); return; }
     cx2.arc(cx, cy, r1, rad(a0), rad(a1));
     cx2.arc(cx, cy, r0, rad(a1), rad(a0), true);
     cx2.closePath();
   };
-
-  _STR_ANILLOS.forEach(SG => {
-    const v = deSegmento(SG.seg);
-    sector(r * SG.r0, r * SG.r1, SG.a[0], SG.a[1]);
-    cx2.fillStyle = v ? _strColorPct(v.pct) : _strGris();
+  const rIn = r * _STR_R_DISCO;
+  _STR_SECTORES.forEach(function (sc) {
+    const t = porPared[sc.pared];
+    sector(rIn, r, sc.a[0], sc.a[1]);
+    cx2.fillStyle = t ? _strColorPct(t.pct) : _strGris();
     cx2.fill();
-    cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = 1.2 * esc; cx2.stroke();
+    cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = u(1.2); cx2.stroke();
   });
+  /* El disco del centro: el ápex (17), gris SIEMPRE. */
+  cx2.beginPath(); cx2.arc(cx, cy, rIn, 0, 6.2832); cx2.closePath();
+  cx2.fillStyle = _strGris(); cx2.fill();
+  cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = u(1.2); cx2.stroke();
 
-  /* EL NÚMERO VA UNA VEZ POR TERRITORIO, en su segmento del anillo medio. Repetirlo en los
-     tres segmentos de una pared los haría leer como tres mediciones que dieron igual — que es
-     exactamente lo que el diagrama de sextantes ya había tenido que declarar. */
-  Object.keys(_STR_SEG_ROTULO).forEach(pared => {
-    const t = porPared[pared];
-    const SG = _STR_ANILLOS.filter(x => x.seg === _STR_SEG_ROTULO[pared])[0];
-    if (!SG) return;
-    const am = rad((SG.a[0] + SG.a[1]) / 2), rr = r * (SG.r0 + SG.r1) / 2;
-    const px = cx + Math.cos(am) * rr, py = cy + Math.sin(am) * rr;
-    cx2.textAlign = 'center';
-    cx2.fillStyle = '#111827';
-    cx2.font = Math.round(7.5 * esc) + 'px system-ui, sans-serif';
-    cx2.fillText(pared, px, py - 4 * esc);
-    if (t) {
-      cx2.font = 'bold ' + Math.round(11 * esc) + 'px system-ui, sans-serif';
-      cx2.fillText(t.pct.toFixed(1) + ' %', px, py + 8 * esc);
-    } else {
-      cx2.font = Math.round(7.5 * esc) + 'px system-ui, sans-serif';
-      cx2.fillStyle = '#4b5563';
-      cx2.fillText('sin datos', px, py + 7 * esc);
-    }
+  /* ── EL NOMBRE Y EL NÚMERO, DENTRO DEL SECTOR ──
+     ⚠️ LOS DOS SE COLOCAN A LO LARGO DE LA BISECTRIZ, CADA UNO A SU PROPIO RADIO, y no uno arriba
+     del otro con un desplazamiento en la `y` de la pantalla, que es lo que el diagrama de
+     diecisiete hacía. Medido: con el desplazamiento vertical, en los cuatro sectores DIAGONALES
+     el bloque se corría fuera de la bisectriz y las esquinas del texto se salían por el lado del
+     sector —«Inferolateral» 47,8 px contra 41,7 de ancho útil—. Sobre la bisectriz, cada línea
+     queda centrada en el punto más ancho que le toca.
+     EL NOMBRE VA AFUERA Y EL NÚMERO ADENTRO porque un sector se ensancha hacia el borde y el
+     nombre es la cadena más larga.
+     ⚠️ Y EL TAMAÑO SE ACHICA HASTA QUE EL RECTÁNGULO ENTRE DE VERDAD, probando las cuatro
+     esquinas contra el polígono: con un tamaño fijo, «Anterolateral» se sale en la captura, que
+     es el doble de grande y usa el doble de letra. */
+  const rangoR = r - rIn;
+  const rhoNom = rIn + rangoR * 0.72;
+  const rhoNum = rIn + rangoR * 0.36;
+  _STR_SECTORES.forEach(function (sc) {
+    const t = porPared[sc.pared];
+    const am = rad((sc.a[0] + sc.a[1]) / 2);
+    const idx = t ? ((typeof strainTramoDe === 'function') ? strainTramoDe(t.pct) : 0) : 0;
+    cx2.textAlign = 'center'; cx2.textBaseline = 'middle';
+    cx2.fillStyle = _strTxtSobre(idx);
+    const pn = { x: cx + Math.cos(am) * rhoNom, y: cy + Math.sin(am) * rhoNom };
+    _strFontEnSector(cx2, sc.pared, pn.x, pn.y, cx, cy, sc.a[0], sc.a[1], rIn, r,
+                     Math.round(u(8.5)), Math.max(5, Math.round(u(5))), false);
+    cx2.fillText(sc.pared, pn.x, pn.y);
+    const txt = t ? _strFmt(t.pct) : 'Sin dato';
+    const pv = { x: cx + Math.cos(am) * rhoNum, y: cy + Math.sin(am) * rhoNum };
+    _strFontEnSector(cx2, txt, pv.x, pv.y, cx, cy, sc.a[0], sc.a[1], rIn, r,
+                     Math.round(u(t ? 11.5 : 8.5)), Math.max(6, Math.round(u(6))), !!t);
+    cx2.fillText(txt, pv.x, pv.y);
   });
-
-  /* El SGL YA NO VA EN EL CENTRO: ese círculo es el segmento 17, el ápex, y tiene que quedar
-     gris como cualquier segmento sin dato. Escribir el SGL encima lo haría leer como el valor
-     medido del ápex — un número sobre el único segmento que este método declara no medir.
-     Baja debajo de la diana, con las vistas que lo sostienen. */
+  cx2.textBaseline = 'alphabetic';
+  /* El «17» del disco, con el color de texto del gris. */
   cx2.textAlign = 'center';
-  cx2.fillStyle = '#4b5563';
-  cx2.font = Math.round(7 * esc) + 'px system-ui, sans-serif';
-  cx2.fillText('17', cx, cy + 2.5 * esc);
+  cx2.fillStyle = _strTxtSobre(0);
+  cx2.font = Math.round(u(7.5)) + 'px system-ui, sans-serif';
+  cx2.textBaseline = 'middle'; cx2.fillText('17', cx, cy); cx2.textBaseline = 'alphabetic';
+
+  /* ── EL PIE: el SGL y de qué se sostiene ── */
+  cx2.textAlign = 'center';
   if (R) {
     cx2.fillStyle = '#111827';
-    cx2.font = 'bold ' + Math.round(14 * esc) + 'px system-ui, sans-serif';
-    cx2.fillText('SGL ' + R.sgl.toFixed(1) + ' %', cx, cy + r + 15 * esc);
+    cx2.font = 'bold ' + Math.round(u(14)) + 'px system-ui, sans-serif';
+    cx2.fillText('SGL ' + _strFmt(R.sgl), cx, cy + r + u(15));
     cx2.fillStyle = '#4b5563';
-    cx2.font = Math.round(8.5 * esc) + 'px system-ui, sans-serif';
-    cx2.fillText(R.nVistas + (R.nVistas === 1 ? ' vista' : ' vistas') +
-                 ' · el ápex (17) no lo mide este método', cx, cy + r + 26 * esc);
+    cx2.font = Math.round(u(8.5)) + 'px system-ui, sans-serif';
+    cx2.fillText(R.nVistas + (R.nVistas === 1 ? ' vista' : ' vistas') + ' · ' +
+                 nConDato + (nConDato === 1 ? ' pared' : ' paredes') +
+                 ' · el ápex (17) no lo mide este método', cx, cy + r + u(26));
   } else {
     cx2.fillStyle = '#4b5563';
-    cx2.font = Math.round(9 * esc) + 'px system-ui, sans-serif';
-    cx2.fillText('sin datos', cx, cy + r + 15 * esc);
+    cx2.font = Math.round(u(9)) + 'px system-ui, sans-serif';
+    cx2.fillText('sin datos', cx, cy + r + u(15));
   }
 
-  /* Leyenda: LOS OCHO TRAMOS de `STRAIN_PAL` con sus ocho marcas de `STRAIN_MARCAS` y el
-     cuadrado de SIN DATO — la MISMA referencia que `strainLeyendaHTML` pinta en la pestaña SGL,
-     leída del mismo dueño. Sigue diciendo qué NO codifica el color: una escala de colores al lado
-     de un número se lee como una graduación clínica si nadie aclara que no lo es.
-     ⚠️ LA GEOMETRÍA NO SE MUEVE —misma `ly`, mismo alto, mismas alturas de rótulo y el mismo
-     `ly + 30 * esc` de retorno—, porque de ese valor cuelgan las dos líneas del descargo que
-     `_strBullsCanvas` dibuja debajo, y un canvas que se pasa recorta EN SILENCIO. */
-  const ly = cy + r + 34 * esc, lw = S * 0.46, lx = cx - lw / 2;
+  /* ── LA LEYENDA: los ocho tramos y los NUEVE bordes ──
+     La barra se lleva el 70 % del ancho para que los nueve rótulos entren sin pisarse, y el
+     cuadrado de SIN DATO baja a su propia fila: con el chip al lado de la barra, el «≥ +20» del
+     extremo derecho le caía encima. Los colores y las marcas salen de `STRAIN_PAL` y de
+     `STRAIN_MARCAS`, el mismo dueño que la leyenda de la pestaña. */
+  const ly = cy + r + u(34), lw = S * 0.70, lx = cx - lw / 2;
   const nTr = (typeof STRAIN_N_TRAMOS !== 'undefined') ? STRAIN_N_TRAMOS : 8;
   const bw = lw / nTr;
   for (let i = 1; i <= nTr; i++) {
     cx2.fillStyle = _strPalColor(i);
-    cx2.fillRect(lx + bw * (i - 1), ly, bw + 0.6, 9 * esc);
+    cx2.fillRect(lx + bw * (i - 1), ly, bw + 0.6, u(9));
   }
-  cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = 0.8 * esc;
-  cx2.strokeRect(lx, ly, lw, 9 * esc);
-  cx2.fillStyle = _strGris();
-  cx2.fillRect(lx + lw + 8 * esc, ly, 14 * esc, 9 * esc);
-  cx2.strokeRect(lx + lw + 8 * esc, ly, 14 * esc, 9 * esc);
-  /* Las ocho marcas son el borde IZQUIERDO de cada tramo, igual que en la pestaña. */
+  cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = u(0.8);
+  cx2.strokeRect(lx, ly, lw, u(9));
+  /* LOS NUEVE RÓTULOS, CENTRADOS EN EL BORDE ENTRE DOS CUADRITOS y no en el centro de uno: lo
+     que un rótulo nombra es el LÍMITE del tramo, y puesto en el centro decía otra cosa.
+     ⚠️ SI NO ENTRAN, SE MUESTRAN CINCO —los múltiplos de 10—, y la decisión se toma MIDIENDO el
+     ancho de cada rótulo con este mismo contexto. No depende del ancho de la ventana: el canvas
+     dibuja siempre en un espacio de `S` unidades y se escala por CSS, así que el espacio por
+     rótulo es el mismo en escritorio, en tableta y en celular. */
+  const bordes = _strBordes();
   cx2.fillStyle = '#4b5563';
-  cx2.font = Math.round(7 * esc) + 'px system-ui, sans-serif';
-  cx2.textAlign = 'left';
-  ((typeof STRAIN_MARCAS !== 'undefined') ? STRAIN_MARCAS : []).forEach(function (v, i) {
-    cx2.fillText((v > 0 ? '+' : '') + v, lx + bw * i, ly + 19 * esc);
-  });
-  cx2.fillText('sin datos', lx + lw + 8 * esc, ly + 19 * esc);
+  cx2.font = Math.round(u(7)) + 'px system-ui, sans-serif';
+  const anchos = bordes.map(t => cx2.measureText(t).width);
+  let entranLosNueve = true;
+  for (let i = 0; i + 1 < bordes.length; i++) {
+    if ((anchos[i] + anchos[i + 1]) / 2 + u(1.5) > bw) { entranLosNueve = false; break; }
+  }
   cx2.textAlign = 'center';
-  cx2.font = Math.round(8 * esc) + 'px system-ui, sans-serif';
-  cx2.fillText('la misma referencia de colores que el bull\u2019s eye de la pestaña SGL; no gradúa severidad',
-               cx, ly + 30 * esc);
-  return { ly: ly + 30 * esc, esc: esc };
+  bordes.forEach(function (t, i) {
+    if (!entranLosNueve && (i % 2 !== 0)) return;      // los múltiplos de 10: −20, −10, 0, +10, +20
+    cx2.fillText(t, lx + bw * i, ly + u(19));
+  });
+  /* El cuadrado de SIN DATO, en su propia fila y centrado. */
+  const gy = ly + u(26), gw = u(14), gh = u(9);
+  cx2.font = Math.round(u(7)) + 'px system-ui, sans-serif';
+  const anchoSD = cx2.measureText('sin datos').width;
+  const gx = cx - (gw + u(4) + anchoSD) / 2;
+  cx2.fillStyle = _strGris(); cx2.fillRect(gx, gy, gw, gh);
+  cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = u(0.8); cx2.strokeRect(gx, gy, gw, gh);
+  cx2.fillStyle = '#4b5563'; cx2.textAlign = 'left';
+  cx2.fillText('sin datos', gx + gw + u(4), gy + u(7));
+
+  /* El texto explicativo, ENTERO, en hasta dos renglones centrados. Sigue diciendo qué NO
+     codifica el color: una escala de colores al lado de un número se lee como una graduación
+     clínica si nadie aclara que no lo es. */
+  cx2.textAlign = 'center';
+  cx2.font = Math.round(u(8)) + 'px system-ui, sans-serif';
+  let yT = gy + gh + u(11);
+  leyLineas.forEach(function (t, i) { cx2.fillText(t, cx, yT + u(11) * i); });
+  const yFin = yT + u(11) * (leyLineas.length - 1);
+  /* ⚠️ DEVUELVE TAMBIÉN DÓNDE DIBUJÓ. `ly` y `esc` los necesita `_strBullsCanvas` para las dos
+     líneas del descargo; `cx`, `cy`, `r` y `rIn` los necesita cualquiera que quiera MEDIR el
+     diagrama —hoy, la condición de TC-201 que muestrea el color de cada pared—. Hasta PR13 esa
+     condición recalculaba la geometría con los números del dibujante copiados, y el día que el
+     radio pasó a derivarse de lo que el resto necesita se quedó midiendo en otro lado. Un
+     dibujante que dice dónde dibujó no se puede desincronizar de quien lo mide. */
+  return { ly: yFin, esc: esc, cx: cx, cy: cy, r: r, rIn: rIn };
 }
 
 /* Repinta el canvas del panel. Se llama después de cada `_medEstado`, porque la barra se
@@ -153584,7 +153708,9 @@ function _strBullsRepintar() {
   cv.style.width = S + 'px'; cv.style.height = S + 'px';
   const c2 = cv.getContext('2d');
   c2.setTransform(dpr, 0, 0, dpr, 0, 0);
-  _strBullsDibujar(c2, S, _strResultadoVivo(), false);
+  /* Devuelve la geometría que el dibujante publica —sus llamadores no la usan, y quien quiera
+     medir el canvas de pantalla la necesita para saber dónde está cada pared. */
+  return _strBullsDibujar(c2, S, _strResultadoVivo(), false);
 }
 
 /* Captura: MISMO dibujante, al doble de tamaño, con el título y el descargo QUEMADOS en la
@@ -187406,8 +187532,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261125-0132';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795581121901;                 /* eco-build-ms */
+const ECO_BUILD    = '20261125-0728';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795602537182;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -187493,7 +187619,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261125-0132</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261125-0728</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
