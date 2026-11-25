@@ -82748,6 +82748,30 @@ function generarPDFReal(_aj) {
   };
 
   const _TBL = _TBL_ESTILOS[_plantillaId] || _TBL_ESTILOS.clasico;
+  /* == PR9-2 · EL CUERPO UNICO DEL ESTILO «Tipo Word» =========================================
+     UN SOLO tamanio para TODO el cuerpo -datos numericos, narrativa, EN SUMA y vinietas-, los
+     titulos de seccion en negrita al MISMO tamanio, y la ficha del paciente, la firma y el pie
+     mas chicos pero uniformes entre si.
+     Hasta PR9 este estilo salia con CUATRO cuerpos a la vez, medido sobre las llamadas de
+     dibujo: 8,56 pt la narrativa, 9,1 los datos, 9,2 el EN SUMA y 9,63 los titulos. Ninguno
+     estaba elegido: cada bloque heredaba el tamanio del camino que comparte con las otras ocho
+     plantillas.
+     /!\ SE DECLARAN EN PUNTOS IMPRESOS Y SE PONEN CON setFontSize DIRECTO, sin pasar por fn/fb,
+     que multiplican por _FS = PDF_FS * _FSA. Son dos cosas a la vez: el numero que se declara es
+     el que el medico mide en el papel, y el ajuste automatico A4 -que comprime el cuerpo en su
+     ultimo paso- NO puede bajar este estilo de los 9 pt que la orden fija como piso. El AIRE
+     sigue comprimiendose por _SPA, que es la palanca que esta casa agota primero.
+     /!\ EL 10 SALE DE MEDIR y no de elegirlo: con el ETT normal de prueba el cuerpo entra en UNA
+     hoja A4 a 10 pt, que es el mayor del rango 9 a 10 que la orden fija. */
+  const _TW = (_plantillaId === 'tipoword');
+  const TW_PT = 10, TW_PT_FICHA = 8;
+  /* La interlinea del cuerpo de este estilo: 4,9 mm contra los 5,5 de _IL. Es compacta y
+     UNIFORME -la misma entre dos lineas de datos, entre dos renglones del informe y entre dos
+     items del EN SUMA- y escala con el aire igual que _IL. */
+  const _ILW = _TW ? _aire(4.9) : _IL;
+  function twn(){ doc.setFont('helvetica','normal'); doc.setFontSize(TW_PT); }
+  function twb(){ doc.setFont('helvetica','bold');   doc.setFontSize(TW_PT); }
+  function twf(){ doc.setFont('helvetica','normal'); doc.setFontSize(TW_PT_FICHA); }
 
   // ─── data readers (uses global sv/v) ─────────────────────────
   const bsa = getBSA();
@@ -82977,7 +83001,12 @@ function generarPDFReal(_aj) {
     /* Sin relleno el texto no puede ir en x=mL+5: esos 5 mm eran el aire DENTRO de la banda de
        color. Sobre blanco, la sangría lo despegaría del margen del resto del informe. */
     const bx = fill ? mL + 5 : mL;
-    if (_TBL.barSerif) { doc.setFont('times','bold'); doc.setFontSize(8.5 * _FS); } else fb(8.5);
+    /* PR9-2.1: en «Tipo Word» el rotulo de la barra -INFORME, EN SUMA: y los scores- va al
+       MISMO tamanio que el cuerpo. _BAR_H NO se toca: su alto es el mismo en las nueve
+       plantillas a proposito -de el cuelga el checkPage de arriba y, por acumulacion, donde cae
+       cada salto de pagina-, y lo unico que cambia es lo que se dibuja DENTRO de ese alto. */
+    if (_TBL.barSerif) { doc.setFont('times','bold'); doc.setFontSize(8.5 * _FS); }
+    else if (_TW) twb(); else fb(8.5);
     { const bt = _C(_TBL.barText); tc(bt[0],bt[1],bt[2]); }
     doc.text(_t, bx, y + _BAR_PAD + _BAR_CAP);
     /* EL SUBRAYADO DEL TITULO (PR8-2.4). Es un rectangulo fino del ancho del TEXTO MEDIDO -no del
@@ -83589,15 +83618,18 @@ function generarPDFReal(_aj) {
     fb(13); tc(0,0,0);
     doc.text(_sanML(_hdrTitulo), mL, yy);
     yy += 5.4;
-    if (_hdrLine) { fn(9.5); tc(0,0,0); doc.text(_sanML(_hdrLine), mL, yy); yy += 5.0; }
+    /* PR9-2.1: la institucion y las filas del paciente al MISMO tamanio -TW_PT_FICHA-, que es
+       lo que la orden pide: «la ficha del paciente, la firma y el pie pueden ir mas chicos, pero
+       tambien uniformes entre si». Antes eran 9,5 y 8,5, o sea dos tamanios sueltos. */
+    if (_hdrLine) { twf(); tc(0,0,0); doc.text(_sanML(_hdrLine), mL, yy); yy += 4.6; }
     yy += 1.4;
-    fn(8.5); tc(0,0,0);
+    twf(); tc(0,0,0);
     (pRows || []).forEach(function (row) {
       const pz = (row || []).filter(function (c) { return c && c.val })
         .map(function (c) { return _sanML(c.lbl) + ': ' + _sanML(String(c.val)) });
       if (!pz.length) return;
       doc.splitTextToSize(pz.join('   \u00b7   '), pgW).forEach(function (ln) {
-        _tSexo(ln, mL, yy); yy += 4.3;
+        _tSexo(ln, mL, yy); yy += 4.0;
       });
     });
     return yy + 2.2;
@@ -84104,10 +84136,12 @@ function generarPDFReal(_aj) {
         /* El título: negrita, subrayado y con su propio aire. El subrayado es un rectángulo fino
            del ancho del texto medido —no del ancho de la caja—, que es lo que lo hace parecer
            subrayado y no una barra de sección. */
-        checkPage(_IL * 2);
+        /* La reserva es el titulo MAS su primera linea de datos: asi un titulo no queda huerfano
+           al pie de una hoja (PR9-2.4). */
+        checkPage(_ILW * 2);
         y += _aire(2);
-        if (_TBL.infSerif) { doc.setFont('times', 'bold'); doc.setFontSize(9 * _FS); }
-        else { doc.setFont('helvetica', 'bold'); doc.setFontSize(9 * _FS); }
+        /* PR9-2.1: el titulo de seccion va en NEGRITA al MISMO tamanio que el cuerpo. */
+        twb();
         /* ⚠️ `_C('TEXTO')` NO EXISTE: ese resolvedor sólo conoce los centinelas TEMA* y devuelve
            lo que no reconoce TAL CUAL, así que `tc('T','E','X')` pintaba un color basura. Lo
            delató el censo —era la única aparición de ese centinela en todo el archivo—. Se usan
@@ -84124,21 +84158,25 @@ function generarPDFReal(_aj) {
           let _w = 0; try { _w = doc.getTextWidth(_tit); } catch (_e2) { _w = 0; }
           if (_w > 0) doc.rect(mL + 2, y + 0.9, _w, 0.35, 'F');
         }
-        y += _IL;
-        /* Las líneas: tipografía del cuerpo, una por renglón. */
-        if (_TBL.infSerif) { doc.setFont('times', 'normal'); doc.setFontSize(8.5 * _FS); }
-        else { doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5 * _FS); }
+        y += _ILW;
+        /* Las lineas: el MISMO cuerpo que la narrativa y el EN SUMA, una por renglon. */
+        twn();
         { const ccol = _C(_TBL.infCol); if (ccol) tc(ccol[0], ccol[1], ccol[2]); }
         (s.lineas || []).forEach(function (l) {
-          /* LA LINEA EN BLANCO del texto -los tres grupos del ventriculo izquierdo- es aire, no
-             un renglon vacio estampado. */
-          if (l === '') { y += _IL * 0.6; return; }
+          /* /!\ LA LINEA EN BLANCO SE DESCARTA (PR9-2.3). Hasta PR8 metia 0,6 de interlinea de
+             aire, y eso era exactamente lo que el medico vio: entre FEVI y Masa idx y entre
+             Geometria y Vol. sistolico el papel abria 8,8 mm donde el resto abria 5,5. La orden
+             pide que la separacion entre lineas de datos sea SIEMPRE la misma y que la unica
+             separacion mayor sea la de entre secciones. Los tres grupos del ventriculo izquierdo
+             siguen separados en el texto COPIADO, que es otra superficie y no se toca. */
+          if (l === '') return;
           const _ls = doc.splitTextToSize(
             _sanML(typeof _cwCap === 'function' ? _cwCap(l) : l), pgW - 8);
           _ls.forEach(function (ln, _k) {
-            checkPage(_IL + 0.5);
+            /* Una linea nunca se parte entre dos hojas: la reserva es el renglon entero. */
+            checkPage(_ILW + 0.5);
             doc.text(ln, mL + (_k ? 8 : 4), y);
-            y += _IL;
+            y += _ILW;
           });
         });
       });
@@ -84269,7 +84307,11 @@ function generarPDFReal(_aj) {
     /* Serif si la plantilla lo pide. Se fija ANTES del splitTextToSize: Times y Helvetica
        tienen métricas distintas, así que medir con una y estampar con la otra desbordaría el
        ancho de columna. Es la misma disciplina que ya rige en el bloque de firma. */
-    if (_TBL.infSerif) { doc.setFont('times','normal'); doc.setFontSize(8 * _FS); } else fn(8);
+    /* PR9-2.1: en «Tipo Word» la narrativa va al MISMO cuerpo que los datos y que el EN SUMA.
+       Antes salia a 8 * _FS = 8,56 pt contra los 9,1 de los datos: dos cuerpos en el mismo
+       documento, que es lo que el medico reporto. */
+    if (_TBL.infSerif) { doc.setFont('times','normal'); doc.setFontSize(8 * _FS); }
+    else if (_TW) twn(); else fn(8);
     { const ic = _C(_TBL.infCol); tc(ic[0],ic[1],ic[2]); }
     const iL = doc.splitTextToSize(_sanML(informeTxt), pgW-4);
     /* Cuánto hay que subir desde la línea base para que el rect apoye EXACTO en el borde
@@ -84280,7 +84322,7 @@ function generarPDFReal(_aj) {
        cerrado, reabierta porque uno de los dos sumandos empezó a escalar y el otro no. */
     const _infTop = 1.2 + _aire(2);
     iL.forEach(l=>{
-      checkPage(_IL+0.5);
+      checkPage(_ILW+0.5);
       /* El fondo y el borde se pintan POR LÍNEA, no como un rectángulo único calculado antes.
          El informe narrativo puede saltar de página a mitad de bloque —el checkPage está DENTRO
          de este forEach—, así que un solo rect de alto total quedaría dibujado en la hoja donde
@@ -84297,7 +84339,7 @@ function generarPDFReal(_aj) {
       { const ib = _C(_TBL.infBorde); if (ib) { fc(ib[0],ib[1],ib[2]); doc.rect(mL, y - _infTop, 0.7, _IL, 'F'); } }
       // El texto se re-fija tras los rects: fc() no toca la fuente, pero sí conviene el color.
       { const ic2 = _C(_TBL.infCol); tc(ic2[0],ic2[1],ic2[2]); }
-      doc.text(l, _TBL.infBorde ? mL+3.5 : mL+2, y); y+=_IL; });
+      doc.text(l, _TBL.infBorde ? mL+3.5 : mL+2, y); y+=_ILW; });
     /* Sin cola: la barra del EN SUMA ya trae su propio aire (1,2 mm). Antes se sumaban 3 mm
        de acá + 1,5 de la barra = 4,5 mm de blanco entre el final del informe y el título. */
   }
@@ -84332,13 +84374,15 @@ function generarPDFReal(_aj) {
          La orden pide que el narrativo salga con el MISMO formato que el copiado del informe, y
          ahi los items son renglones de una lista llana: el unico negrita con subrayado es el
          rotulo. Las otras ocho plantillas NO se tocan: su EN SUMA sigue saliendo como siempre. */
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8 * _FSF);
+      /* PR9-2.1: el MISMO cuerpo que los datos y que la narrativa. Antes salia a 8 * _FSF =
+         9,2 pt, un tercer tamanio dentro del mismo documento. */
+      twn();
       cuadSumaItems(sumaTxt).forEach(function (it) {
         doc.splitTextToSize(_sanML(it), pgW - 10).forEach(function (ln, _k) {
-          checkPage(_IL + 0.5);
+          checkPage(_ILW + 0.5);
           if (!_k) { const sc = _C(_TBL.sumaCol); if (sc) fc(sc[0], sc[1], sc[2]);
                      doc.circle(mL + 3.1, y - 0.85, 0.5, 'F'); }
-          doc.text(ln, mL + 6, y); y += _IL;
+          doc.text(ln, mL + 6, y); y += _ILW;
         });
       });
     } else {
@@ -135230,6 +135274,26 @@ function amiloDibujarSecciones(doc, secs, g) {
      cuerpo de letra sobre un alto que no existe. Es la regla que esta función ya tiene escrita
      para el hueco entre secciones, que durante un tiempo se sumaba y no se aplicaba. */
   const _NOTA_PAD = 1.7;
+  /* == PR9-3 · EL AIRE QUE SEPARA UN BLOQUE DEL SIGUIENTE ====================================
+     /!\ EL DEFECTO NO ERA EL ALTO DEL RECUADRO, Y SE MIDIO ANTES DE TOCAR NADA. El alto que
+     plan() reserva y el que el bucle dibuja salen de la MISMA cuenta -H * f.n + _NOTA_PAD * 2-
+     y las dos usan el mismo f.n, que es el numero de renglones que splitTextToSize devolvio:
+     el recuadro mide exactamente lo que dice medir, con texto corto, largo, muy largo y con el
+     ancho recortado a 90 y a 60 mm.
+     Lo que estaba mal es DONDE empieza lo que viene abajo. Esta funcion dibuja cada fila de
+     texto con la LINEA DE BASE en `y` y despues avanza `y += H`, que es coherente entre dos
+     filas seguidas; pero la nota es la unica que reserva un RECTANGULO de `y` a `y + altoN` y
+     deja `y` en su borde INFERIOR. Asi, la linea de base de lo que sigue cae EXACTAMENTE sobre
+     ese borde y sus mayusculas suben hacia adentro del recuadro. Medido en los cinco casos:
+     2,44 mm de solape, SIEMPRE el mismo, porque no depende del largo del texto ni del ancho.
+     Es lo que el medico vio: «Desglose por criterio» encima del ultimo renglon de la salvedad.
+     El mismo defecto, mas chico, tenia la franja de titulo: su primer subtitulo quedaba a
+     0,56 mm de la banda, o sea pegado.
+     La separacion se DERIVA del interlineado con el mismo 0,78 con que la nota coloca su primera
+     linea de base -o sea el alto de una caja de linea por encima de su base-, asi que escala con
+     el cuerpo de letra y no hay un numero en milimetros que se quede viejo. Y se usa en plan() Y
+     en el bucle de dibujo, que es la regla que esta funcion ya tiene escrita. */
+  const _SEP = (H) => H * 0.78;
 
   const plan = sz => {
     /* El interlineado también escala. Con H sin escalar, las líneas se dibujarían a
@@ -135238,7 +135302,7 @@ function amiloDibujarSecciones(doc, secs, g) {
     const filas = []; let alto = 0;
     secs.forEach((sec, i) => {
       if (i) alto += H * 1.2;
-      filas.push({ t:'bar', txt: amiloSanPDF(sec.tit) }); alto += 8.5 + 1.5;
+      filas.push({ t:'bar', txt: amiloSanPDF(sec.tit) }); alto += 7 + 1.5 + _SEP(H);
       /* ══ UNA SECCION PUEDE LLEVAR UN DIBUJO A SU DERECHA (AJ1-2a, 30/10/2026) ═══════════
          `sec.img = {dataURL, w, h}`. Cuando esta, las filas de ESA seccion se parten contra un
          ancho util menor -el que queda a la izquierda del dibujo- y el dibujo se estampa a la
@@ -135274,7 +135338,7 @@ function amiloDibujarSecciones(doc, secs, g) {
           fi(sz);
           const ls = doc.splitTextToSize(l.replace(/^!!\s*/, ''), _aw - 10);
           filas.push({ t:'nota', ls: ls, n: ls.length, w: _aw });
-          alto += H * ls.length + _NOTA_PAD * 2;
+          alto += H * ls.length + _NOTA_PAD * 2 + _SEP(H);
         }
         /* `**` al principio de una fila de tabla = la columna del VALOR va en NEGRITA (AJ2-8c,
            23/10/2026). El armador tenia `##` para subtitulo y `!!` para nota y ninguna forma de
@@ -135338,9 +135402,9 @@ function amiloDibujarSecciones(doc, secs, g) {
   p.filas.forEach((f, i) => {
     if (f.t === 'bar') { if (_secPrev !== null) { y += _imgExtra; _imgExtra = 0; y += p.H * 1.2; } _secPrev = i; }
     if (!cabe) {
-      const altoFila = (f.t === 'bar') ? 10
+      const altoFila = (f.t === 'bar') ? (7 + 1.5 + _SEP(p.H))
                      : (f.t === 'kv')   ? p.H * f.n
-                     : (f.t === 'nota') ? p.H * f.n + _NOTA_PAD * 2
+                     : (f.t === 'nota') ? p.H * f.n + _NOTA_PAD * 2 + _SEP(p.H)
                      : (f.t === 'img')  ? 0
                      : p.H + (f.t === 'sub' ? 1.6 : 0);
       // Un título de sección no queda huérfano al pie: se corta antes.
@@ -135350,7 +135414,7 @@ function amiloDibujarSecciones(doc, secs, g) {
     if (f.t === 'bar') {
       doc.setFillColor(T[0],T[1],T[2]); doc.rect(mL, y, pgW, 7, 'F');
       fb(8.5); doc.setTextColor(255,255,255); doc.text(f.txt, mL + 5, y + 5);
-      y += 8.5 + 1.5;
+      y += 7 + 1.5 + _SEP(p.H);
     } else if (f.t === 'sub') {
       fb(sz); doc.setTextColor(T[0],T[1],T[2]);
       doc.text(f.txt, mL, y); y += p.H + 1.6;
@@ -135369,7 +135433,9 @@ function amiloDibujarSecciones(doc, secs, g) {
       doc.setFillColor(T[0], T[1], T[2]); doc.rect(mL, y, 1.1, altoN, 'F');
       fi(sz); doc.setTextColor(70,70,70);
       f.ls.forEach((t, i2) => doc.text(t, mL + 4.5, y + _NOTA_PAD + p.H * 0.78 + i2 * p.H));
-      y += altoN;
+      /* Y el aire de salida: sin el, la linea de base de lo que sigue cae sobre el borde de
+         abajo del recuadro y sus mayusculas lo pisan 2,44 mm. */
+      y += altoN + _SEP(p.H);
     } else if (f.t === 'img') {
       /* El dibujo, pegado al margen derecho y a la altura de la primera fila de su seccion.
          `try/catch` por lo mismo que los otros bloques de imagen del PDF: una excepcion aca
