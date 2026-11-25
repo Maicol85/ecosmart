@@ -40,6 +40,156 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## PR13 — el mapa de strain por territorios del visor: la leyenda y los seis sectores (2026-11-25)
+
+> Sello **`v20261125-0728`**, md5 **`a1b7f9a3`**. Línea base **`e4ee124`** (cierre de PR12).
+> El mapa, en `docs/mapa/pr13-mapa-sgl-visor.md`; las fichas, en
+> `docs/mapa/tests-fichas-1068.md`; el informe, en `docs/INFORME_SGL_VISOR_PR13.md`; la guía
+> manual, en `docs/GUIA_PRUEBA_PR13.md`.
+
+### PR13-a — el valor por segmento (los 16) queda DIFERIDO
+
+**Decisión de Maicol del 25/11/2026, textual:**
+
+> Visor SGL con valor por segmento (16): diferido hasta seguimiento automático de puntos; partir
+> la marca en tercios da el mismo valor en los tres (decisión Maicol 25/11/2026).
+
+**Por qué, medido.** El método manual da **una** medición por pared: el trazado en diástole y el
+trazado en sístole son dos contornos libres, y el porcentaje sale del cociente de sus largos.
+Partir esa marca en tres tramos iguales **de su propia longitud** devuelve el **mismo** cociente en
+los tres, con dispersión exactamente **cero** — es lo que el propio código ya tenía escrito y lo
+que el informe de la TAREA 6 de PR12 volvió a medir.
+
+**Qué se hizo en su lugar.** El diagrama pasó a **seis sectores**, uno por pared, que es lo que el
+método de verdad mide. Hasta PR12 mostraba tres anillos por pared **con el mismo color** y el
+número **sólo en el anillo del medio**, o sea que se leía como dieciséis mediciones.
+
+**Qué haría falta para cerrarlo.** Seguimiento automático de puntos a lo largo del contorno, que es
+lo que permite que un tercio tenga un largo propio en cada cuadro. No es una tanda de dibujo.
+
+### PR13-b — la leyenda no responde al ancho, y es intrínseco al canvas
+
+**Qué se midió.** El dibujante trabaja siempre en unidades de `S` —**300** en la pantalla y
+**640** en la captura— y el CSS escala el canvas con `max-width:100%`. Los tres anchos que la orden
+pide medir —la columna de medición del escritorio, el iPad vertical y un teléfono de unos 360 px—
+dan por lo tanto **el mismo** resultado de dibujo.
+
+**Qué significa.** El corte del texto explicativo que el médico reportó **no era un problema de
+ancho de pantalla**: a 300 px de canvas ese renglón medía **347,5 px**, o sea **23,8 px cortados a
+cada lado**, siempre y en cualquier dispositivo. Un canvas **recorta en silencio**, así que no
+había ninguna señal de que faltara texto.
+
+**Cómo quedó.** El texto se parte en hasta **dos** renglones dentro del ancho del canvas, y la
+decisión de bajar de nueve rótulos a cinco se toma **midiendo el ancho de cada rótulo con
+`measureText`**, no leyendo el ancho de la ventana — que al canvas no le llega.
+
+**Lo que esto cuesta, declarado.** Las condiciones de los tres anchos son, por construcción, la
+misma medición tres veces. **TC-1068** lo **afirma** en una condición propia en vez de dejarlo
+implícito, para que nadie lea «medido en tres anchos» como si fueran tres escenarios distintos.
+
+### PR13-c — el contraste del texto: la regla de la pestaña, endurecida sólo donde no alcanza
+
+**Qué se midió.** La pestaña SGL **ya** declara un color de texto por tramo —`STRAIN_PAL[i].txt`—,
+así que la orden («misma regla que la pestaña si existe») se cumple leyéndolo. Medido tramo por
+tramo contra el relleno con `_medLumDe` y `_medContraste`: **ocho de los nueve** llegan a 4,5:1 y
+**uno no**, el del violeta intenso, que es exactamente el que el médico no podía leer.
+
+**Qué se hizo.** `_strTxtSobre(i)` usa el color de la pestaña **tal cual** donde alcanza, y sólo
+donde no alcanza elige blanco o casi negro, el que más contraste dé.
+
+**Qué NO se tocó.** `STRAIN_PAL` y la pestaña SGL quedan **idénticas**: la pestaña sigue publicando
+su propio color de texto, y **TC-1070** lo mide como control. Endurecer la paleta habría cambiado
+la pestaña, que esta tanda tiene prohibido tocar.
+
+### PR13-d — tres condiciones de TC-201 retiradas, con su motivo
+
+**Qué se retiró.** Las tres condiciones de **TC-201** que afirmaban que los segmentos **14 y 16**
+—los **dos únicos** que dos paredes compartían— salían **grises**, que seguían grises con dos
+vistas y que **promediaban** sus dos paredes.
+
+**Por qué.** Eso **desapareció con los anillos**: con **un sector por pared** no hay ningún
+segmento que dos paredes puedan reclamar ni nada que promediar.
+
+**Qué las reemplaza, y por qué no es un aflojamiento.** Lo que hay que proteger —que cada pared
+tenga **un solo** color del disco al borde y **un solo** número, y que los anillos no vuelvan— lo
+miden condiciones **nuevas** de TC-201 y de **TC-1069**, incluida una que exige que
+`_STR_ANILLOS`, `_STR_SEG_FUENTE` y `_STR_SEG_ROTULO` **ya no existan**. Esa condición es la que se
+pone roja el día que alguien los reponga.
+
+### PR13-e — los anillos no tenían otro consumidor, y por eso no se tocó nada más
+
+**Qué se censó, antes de retirar nada.** Los consumidores de `_STR_ANILLOS`, `_STR_SEG_FUENTE` y
+`_STR_SEG_ROTULO`: **el dibujante del mapa y TC-201**, y nada más. Ninguna otra superficie de la
+aplicación dependía del reparto en anillos — ni el PDF, ni el informe, ni el EN SUMA, ni la copia
+con formato, ni el PPT.
+
+**La captura y el PDF salen del MISMO dibujante** (`_strBullsCanvas` → `_strBullsDibujar` con
+`conTitulo` en verdadero), así que no hubo un segundo camino que adaptar; lo que sí se verificó es
+que las **dos líneas del descargo** que esa función dibuja debajo del diagrama **siguen entrando**
+en el canvas de 640, porque el radio ahora se **deriva** del alto de la leyenda.
+
+**Lo que la orden manda y se cumplió.** «Si algún otro uso depende de los anillos, no cambiarlo y
+reportarlo»: no hay ninguno, así que no se cambió nada fuera del mapa.
+
+### PR13-f — dos premisas de la orden que no se reprodujeron
+
+**1 · Los nombres de P10 y P11 están corridos.** La orden llama **«PR10»** a la pantalla completa
+del visor y **«PR11»** a las calculadoras y las flechas. Medido en la historia por nombre de
+commit:
+
+| tanda | qué es de verdad | sello |
+|---|---|---|
+| **P10** | la **escala de velocidad** de un Doppler espectral | `v20261121-2349` |
+| **P11** | los **dos tamaños** del visor —ahí vive la **pantalla completa**, su TAREA 1.2—, el **teclado** —las flechas de cuadro, su 2.1— y las **medidas por cuadro** | `v20261122-1044` |
+
+O sea que la **pantalla completa es de P11 y no de P10**, y las **flechas** también. **Las dos
+están en HEAD** —verificado por nombre y no supuesto— y **ninguna se tocó**, que es lo que la orden
+pide; lo que se corrige es el rótulo con que se las nombra en la documentación.
+
+**2 · El texto de la leyenda no se cortaba «a los tres anchos» por el ancho.** Está en
+**PR13-b**: el canvas dibuja en sus propias unidades y el CSS lo escala, así que las tres
+mediciones que la orden pide son, por construcción, la misma. Se midieron igual y **TC-1068** lo
+afirma en una condición propia.
+
+### PR13-g — un worktree ajeno y viejo en el disco, que NO se tocó
+
+**Qué hay.** `git worktree list` muestra, además del árbol de trabajo, **`/private/tmp/wt-eq`**,
+parado en **`77196c5`** —la línea base de la tanda **EQ**, del 21/11—.
+
+**Qué se hizo.** **Nada.** No es de esta tanda y no tiene cambios sin commitear que puedan entrar a
+un commit de PR13: la orden manda parar y avisar ante lo ajeno sin commitear, y esto es un
+directorio de trabajo olvidado, no un cambio. Los dos worktrees que **sí** son de esta tanda se
+retiraron al cerrar.
+
+**Para Maicol:** se saca con `git worktree remove /private/tmp/wt-eq`, o con
+`git worktree prune` si el directorio ya no está en disco.
+
+### PR13-h — los rojos de la banda de esta tanda
+
+**La suite completa no se corrió, por orden expresa.** Se corrió la **banda del visor y del SGL**:
+**285** casos, seleccionados por el patrón del propio cuerpo de cada caso. **280/285**, los 285
+ejecutados, con el md5 de `index.html` idéntico al abrir y al cerrar (`a1b7f9a3`).
+
+| caso | qué pasa | veredicto |
+|---|---|---|
+| **TC-182** | pasa **corrido aislado** | sensibilidad de lote |
+| **TC-857** | pasa **corrido aislado** | sensibilidad de lote |
+| **TC-899** | pasa **corrido aislado** | sensibilidad de lote |
+| **TC-1044** | pasa **corrido aislado** | sensibilidad de lote |
+| **TC-900** | falla **también aislado** y falla **igual contra `e4ee124`** con el mismo archivo de casos | **preexistente** |
+
+Los **cinco** son exactamente los que la orden declara como rojos conocidos del lote de PR12, y
+TC-900 es el que PR12 ya había caracterizado como «falla también aislado, así que es un rojo
+preexistente de HEAD y no de lote». **Ninguno es de esta tanda.**
+
+**Los que no aparecen porque no están en la banda:** TC-376 y TC-406 —los dos de siempre—, TC-551,
+TC-1000, TC-1039, TC-1050 y TC-490. No se ejecutaron, y se declara.
+
+**El A/B.** De los seis casos de la zona, **cinco caen** contra `e4ee124` con el archivo de casos
+final —**por condición y con CERO excepciones**— y **TC-1067 pasa en los dos árboles a propósito**:
+es el caso de **PR12**, cuya paleta ya está en `e4ee124`, así que es una guarda de regresión y no lo
+que discrimina.
+
 ## PR12 — el tamaño del texto copiado, el corte de RWT, el rango de NT-proBNP y la paleta del visor (2026-11-25)
 
 > Sello **`v20261125-0132`**, md5 **`b556f081`**. Línea base **`2830208`** (cierre de PR9).

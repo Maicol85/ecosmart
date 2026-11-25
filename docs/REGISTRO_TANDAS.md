@@ -1,3 +1,59 @@
+## PR13 — el mapa de strain por territorios del visor: la leyenda y los seis sectores (2026-11-25)
+
+**Sello** `v20261125-0728` · **md5** `a1b7f9a3` · **196.460** líneas · línea base `e4ee124`.
+**Sin push: lo corre Maicol.**
+
+**Cuatro tareas: la 0 es de solo lectura, la 3 VERIFICA sin cambiar nada.**
+
+| tarea | qué pasó |
+|---|---|
+| **0** · el inventario | **solo lectura**: de dónde salen los seis valores, cómo pintaba, quién consume los anillos, por qué se cortaba el texto y los límites reales de los ocho tramos |
+| **1** · la leyenda | de ocho rótulos en el centro de cada cuadro a **NUEVE en las líneas de unión**, de −20 a +20 con `≤` y `≥` en los extremos, y el texto explicativo **entero** en hasta dos renglones |
+| **2** · el dibujo | de **tres anillos por pared** a **SEIS sectores**, uno por pared, del disco al borde, con el nombre y el número **dentro** del sector y el color de texto con contraste **≥ 4,5:1** en los nueve tramos |
+| **3** · la fórmula | **verificada por el camino real y NO cambiada**: 100→80 da −20,0 %, 100→120 da +20,0 %, es un cociente, y el SGL es el promedio de los seis |
+| **4** · cobertura | TC-1068 a TC-1071 (**40 condiciones**), TC-201 adaptado con **tres condiciones retiradas**, y **21/21 mutaciones muertas** |
+
+**El diff son 294 líneas agregadas y 168 quitadas**, de las que **179 son código de verdad**, 104
+comentario y 11 en blanco, con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO**
+`<input>`, `<select>` y `<textarea>` nuevos y **CERO ids nuevos**. **Cero campos guardados nuevos**
+y las **457** columnas quietas **por construcción**.
+
+**Lo que NO se tocó, y es medible:** `STRAIN_PAL`, `strainTramoDe`, la pestaña SGL entera, el
+cálculo del SGL del pie, la fórmula por pared, PR10 y PR11. **Cero cortes clínicos, cero umbrales
+y cero fórmulas de severidad.**
+
+**Las tres cosas que la medición desmintió:**
+
+1. **El texto de la leyenda no se cortaba por el ancho de la pantalla.** El canvas dibuja en
+   unidades de `S` y el CSS lo escala, así que los tres anchos dan el mismo dibujo; el renglón se
+   dibujaba en **una** línea y a 300 px medía **347,5 px** — **23,8 px cortados a cada lado**,
+   siempre.
+2. **Los límites de la escala se midieron antes de rotularlos.** `strainTramoDe` acota: −20,01,
+   −25 y −30,1 caen en el **tramo 1** y +20, +20,01 y +30,1 en el **8**, con −30,1 compartiendo
+   `#6A1B9A` con −16.
+3. **La regla de color de texto de la pestaña existe y no alcanzaba en uno.** Ocho de los nueve
+   tramos salen con el color que la pestaña declara; el `#5C8CE0` daba **3,34** y se endurece a
+   **5,72**. Antes el dibujo usaba `#111827` **fijo** en los nueve, con **tres** por debajo de
+   4,5:1 y **1,89** sobre el violeta intenso.
+
+**Lo diferido:** el valor por segmento (los 16), hasta que haya seguimiento automático de puntos.
+Partir la marca en tercios da el mismo valor en los tres. Decisión de Maicol del 25/11/2026 →
+**PR13-a**.
+
+**La verificación.** La suite completa **no** se corrió, por orden expresa: se corrió la **banda del
+visor y del SGL** —**285** casos por el patrón del propio cuerpo de cada caso—, con **280/285**, los
+285 ejecutados y el md5 idéntico al abrir y al cerrar. Los **cinco** rojos son exactamente los que
+la orden declara: cuatro pasan **aislados** y **TC-900 falla también aislado y falla igual contra
+`e4ee124`**, o sea **preexistente**. **Semgrep 126 / 0 ERROR**, **sin huérfanos nuevos**, **17/17**
+bloques de JS y **celular 38 ALTA** — las cuatro, la línea base exacta.
+
+**Dónde está todo:** el mapa en `docs/mapa/pr13-mapa-sgl-visor.md`; las fichas en
+`docs/mapa/tests-fichas-1068.md`; el informe en `docs/INFORME_SGL_VISOR_PR13.md`; la guía manual en
+`docs/GUIA_PRUEBA_PR13.md`; el barrido en `scripts/_mut_pr13.py`; el corredor de lotes en
+`scripts/_lotes_pr13.sh`; el insertador de casos con su guardián en `scripts/_casos_pr13.py`; las
+sondas en `scripts/_probe_pr13_0.mjs`, `scripts/_probe_pr13.mjs` y `scripts/_probe_pr13dom.mjs`,
+cada una con su cuerpo aparte.
+
 ## PR12 — el tamaño del texto copiado, el corte de RWT, el rango de NT-proBNP y la paleta del visor (2026-11-25)
 
 **Sello** `v20261125-0132` · **md5** `b556f081` · **196.334** líneas · línea base `2830208`.

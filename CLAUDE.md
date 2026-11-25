@@ -117,6 +117,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar una COLUMNA del EXCEL del Laboratorio**: `LAB_XLS_MAP`, las 440 claves, los tipos, los alias de cabecera del importador o las dos columnas del G2 | `docs/mapa/excel-laboratorio.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
 | **Tocar un CORTE del SGL, el SIGNO del strain en el papel, el RÓTULO de pantalla, los TERRITORIOS coronarios con su aviso, los PATRONES del ojo de buey o el 2,9 del score de amiloidosis** | `docs/mapa/aj9-sgl-patrones.md` |
+| **Tocar el MAPA DE STRAIN POR TERRITORIOS del VISOR** —sus SEIS sectores, su leyenda de nueve rótulos entre cuadritos, el color del texto sobre cada tramo, el radio derivado del alto de la leyenda o la fórmula por pared— | `docs/mapa/pr13-mapa-sgl-visor.md` |
 | **Tocar el TAMAÑO DE LETRA de los textos que la app copia con formato, el corte de ESPESOR PARIETAL RELATIVO, el rango de NT-proBNP de la casilla del HFA-ICOS, o la PALETA del mapa de SGL del VISOR** —sus ocho tramos, su gris, su leyenda o por qué TC-201 cambió de lado— | `docs/mapa/pr12-copiado-rwt-paleta.md` |
 | **Tocar la TABLA «Cálculos de strain»** —su línea única por celda, los nombres cortos, los tres íconos en SVG, el motivo que vive en el tooltip del ícono apagado o sus medidas—, **el CUERPO ÚNICO de letra del PDF «Tipo Word»**, **el AIRE que separa un recuadro de nota del bloque que sigue** en las nueve plantillas, **la REGLA de lo que una celda del bull's eye acepta**, **el cartel de FEVI/SGL** o **el REDONDEO de los promedios y las razones del strain** | `docs/mapa/pr9-tabla-pdf-sgl.md` |
 | **Tocar el BOTÓN DE ICONO del resumen de válvulas, el ARRASTRE de los cuadros con su intercambio y su marcador de destino, el COPIADO CON FORMATO de los dos botones, el TEXTO de los datos numéricos —la mayúscula inicial, los renglones de mensaje omitidos, la línea mitral, los tres grupos del VI—, el PDF «Tipo Word» rehecho, la ENTRADA DE DATOS del SGL —el violeta de arranque, el ciclo, el guion, el signo, el aviso— o la tabla «CÁLCULOS DE STRAIN»** | `docs/mapa/pr8-cuadros-copiado-strain.md` |
@@ -304,7 +305,25 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **14,14 MB / 196.334 líneas**, medido con `wc -c` y `wc -l` el 2026-11-25 al cierre de la tanda **PR12** (el tamaño del texto copiado con formato, el corte de RWT, el rango de NT-proBNP y la paleta del mapa de SGL del visor), sobre el árbol ya sellado: sello **`v20261125-0132`**, md5 **`b556f081`**.
+  sin frameworks. Hoy **14,15 MB / 196.460 líneas**, medido con `wc -c` y `wc -l` el 2026-11-25 al cierre de la tanda **PR13** (el mapa de strain por territorios del visor: su leyenda y sus seis sectores), sobre el árbol ya sellado: sello **`v20261125-0728`**, md5 **`a1b7f9a3`**.
+  El diff de PR13 son **294 líneas agregadas y 168 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `e4ee124` **sobre el árbol ya sellado**, de las que **179 son código
+  de verdad**, 104 comentario y 11 en blanco —las 294 cierran exacto, y el filtro lleva el estado
+  del comentario de bloque, que es lo que de verdad separa código de prosa—.
+  Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y
+  **CERO** `<input>`, `<select>` y `<textarea>` nuevos. **CERO ids nuevos**: el único que el diff
+  muestra —`eco-build-sello`— ya existía y reaparece porque el sello cambió, así que **cero campos
+  guardados nuevos** y las **457** columnas quietas **por construcción**: lo que entra son
+  constantes y funciones de dibujo, sin un solo control.
+  **Y CERO cortes clínicos, cero umbrales y cero fórmulas de severidad movidos**: la paleta
+  (`STRAIN_PAL`), su función de tramo (`strainTramoDe`), la pestaña SGL, el cálculo del SGL del pie
+  y la fórmula por pared quedan **idénticos** —la TAREA 3 los **verifica** y no los cambia—; lo que
+  esta tanda mueve es **un dibujo y su leyenda**.
+  ⚠️ **POR SEXAGÉSIMA SÉPTIMA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show e4ee124:index.html` da **196.334** líneas,
+  **14.144.856** bytes y el md5 **`b556f081`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 14,14 MB / 196.334 al cierre de la tanda **PR12** (el tamaño del texto copiado con formato, el corte de RWT, el rango de NT-proBNP y la paleta del mapa de SGL del visor), sello **`v20261125-0132`**, md5 **`b556f081`**.)
   El diff de PR12 son **97 líneas agregadas y 40 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `2830208` **sobre el árbol ya sellado**, de las que **66 son código
   de verdad** y 31 comentario —las 97 cierran exacto, y el filtro lleva el estado del comentario de
@@ -1819,6 +1838,30 @@ impecable.
 (`source.branch: main`, `path: /`, certificado aprobado). Lo que se pushea a `main` **es** lo que
 sale publicado.
 
+⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR PR13: `e4ee124`**, el cierre de la tanda **PR12** —sello
+`v20261125-0132`, md5 `b556f081`, 196.334 líneas—. **Es lo último que Maicol pusheó, y PR12 YA
+ESTÁ PUBLICADO**: verificado, `git rev-parse origin/main` da **`e4ee124`** y
+`git rev-list --count origin/main..main` daba **CERO** al abrir esta tanda.
+⚠️ **Y LA REFERENCIA ES EL REF LOCAL `origin/main`, que sólo se mueve al hacer `fetch` o `push`**:
+si Maicol pusheó algo desde otra máquina, hay que volver a medirlo con un `git fetch` antes de
+revertir nada. Para volver atrás SIN reescribir historia:
+
+```bash
+git revert --no-commit e4ee124..main && git commit -m "Revertir PR13: volver al arbol de e4ee124" && git push origin main
+```
+
+Y si lo que hay que volver atrás es **sólo lo que la página sirve** y no la documentación:
+
+```bash
+git checkout e4ee124 -- index.html version.json && git commit -m "Volver index.html y version.json a e4ee124" && git push origin main
+```
+
+⚠️ **Al revertir, el sello del pie vuelve al viejo y `CLAUDE.md` queda publicando el nuevo**, así
+que **TC-753 sale rojo con razón** hasta que el renglón de tamaño y la sección de la tanda se
+pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
+
+**El punto de retorno que PR12 declaró, textual, queda abajo.**
+
 ⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR PR12: `2830208`**, el cierre de la tanda **PR9** —sello
 `v20261124-2316`, md5 `a5ce3ab2`, 196.277 líneas—. **Es lo último que Maicol pusheó, y esta vez
 PR9 YA ESTÁ PUBLICADO**: verificado, `git rev-parse origin/main` da **`2830208`** y
@@ -1986,6 +2029,205 @@ pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PR13 (2026-11-25) — el mapa de strain por territorios del VISOR: su leyenda y sus seis
+sectores.** CUATRO tareas y TRES commits. Sello **`v20261125-0728`**, md5 **`a1b7f9a3`**,
+**196.460** líneas. Línea base **`e4ee124`**, el cierre de PR12 y a la vez `origin/main`.
+**Sin push: lo corre Maicol.**
+
+**TOCA UNA SOLA SUPERFICIE, y es medible:** el diagrama «Strain por territorios (método manual)»
+que el visor de cineloop dibuja debajo de la medición de deformación, con su leyenda de colores.
+**No** se tocó la pestaña SGL, **ni** `STRAIN_PAL`, **ni** `strainTramoDe`, **ni** nada de **P10**
+—la escala de velocidad de un Doppler espectral— **ni de P11** —los dos tamaños del visor, el
+teclado y las medidas por cuadro—, **ni** ningún otro texto de la aplicación.
+⚠️ **Y LOS NOMBRES QUE LA ORDEN LES DA ESTÁN CORRIDOS, medido en la historia**: llama «PR10» a la
+pantalla completa del visor y «PR11» a las calculadoras y las flechas, y la **pantalla completa es
+de P11** —su TAREA 1.2, sello `v20261122-1044`—, igual que las **flechas de cuadro** (su 2.1);
+**P10** es la **escala de velocidad** (sello `v20261121-2349`). Las dos están en HEAD, verificado
+por nombre, y **ninguna se tocó** — que es lo que la orden pide; lo que se corrige es el rótulo.
+
+**NADA CLÍNICO SE MOVIÓ**: cero cortes, cero umbrales, cero fórmulas de severidad. La TAREA 3
+**verifica** la fórmula por pared y **no la cambia**. **CERO** `<input>`, `<select>` y `<textarea>`
+nuevos y **CERO ids nuevos** —el único que el diff muestra, `eco-build-sello`, ya existía y
+reaparece porque el sello cambió—, así que **cero campos guardados nuevos** y las **457** columnas
+quietas **por construcción**: lo que entra son constantes y funciones de dibujo, sin un solo
+control.
+
+⚠️ **Y QUE TOCA UNA SOLA SUPERFICIE NO ES UNA PROMESA: ES EL REPARTO DEL DIFF.** De los **21**
+hunks, **19 caen entre las líneas 153.345 y 153.587** —el bloque del mapa de strain del visor— y
+los **2** restantes son **el sello**: las dos constantes de la compilación y el `<span>` del pie.
+**CERO hunks en cualquier otra parte del archivo**, contado y no afirmado.
+
+**TAREA 0 · EL INVENTARIO DESMINTIÓ LA FORMA EN QUE SE LEÍA EL DEFECTO.** `git status` sólo traía
+lo de esta tanda, y **PR10 y PR11 están en HEAD**, verificado por nombre y no supuesto. Los seis
+valores salen de **`_strResultadoVivo()`**, que ya existía; el dibujante **no recalcula nada**, y
+el **SGL del pie es el promedio de las paredes con dato** que esa misma función publica —**no se
+tocó ese cálculo**—.
+⚠️ **EL TEXTO DE LA LEYENDA NO SE CORTABA POR EL ANCHO DE LA PANTALLA.** El canvas dibuja siempre
+en unidades de `S` —**300** en la pantalla y **640** en la captura— y el CSS lo escala con
+`max-width:100%`, así que **los tres anchos que la orden pide medir dan el mismo dibujo**. El
+renglón se dibujaba en **una sola línea**: a 300 px medía **347,5 px**, o sea **23,8 px cortados a
+CADA lado**, siempre y en cualquier dispositivo. **Un canvas recorta en silencio**, así que no
+había una sola señal de que faltara texto. Declarado en **PR13-b**.
+⚠️ **Y LOS LÍMITES DE LA ESCALA SE MIDIERON ANTES DE ROTULARLOS, no al revés.** `strainTramoDe`
+**acota** a [1, 8]: medido, **−20,01, −25 y −30,1 caen en el tramo 1** y **+20, +20,01 y +30,1 en
+el 8**, con **−30,1 compartiendo `#6A1B9A` con −16** —que es exactamente lo que el médico vio—. Eso
+es lo que justifica que la leyenda diga **`≤ −20`** y **`≥ +20`**; **la paleta no se tocó**.
+
+**TAREA 1 · LA LEYENDA: NUEVE RÓTULOS EN LAS LÍNEAS DE UNIÓN Y EL TEXTO ENTERO.** Los **ocho**
+colores en una barra con los **nueve** bordes rotulados **sobre la línea que separa dos
+cuadritos** y no en su centro —`≤ −20`, −15, −10, −5, 0, +5, +10, +15, `≥ +20`—, derivados de
+`STRAIN_MARCAS` por **`_strBordes()`** y **no escritos a mano**. El cuadrado **gris** de SIN DATO
+queda en su **propia fila**. El texto explicativo —el que ya estaba, palabra por palabra— se parte
+en hasta **DOS** renglones dentro del ancho del canvas, centrado, con **`_strEnvolver`**.
+⚠️ **SI LOS NUEVE SE PISARÍAN SE DIBUJAN CINCO** —−20, −10, 0, +10, +20—, y la decisión sale de
+**medir el ancho de cada rótulo con `measureText`** y no del ancho de la ventana, que al canvas no
+le llega.
+
+**TAREA 2 · SEIS SECTORES, UNO POR PARED.** `_STR_SECTORES` son **seis** entradas, cada una del
+borde externo al disco central y **sin división en anillos**, con las posiciones angulares
+**intactas**: Anterior arriba y 60° por sector. Hasta PR12 eran **tres anillos por pared** —las
+diecisiete entradas de `_STR_ANILLOS`— pintados del **mismo** color y con el número **sólo en el
+del medio**, así que **se leía como dieciséis mediciones cuando el método manual da SEIS**, y las
+dos circunferencias intermedias **cortaban los nombres**.
+⚠️ **`_STR_ANILLOS`, `_STR_SEG_FUENTE` y `_STR_SEG_ROTULO` SE RETIRARON CON SU LÁPIDA, Y EL CENSO
+DICE POR QUÉ SE PODÍA**: sus únicos consumidores eran **este dibujante y TC-201**. La captura que
+va a «Imágenes» y la hoja del PDF salen del **MISMO** dibujante —`_strBullsCanvas` lo llama con
+`conTitulo` en verdadero—, así que **no hubo un segundo camino que adaptar** y no se tocó nada
+fuera del mapa. Es lo que la orden manda reportar, y la respuesta es que no hay ningún otro uso.
+**El nombre va AFUERA y el número ADENTRO, los dos SOBRE LA BISECTRIZ** y centrados en su propia
+caja, con la letra achicándose hasta que **las CUATRO esquinas** de su rectángulo caen dentro del
+polígono (**`_strFontEnSector`**).
+⚠️ **EL PRIMER DISEÑO LOS CORRÍA EN LA `y` DE PANTALLA Y NO ENTRABAN EN LOS CUATRO SECTORES
+DIAGONALES**, y la primera versión de la contención medía la **cuerda** del sector —que aprueba
+cajas que sobresalen por el borde **radial**, justo por donde se salían—.
+Una pared **sin dato** sale gris con **«Sin dato»**; el disco central sigue **gris con el «17»**; y
+el pie dice `SGL <valor>` y `N vistas · M paredes · el ápex (17) no lo mide este método`, con el
+singular resuelto.
+⚠️ **EL NÚMERO PASA A LLEVAR COMA, Y POR EL DUEÑO DE LA PESTAÑA**: `_strFmt` delega en **`_scN`**.
+Hasta PR12 salía con **punto** (`t.pct.toFixed(1)`), o sea que el mapa y la pestaña escribían el
+mismo valor de dos formas.
+
+**EL COLOR DEL TEXTO: LA REGLA DE LA PESTAÑA, ENDURECIDA SÓLO DONDE NO ALCANZA.** La pestaña SGL
+**ya** declara un color por tramo (`STRAIN_PAL[i].txt`), así que `_strTxtSobre(i)` lo usa **tal
+cual** donde llega a **4,5:1** y sólo donde no llega elige blanco o casi negro. Medido con
+`_medLumDe` y `_medContraste`, los dos dueños de esta casa: **ocho de los nueve son EXACTAMENTE el
+de la pestaña**, el único que se endurece es el `#5C8CE0` —que con el blanco de la pestaña da
+**3,34**— y pasa a **5,72**, con lo que el peor de los nueve queda en **4,55**. **`STRAIN_PAL` y la
+pestaña quedan idénticas**, y TC-1070 lo mide como control.
+⚠️ **Y ASÍ SE VEÍA ANTES: el dibujo escribía con `#111827` FIJO en los nueve tramos**, o sea
+**TRES** por debajo de 4,5:1 — **1,89** sobre el violeta intenso, 3,90 en el `#9B59C4` y 2,52 en el
+`#2450C0`. Ese **1,89** es lo que el médico no podía leer.
+
+**EL RADIO SE DERIVA DEL ALTO DE LA LEYENDA, y por eso el canvas ya no recorta.**
+`uDebajo = 34 + 46 + 11·(líneas−1) + 7 + (conTitulo ? 34 : 0)`, con los sumandos **sumados del
+código que dibuja** y no estimados; los 34 de `conTitulo` son las **dos líneas del descargo** que
+`_strBullsCanvas` pone debajo.
+⚠️ **ANTES DE PR13 EL ÚLTIMO RENGLÓN DE LA LEYENDA TENÍA SU BASE A 298,1 DE UN CANVAS DE 300**: su
+descendente quedaba afuera.
+**Y EL DIBUJANTE PUBLICA DÓNDE DIBUJÓ**: devuelve `{ly, esc, cx, cy, r, rIn}`. Los cuatro últimos
+son nuevos y los usa la prueba, así que **mide donde el dibujante dibujó** en vez de copiarse sus
+constantes, que es cómo una prueba deja de ver que la geometría se movió.
+
+**TAREA 3 · LA FÓRMULA, VERIFICADA POR EL CAMINO REAL Y NO CAMBIADA.** Medido sin reimplementar la
+cuenta en la prueba: **100 → 80 da −20,0 %**, **100 → 120 da +20,0 %** y **100 → 100 da 0**. **Es
+un cociente**: escalar **los dos** largos por el mismo factor **no mueve** el porcentaje, o sea que
+**no depende de la calibración en mm por píxel** —con una diferencia en vez de un cociente, ese
+escalado lo movería, y es la condición que lo prueba—. Con los seis valores de la orden —**−16,3 ·
+−30,1 · −10,1 · −11,4 · −27,3 · −23,1**— la suma es **−118,3** y el SGL publicado es **−19,7**, con
+coma. **Coincide con `(Ls − Ld) / Ld` y no se tocó una línea.**
+
+**COBERTURA: CUATRO casos nuevos, TC-1068 a TC-1071**, con **40 condiciones** entre los cuatro
+(13 + 12 + 6 + 9), y **TC-201 adaptado**. **Los cinco caen contra `e4ee124`** con el mismo archivo
+de casos y sólo el `index.html` distinto, **por sus condiciones y NINGUNO por excepción**: cada
+acceso a lo que la tanda estrena va por un resolvedor con guarda que devuelve una forma vacía, que
+es la lección de **TC-827** —y que esta casa pagó en PR12 con `_strColorPct`—.
+**TC-201 quedó adaptado y con TRES condiciones RETIRADAS, cada una con su motivo escrito donde
+vivía**: afirmaban que los segmentos **14 y 16** —los **DOS únicos** que dos paredes
+compartían— salían grises, que seguían grises con dos vistas y que **promediaban** sus dos paredes,
+y eso **desapareció con los anillos**: con un sector por pared no hay ningún segmento que dos
+paredes puedan reclamar ni nada que promediar. **No se aflojó ninguna**: lo que esas tres protegían
+—que una pared no herede el valor de otra— lo cubren hoy la condición de que cada pared lleve el
+color del **tramo de SU valor** y la de que cada sector sea de **UN solo** color, más una que exige
+que las tres constantes retiradas **ya no existan**.
+Declarado en **PR13-d**.
+
+⚠️ **UN DEFECTO PROPIO QUE LA SONDA CAZÓ Y LA LECTURA NO: mi reemplazo se llevó puestas las tres
+funciones de PR12.** `_strPalColor`, `_strGris` y `_strColorPct` vivían **dentro** del tramo que el
+patch reemplazaba, así que el bloque quedó sin ellas y la sonda tiró
+`ReferenceError: _strPalColor is not defined`. Se repusieron **textuales** desde
+`git show HEAD:index.html`.
+⚠️ **Y DOS FALSOS POSITIVOS DE MI PROPIA SONDA, los dos de muestreo**: las muestras de color caían
+**sobre los glifos** del texto, así que «un solo color por sector» salía en falso sobre un diagrama
+correcto. Se cerró eligiendo radios que **cruzan las circunferencias donde estaban los anillos** y
+**descartando** toda muestra que caiga dentro de alguno de los rectángulos de texto registrados.
+
+⚠️ **TRES TRAMPAS DE ESTA CASA, PAGADAS OTRA VEZ.** (1) El **acento grave dentro de mis propios
+comentarios** en el cuerpo de un caso y en el insertador, por **trigésima octava** tanda seguida:
+lo cazó `check_backticks.py`, que señala el archivo y la línea, mientras `node --check` sólo dice
+«missing ) after argument list». (2) **Tres fixtures de la sonda estaban mal y no eran defectos del
+producto**: `medHerramienta('strain')` caía a `'dist'` porque `_medDefOn()` exige la clave de
+«Deformación» en `localStorage`; un `pts: []` sembrado hacía que el dibujante tirara en `pts[0].x`;
+y el `eje` sembrado no traía su `M`. (3) **Las secuencias `\uXXXX` en un ancla del barrido no
+emparejan**: dos de las veintiuna daban **x0** —que se lee igual que «no hay nada que mutar»— hasta
+escribirlas con el **carácter literal**. Es la misma trampa que PR5 pagó al revés.
+
+**VERIFICACIÓN. LA SUITE COMPLETA NO SE CORRIÓ, POR ORDEN EXPRESA.** Se corrió la **banda del
+visor y del SGL**: los **285** casos cuyo cuerpo toca el visor, su módulo de medición, el SGL, su
+diana por territorios, los Cuadros, el copiado, el PDF, el informe, el guardado o Configuración,
+seleccionados por el **patrón de su propio cuerpo** y no a ojo (`scripts/_lotes_pr13.sh`). Los
+demás **no se ejecutaron**, y se declara.
+**280/285 en SIETE lotes**, con los **285 ejecutados**, **ningún lote cortado por tiempo** y el md5
+de `index.html` **idéntico** al abrir y al cerrar (`a1b7f9a3`). **Los seis casos de la zona
+—TC-201, TC-1067 y TC-1068 a TC-1071— en verde**, y el lote que los trae, 15/15.
+Los **CINCO** rojos son **exactamente** los cinco que la orden declara para el lote de PR12
+—**TC-182, TC-857, TC-899, TC-900 y TC-1044**—, y quedan caracterizados midiendo: **cuatro pasan
+corridos aislados** (sensibilidad de lote) y **TC-900 falla también aislado**, así que se midió
+contra `e4ee124` con el **mismo** archivo de casos y sólo el `index.html` distinto: **falla
+igual**, o sea **preexistente** —es lo que PR12 ya declaraba de él—. **Ningún rojo de esta tanda.**
+**A/B contra `e4ee124` con el archivo de casos FINAL**: de los seis casos de la zona, **CINCO
+caen** —TC-201 por **ocho** condiciones y TC-1068, TC-1069, TC-1070 y TC-1071 por su denominador
+declarado y por condición—, con **CERO excepciones** en todo el log. **TC-1067 pasa en los dos
+árboles a propósito y se declara**: es el caso de **PR12**, cuya paleta ya está en `e4ee124`, así
+que es una **guarda de regresión** y no lo que discrimina.
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta,
+medido con la máquina sola —y ninguno es de esta tanda: son los `input.ind-chk` de los acordeones
+de Evidencia, que es el **M5-n** que decide el médico—.
+⚠️ **EL `check_backticks.py` MARCA UN SOLO ARCHIVO Y NO ES DE ESTA TANDA**: `scripts/_probe_aj2.mjs`,
+sin tocar —`git status` lo confirma— y con sus acentos graves a propósito. Los seis archivos de
+sonda, el archivo de casos y los dos `.py` de esta tanda parsean y **no traen ninguno**.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por vigésima séptima tanda
+seguida, y se declara en vez de dejarlo pasar: la orden no la pedía. Lo que hay que mudar hoy es
+todo lo anterior a **PR12**.
+
+**21/21 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
+vivo **idéntico** antes y después (`a1b7f9a3`) y las **21 anclas verificadas ANTES** de correr. Al
+menos **dos por grupo** —la leyenda (6), los seis sectores (7), el color del texto (3), la fórmula
+(3) y la geometría derivada (2)— y **cuatro no revierten nada: la aplican DE MÁS**, porque las
+condiciones que las matan son **controles negativos** (que los nueve rótulos no se pisen, que el
+texto siga siendo el de la pestaña donde alcanza, que el descargo de la captura siga entrando y que
+el radio se derive).
+⚠️ **DOS ANCLAS NO EMPAREJABAN AL VERIFICARLAS, Y FUE POR LAS SECUENCIAS DE ESCAPE**: las escribí
+con `\uXXXX` y el archivo trae el **carácter literal**, así que daban **x0** — que se lee igual que
+«no hay nada que mutar». Es la misma trampa que PR5 pagó al revés, y es para esto que las anclas se
+verifican antes.
+⚠️ **EL PRIMER BARRIDO DEJÓ DOS SOBREVIVIENTES Y LAS DOS ESTABAN MAL ESCRITAS, no eran huecos de
+cobertura, y medirlo fue lo que lo dijo.** La **07** arrancaba los sectores en el centro «para que
+tapen el disco del ápex», y es **equivalente**: el disco se pinta **DESPUÉS** de los sectores, así
+que queda encima, y `rangoR`, `rhoNom`, `rhoNum` y la contención siguen usando `rIn` — no cambiaba
+un píxel observable. Reapuntada al mismo constante por el lado que **sí** se ve —el disco en 0,60
+del radio, que se come más de la mitad del sector—, la muestra de color a 0,47r cae **dentro del
+disco** y deja de coincidir con la de 0,72r: **muere**. Y la **16** cambiaba `'#ffffff'` por
+`'#fffffe'` en la rama del endurecimiento que **ningún tramo alcanza** —el único que se endurece
+cae en `'#0b0f1a'`—, así que la línea mutada **no se ejecutaba nunca** y el cambio era de un bit de
+azul: no hacía lo que su propio rótulo decía. Reapuntada a la **guarda** —umbral imposible, con lo
+que los nueve se endurecen y sólo **DOS de los nueve** siguen siendo el color de la pestaña,
+medido—: **muere**.
+⚠️ **Las dos reapuntadas se volvieron a correr sobre el MISMO `index.html`** —md5 `a1b7f9a3` antes y
+después de las dos corridas—, así que las diecinueve de la primera pasada siguen valiendo: lo único
+que cambió entre las dos es el archivo del barrido.
 
 **La tanda PR12 (2026-11-25) — el tamaño del texto copiado, el corte de RWT, el rango de
 NT-proBNP, los tres textos sin fuente y la paleta del mapa de SGL del visor.** SEIS tareas —cuatro
