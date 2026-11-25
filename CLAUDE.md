@@ -117,6 +117,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar una COLUMNA del EXCEL del Laboratorio**: `LAB_XLS_MAP`, las 440 claves, los tipos, los alias de cabecera del importador o las dos columnas del G2 | `docs/mapa/excel-laboratorio.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
 | **Tocar un CORTE del SGL, el SIGNO del strain en el papel, el RÓTULO de pantalla, los TERRITORIOS coronarios con su aviso, los PATRONES del ojo de buey o el 2,9 del score de amiloidosis** | `docs/mapa/aj9-sgl-patrones.md` |
+| **Tocar la TABLA «Cálculos de strain»** —su línea única por celda, los nombres cortos, los tres íconos en SVG, el motivo que vive en el tooltip del ícono apagado o sus medidas—, **el CUERPO ÚNICO de letra del PDF «Tipo Word»**, **el AIRE que separa un recuadro de nota del bloque que sigue** en las nueve plantillas, **la REGLA de lo que una celda del bull's eye acepta**, **el cartel de FEVI/SGL** o **el REDONDEO de los promedios y las razones del strain** | `docs/mapa/pr9-tabla-pdf-sgl.md` |
 | **Tocar el BOTÓN DE ICONO del resumen de válvulas, el ARRASTRE de los cuadros con su intercambio y su marcador de destino, el COPIADO CON FORMATO de los dos botones, el TEXTO de los datos numéricos —la mayúscula inicial, los renglones de mensaje omitidos, la línea mitral, los tres grupos del VI—, el PDF «Tipo Word» rehecho, la ENTRADA DE DATOS del SGL —el violeta de arranque, el ciclo, el guion, el signo, el aviso— o la tabla «CÁLCULOS DE STRAIN»** | `docs/mapa/pr8-cuadros-copiado-strain.md` |
 | **Tocar la PALETA del bull's eye de strain** —los ocho tramos entre −20 y +20, el gris de SIN DATO, el borde que cae a la derecha o el color del número—, **el botón «Ingresar datos numéricos»** con su casilla y su convención de signo, **el guardado de los segmentos** con la migración de los cinco estados viejos, **las dos leyendas**, **los patrones de ejemplo recoloreados** o **la hoja del PDF con los DOS bull's eye** —la tabla arriba a la derecha y el texto debajo de ella— | `docs/mapa/pr7-paleta-strain-numeros.md` |
 | **Tocar el ENCABEZADO de un documento** —de dónde sale el nombre de la institución, la línea gris que no se imprime, el logo a la derecha, el nombre editable de la hoja del Informe—, **el EDITOR SOBRE LA HOJA de Configuración** —sus dos modos, el cuerpo como una sola zona editable, las SEIS convenciones con el «## » nuevo, lo que queda fijo, los dos cierres, «Guardar como modelo» o «Volver al texto original»—, o **los DOS DOCUMENTOS EN BLANCO**: sus dos claves fijas, su contenido mínimo, su nombre, «Vaciar», las dos casillas de firma o la firma que nunca queda sola | `docs/mapa/pant33-editor-hoja-blancos.md` |
@@ -302,7 +303,28 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **14,12 MB / 196.000 líneas**, medido con `wc -c` y `wc -l` el 2026-11-24 al cierre de la tanda **PR8** (los cuadros, el copiado con formato, el PDF Tipo Word, el SGL y la tabla de cálculos de strain), sobre el árbol ya sellado: sello **`v20261124-1923`**, md5 **`0dc4d160`**.
+  sin frameworks. Hoy **14,14 MB / 196.277 líneas**, medido con `wc -c` y `wc -l` el 2026-11-24 al cierre de la tanda **PR9** (la tabla de cálculos de strain, el PDF «Tipo Word», los recuadros del PDF y el ingreso del SGL), sobre el árbol ya sellado: sello **`v20261124-2316`**, md5 **`a5ce3ab2`**.
+  El diff de PR9 son **387 líneas agregadas y 110 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `1932582` **sobre el árbol ya sellado**, de las que **190 son código
+  de verdad** y 197 comentario —las 387 cierran exacto, y el filtro lleva el estado del comentario
+  de bloque, que es lo que de verdad separa código de prosa—.
+  Con **CERO** `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, **CERO** `<input>`,
+  `<select>` y `<textarea>` nuevos y **UNA** sola aparición de `innerHTML`, que es el **comentario**
+  que declara que los tres dibujos de la tabla se arman con `createElementNS` y no con ninguno.
+  **CERO ids nuevos en el marcado**: el único que el diff muestra, `eco-build-sello`, ya existía y
+  reaparece porque el sello cambió. Lo nuevo son **clases** —`sc-ico`, `sc-lin`— y **atributos**.
+  **CERO campos guardados nuevos y las 457 columnas quietas**, y es **por construcción**: lo que
+  esta tanda agrega son botones sin `id`, constantes y reglas de CSS. Medido en el navegador en los
+  **dos** árboles con la misma sonda: **812** `input[id]`, **297** `select[id]`, **29**
+  `textarea[id]` y **381** claves de `LAB_XLS_MAP`, los cuatro **idénticos**.
+  **Y CERO cortes clínicos, cero umbrales y cero fórmulas de severidad movidos**: lo que entra son
+  una regla de ingreso declarada como criterio de la aplicación, un redondeo final, tamaños de
+  letra del papel y una separación de dibujo.
+  ⚠️ **POR SEXAGÉSIMA QUINTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show 1932582:index.html` da **196.000** líneas,
+  **14.120.052** bytes y el md5 **`0dc4d160`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 14,12 MB / 196.000 al cierre de la tanda **PR8** (los cuadros, el copiado con formato, el PDF Tipo Word, el SGL y la tabla de cálculos de strain), sello **`v20261124-1923`**, md5 **`0dc4d160`**.)
   ⚠️ **ES EL TERCER SELLO DE LA TANDA Y LOS DOS ANTERIORES NO VALEN COMO LÍNEA BASE, y los dos
   resellos los pidió una medición.** El primero, `v20261124-1642` con md5 `87cbbdfd` y 195.987
   líneas, es el del árbol con el que corrió el primer barrido de mutaciones. El segundo,
@@ -1773,7 +1795,29 @@ impecable.
 (`source.branch: main`, `path: /`, certificado aprobado). Lo que se pushea a `main` **es** lo que
 sale publicado.
 
-⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR PR8: `d6f8326`**, el cierre de la tanda **PR7** —sello
+⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR PR9: `1932582`**, el cierre de la tanda **PR8** —sello
+`v20261124-1923`, md5 `0dc4d160`, 196.000 líneas—. **Es lo último que Maicol pusheó**, verificado:
+`git rev-parse origin/main` da **`1932582`** y `git rev-list --count origin/main..main` da
+**CUATRO**, que son exactamente los cuatro commits de PR9. Para volver atrás SIN reescribir
+historia:
+
+```bash
+git revert --no-commit 1932582..main && git commit -m "Revertir PR9: volver al arbol de 1932582" && git push origin main
+```
+
+Y si lo que hay que volver atrás es **sólo lo que la página sirve** y no la documentación:
+
+```bash
+git checkout 1932582 -- index.html version.json && git commit -m "Volver index.html y version.json a 1932582" && git push origin main
+```
+
+⚠️ **Al revertir, el sello del pie vuelve al viejo y `CLAUDE.md` queda publicando el nuevo**, así
+que **TC-753 sale rojo con razón** hasta que el renglón de tamaño y la sección de la tanda se
+pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
+
+**El punto de retorno que PR8 declaró, textual, queda abajo.**
+
+⚠️ **PUNTO DE RETORNO AL CERRAR PR8: `d6f8326`**, el cierre de la tanda **PR7** —sello
 `v20261123-2232`, md5 `d6e31de8`, 195.032 líneas—. **Y ESTO CORRIGE LO QUE ESTE ARCHIVO DECÍA**:
 el renglón de PR8 llegó a escribirse con `8618cd9` copiando lo que declaraban PR6 y PR7, y está
 medido que hoy es falso. `git rev-parse origin/main` da **`d6f8326`** y
@@ -1892,6 +1936,126 @@ pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PR9 (2026-11-24/25) — la tabla de cálculos, el PDF «Tipo Word», los recuadros del PDF
+y el ingreso del SGL.** CUATRO tareas y CINCO commits. Sello **`v20261124-2316`**, md5
+**`a5ce3ab2`**, **196.277** líneas. Línea base **`1932582`**, el cierre de PR8 y a la vez
+`origin/main`. **Sin push: lo corre Maicol.**
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas de severidad.
+Lo que entra son una **regla de ingreso** declarada como criterio de la aplicación, un **redondeo
+final**, tamaños de letra del papel y una separación de dibujo. **CERO** `<input>`, `<select>` y
+`<textarea>` nuevos, así que **cero campos guardados nuevos** y las **457** columnas quietas,
+medido en los dos árboles: **812** `input[id]`, **297** `select[id]`, **29** `textarea[id]` y
+**381** claves de `LAB_XLS_MAP`, los cuatro **idénticos**.
+
+**LA TABLA «Cálculos de strain» PASA DE 660 × 377 px A 429 × 100.** Título, encabezado y las tres
+filas bajan de **350 a 85 px** —el objetivo de la orden era «unos 110 o menos»— y una fila de 101
+a **19**. Una línea por celda: nombre corto, valor —o una raya— y los tres iconos al final de la
+**misma** línea; los rangos de segmentos pasan al globo. **La lista de lo que falta sale del
+cuerpo** y vive en el `title` **y** en el `aria-label` del icono de Calcular apagado, con los
+nombres del bull's eye y «y N más» a partir del cuarto. La frase de introducción pasa a un globo
+nuevo pegado al título, `sc-caja`, y el registro va de 155 a **156** entradas.
+⚠️ **EL ICONO APAGADO DEJA DE LLEVAR EL ATRIBUTO `disabled`**, y no es un descuido: un botón
+`disabled` **no emite eventos de mouse**, así que su `title` —que desde esta tanda es el **único**
+lugar donde vive la lista— no se mostraría nunca. Lleva `aria-disabled`, se atenúa por CSS y su
+clic **dice** el motivo. Es la receta que PANT-34 y el prompt 7 ya dejaron escrita.
+⚠️ **LOS ICONOS SON SVG EN LÍNEA DE 14 × 14 CON `currentColor`** —calculadora y flecha hacia
+arriba—, más el glifo de texto del círculo. Sin emoji, sin imagen de color, sin cuadro y sin
+relleno. Se **tocan** en 44 px por un `::after` absoluto que **no agranda la fila**.
+⚠️ **Y EL ICONO DE CALCULADORA SE REDIBUJÓ PORQUE NO SE LEÍA**: las teclas estaban hechas con
+puntos de trazo y **medidas en una captura al doble de escala no se veían** —14 px de icono son 28
+de pantalla, y un punto de 0,65 unidades sobre un lienzo de 16 queda en poco más de un píxel—. Hoy
+son rectángulos rellenos.
+⚠️ **Y LA RAZÓN QUE PR8 ESCRIBIÓ PARA PONERLES `vinfo-btn-44` A LOS DIEZ GLOBOS DE ESA TABLA ERA
+FALSA, MEDIDO.** Sostenía que sin esa clase el barrido del celular sumaría diez hallazgos ALTA.
+`check_mobile.js` marca `.active` en todas las `.tab-section` antes de medir, pero **nadie llama a
+`scRender` al cargar la página**: una sonda que hace exactamente lo mismo encuentra la caja con
+**cero hijos y cero botones**, y con los iconos en 14 px el barrido sigue dando sus **38 ALTA**
+exactos. El barrido **nunca** vio esos treinta botones. → **PR9-a**
+
+**EL PDF «Tipo Word» TENÍA CUATRO CUERPOS DE LETRA A LA VEZ**, medido sobre las llamadas de dibujo:
+**8,56** pt la narrativa, **9,1** los datos numéricos, **9,2** el EN SUMA y **9,63** los títulos de
+sección. Ninguno estaba elegido: cada bloque heredaba el tamaño del camino que comparte con las
+otras ocho plantillas; y la ficha salía en dos, 9,5 y 8,5. Hoy **`TW_PT` = 10 pt para TODO el
+cuerpo** —datos, narrativa, EN SUMA y viñetas—, los títulos de sección y los rótulos de barra en
+negrita al **mismo** tamaño, y la ficha, la firma y el pie en **8 pt**, uniformes entre sí.
+⚠️ **SE PONEN CON `setFontSize` DIRECTO Y NO POR `fn`/`fb`**, que multiplican por `_FS`. Son dos
+cosas a la vez: el número que se declara es el que el médico mide en el papel, y el ajuste
+automático A4 **no puede bajar este estilo de los 9 pt** que la orden fija como piso. El **aire**
+lo sigue comprimiendo `_SPA`. **El 10 sale de medir**: es el mayor del rango con el que el ETT
+normal de prueba entra en UNA hoja A4.
+**LOS RENGLONES EN BLANCO IRREGULARES SE VAN.** La línea vacía del texto de datos metía 0,6 de
+interlínea de aire, y eso era lo que el médico vio: entre FEVI y Masa idx y entre Geometría y Vol.
+sistólico el papel abría **8,8 mm** donde el resto abría 5,5. Hoy la separación entre líneas de
+datos es **siempre 4,9** y la de entre secciones **siempre 6,9**. El texto **copiado** no se toca.
+**MEDIDO con el score de Wilkins integrado al informe**: el estudio largo pasa de **TRES hojas a
+DOS**, **sin título huérfano** —antes «INFORME» quedaba solo al pie de la hoja 1, en y = 257,61— y
+con un **único** cuerpo de letra por hoja, contra las tres combinaciones distintas de antes.
+⚠️ **LA HOJA DEL ANEXO SIGUE SALIENDO EN COLOR Y CON SU PROPIO CUERPO (9,63 pt)**: la dibuja
+`amiloDibujarSecciones`, que es otra función, y la orden la deja expresamente fuera. Reportado, no
+rediseñado. → **PR9-b**
+
+**EL RECUADRO NO ERA MÁS ALTO DE LO QUE EL PDF CALCULA, y la hipótesis de la orden queda
+desmentida con la medición.** El alto que `plan()` reserva y el que el bucle dibuja salen de la
+**misma** cuenta y del **mismo** número de renglones que devolvió `splitTextToSize`: con texto
+corto, largo, muy largo y con el ancho recortado a 90 y a 60 mm, el recuadro mide exactamente lo
+que dice medir. **Lo que estaba mal es DÓNDE empieza lo que viene abajo**: `amiloDibujarSecciones`
+dibuja cada fila con la **línea de base** en `y` y avanza `y += H`, que es coherente entre dos
+filas seguidas, pero la nota es la **única** que reserva un **rectángulo** y deja `y` en su borde
+inferior, así que la base de lo que sigue cae **exactamente** sobre ese borde y sus mayúsculas
+suben hacia adentro: **2,44 mm**, SIEMPRE el mismo, porque no depende del largo ni del ancho. El
+mismo defecto, más chico, tenía la franja de título: su primer subtítulo quedaba a **0,56 mm**.
+Se cierra con `_SEP(H) = H × 0,78` —el mismo factor con que la nota ya coloca su primera línea de
+base—, usado en `plan()` **y** en el bucle de dibujo. **Alcanza a los nueve estilos**: ese recuadro
+es el **único** del PDF con alto variable, censados los **47** `doc.rect` del archivo.
+**Medido en la tarjeta del Wilkins de verdad**: antes `pisa 2,44` en tipoword, clásico y moderno;
+después, **ninguno** en los tres, con el aire bajo la franja de 0,56 a **2,67 mm**.
+⚠️ **Y EL DETECTOR DE SOLAPES TENÍA EL MISMO PUNTO CIEGO QUE EL DEFECTO**: una línea de base
+EXACTAMENTE en el borde de abajo la contaba como «adentro», así que daba «ninguno» sobre la
+tarjeta que el médico reportó.
+
+**CÓMO SE COLÓ EL −1718, REPRODUCIDO CON EL GESTO REAL.** Entraba por **dos** puertas a la vez: la
+casilla es `type=text` **sin** `maxlength`, **sin** `inputmode` y **sin** `pattern`, y al
+**reabrir** un segmento nace con el valor viejo escrito y **seleccionado**, de modo que tocarla
+para poner el cursor pierde la selección y lo que se escribe se **apende** —`-17` más `18` da
+`-1718`—. Y `strainTramoDe` acota a [1, 8], así que **el color salía violeta y no delataba nada**:
+el bull's eye se veía normal con un −1718 adentro y los promedios daban −111,8 %.
+La regla, **criterio de la aplicación y sin fuente**: como máximo **dos cifras enteras**, con signo
+y un decimal opcional. Se cierra por **tres** lados: el filtro **en vivo** de la casilla —que cubre
+el teclado Y el pegado, porque los dos disparan `input`—, la validación al confirmar, y la limpieza
+al **restaurar** un estudio guardado que ya traiga un valor imposible, que pasa a «Sin dato» en
+gris con **un solo** aviso. `strainParseNum` **no se toca**: es el otro llamador de la
+restauración. Los normales siguen entrando: −17 da −17, +5 da 5 y 12,5 da −12,5.
+
+**EL CARTEL DE FEVI/SGL dice de DÓNDE sale cada mitad**: con la FEVI en 50 y el campo vacío,
+«Falta: SGL global. FEVI tomada de la app: 50 %.»; sin FEVI, «Falta: FEVI en la app». La FEVI sale
+de `v('fevi')`, el **mismo** valor que usa el informe, verificado en el navegador.
+⚠️ **Y SI CAMBIA LA FEVI, EL RESULTADO YA CALCULADO SE BORRA.** De eso se encarga `_scPurgar`, que
+compara la **firma** de los insumos, pero corre **dentro** de `scRender`, y hasta PR8 `scRender`
+sólo se llamaba al escribir un **segmento**: tocar la FEVI dejaba un cociente calculado con la FEVI
+anterior. `scRender` entra a **`ESPEJOS_VIVOS`**, colgado del rebote de 220 ms que ese registro ya
+tiene, sin temporizador nuevo; cumple su regla, **sólo pinta**.
+
+**EL REDONDEO ERA ASIMÉTRICO Y ESTÁ MEDIDO.** `Math.round` de JavaScript redondea el medio hacia
+**+∞** y no alejándose del cero: `Math.round(-15.75*10)/10` da **−15,7** y `Math.round(15.75*10)/10`
+da **15,8**. Como el strain es casi siempre negativo, el efecto práctico era redondear **siempre
+hacia cero**; en dos decimales, −0,125 daba −0,12 y +0,125 daba 0,13. Es el caso del médico: los
+cuatro apicales −16, −13, −17 y −17 promedian **exactamente −15,75** y la tabla publicaba −15,7.
+Se corrige en **UN SOLO LUGAR** —`_scRed`—, redondeando el valor **absoluto** y reponiendo el
+signo, que es lo que `strainParseNum` ya hacía y por eso ese camino nunca tuvo el defecto. Lo
+consumen `_scN` y `scUsarComoSGL`, que con `Math.round` pelado mostraba −15,8 y escribía −15,7.
+**Ninguna fórmula cambia.**
+**VERIFICACIÓN con los diecisiete números de la orden**: 17 seg. −11,7 · 16 seg. −11,3 · basal
+−8,7 · medio −11,0 · apical **−15,8** · DA −10,1 · CD −13,0 · CX −12,6 · apical sparing 0,80. Los
+**nueve** coinciden, y el apical es el que cambia por el redondeo.
+⚠️ **Y LA PRIMERA CORRIDA DE LA SONDA DIO −10,3 EN EL BASAL POR UN ERROR MÍO**: escribí el +5 como
+«5», y la convención de esta casa es que un valor **sin** signo se toma **negativo**. Era la sonda,
+no la app.
+
+**El mapa, en `docs/mapa/pr9-tabla-pdf-sgl.md`; las fichas, en `docs/mapa/tests-fichas-1058.md`;
+la guía manual, en `docs/GUIA_PRUEBA_PR9.md` (18 pasos); lo declarado, en `docs/PENDIENTES.md` →
+PR9-a a PR9-e.**
 
 **La tanda PR8 (2026-11-24) — los cuadros, el copiado con formato, el PDF Tipo Word, el SGL y la
 tabla de cálculos de strain.** CINCO tareas y CUATRO commits. Sello **`v20261124-1851`**, md5

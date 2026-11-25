@@ -40,6 +40,106 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## PR9 — la tabla de cálculos, el PDF «Tipo Word», los recuadros y el ingreso del SGL (2026-11-25)
+
+**Mapa:** `docs/mapa/pr9-tabla-pdf-sgl.md` · **Fichas:** `docs/mapa/tests-fichas-1058.md`
+· **Sondas:** `scripts/_probe_pr9_0.mjs` (el pre-check), `scripts/_probe_pr9_rec.mjs` (el recuadro
+aislado), `scripts/_probe_pr9_ab.mjs` (el A/B del papel), `scripts/_probe_pr9_pdf.mjs` (el estudio
+largo de verdad) y `scripts/_probe_pr9_sgl.mjs` (la TAREA 4) · **Barrido:** `scripts/_mut_pr9.py`
+· **Insertador de casos:** `scripts/_casos_pr9.py`
+
+### PR9-a — la razón que PR8 escribió para ponerles `vinfo-btn-44` a los globos de la tabla era FALSA
+
+**Qué se encontró.** PR8 dejó escrito, en el código y en `CLAUDE.md`, que los diez ⓘ de la tabla de
+cálculos nacían con la clase `vinfo-btn-44` porque «un `vinfo-btn` pelado mide 15 × 11 px en
+escritorio y `check_mobile.js` lo cuenta como toque chico de severidad ALTA: diez globos nuevos
+habrían movido la línea base del celular en diez». **Es falso, y está medido de las dos formas.**
+
+**Qué se midió.** (1) Con los iconos de la tabla en **14 px** de caja, `check_mobile.js` sigue
+dando sus **38 ALTA** exactos —la línea base—. (2) Una sonda que hace **exactamente lo mismo** que
+ese barrido antes de medir —marcar `.active` en todas las `.tab-section`— encuentra `#sgl-calc`
+con **cero hijos y cero botones**: **nadie llama a `scRender` al cargar la página**, así que
+cuando el barrido pasa la caja está vacía. El barrido **nunca** vio esos treinta botones, ni a
+44 px ni a 28 ni a 14.
+
+**Qué puede causar.** Nada hoy. Lo que importa es que la próxima tanda que lea ese párrafo no
+tome una restricción que no existe por una medición.
+
+**Cómo se corrige.** Ya está: los iconos pasan a 14 px —que es lo que la orden de PR9 pide— con el
+área de toque en 44 px por el `::after` absoluto de PANT-2. **TC-535** se adaptó de 80 a 70 globos
+con piso de 44 px de **caja**, con esta corrección escrita donde vive la condición.
+
+⚠️ **Y QUEDA UNA PREGUNTA ABIERTA QUE ESTA TANDA NO RESUELVE**: `check_mobile.js` no ve nada de lo
+que pinta `scRender`, así que el barrido del celular **no cubre** la tabla de cálculos. Cubrirla
+es llamar a `scRender()` en la preparación de ese barrido, y eso cambiaría la línea base de 38
+ALTA en una cantidad que habría que medir primero. **Es decisión del médico.**
+
+### PR9-b — el estilo «Tipo Word» sigue sacando las hojas de anexo EN COLOR
+
+**Qué se encontró.** La orden de PR9 pide, en su punto 2.6, reportar y no rediseñar. Medido con el
+score de Wilkins integrado al informe y el estilo «Tipo Word» elegido: la hoja del anexo sale con
+**dos** rellenos de color —la franja de título del score en `rgb(26,58,92)`, que es el color del
+tema, y el fondo del recuadro de la salvedad en `rgb(239,241,244)`—. En el estudio de prueba es la
+**hoja 2**, que es la última.
+
+**Por qué.** Esa hoja la dibuja `amiloDibujarSecciones`, que es **otra función**: recibe el color
+del tema por parámetro y no consulta `_TBL_ESTILOS`, donde vive el perfil monocromo de «Tipo
+Word». El cuerpo del documento, que sí sale por ese perfil, es monocromo entero —medido: cero
+rellenos de color en la hoja 1—.
+
+**Qué puede causar.** Un documento de dos hojas con dos identidades visuales: la primera en
+blanco y negro como un texto de Word y la segunda con la franja de color de la aplicación.
+
+**Cómo se corregiría.** Pasarle a `amiloDibujarSecciones` un tema neutro cuando la plantilla es
+«Tipo Word» —es un parámetro, no una reescritura—. **No se hizo**: la orden dice expresamente «no
+las rediseñes, sólo reportá». Y el alcance no es sólo el color: esa hoja también lleva su propio
+cuerpo de letra (9,63 pt contra los 10 del cuerpo), que es la otra mitad de la misma decisión.
+
+**Queda declarado, no corregido. Es decisión del médico.**
+
+### PR9-c — la regla de la celda acepta DOS decimales y redondea al primero
+
+**Qué se encontró.** La orden dice «como máximo dos cifras enteras, con signo y **un decimal
+opcional**». La regla implementada acepta **uno o dos** decimales (`12,55` entra) y redondea al
+primero, que es lo que `strainParseNum` ya hacía desde PR7.
+
+**Por qué.** El valor que la regla tiene que atajar es el del número **entero** —de ahí que un
+1718 no se pueda escribir—. Rechazar `12,55` sería una restricción nueva que nadie pidió y que
+rompería una entrada que hoy funciona: el médico que tipea un valor con dos decimales lo ve
+redondeado, no rechazado.
+
+**Queda declarado.** Si el médico quiere el rechazo estricto, es cambiar `[0-9]{1,2}` por
+`[0-9]` en la parte decimal de `STRAIN_RE_OK` y de `STRAIN_RE_PARCIAL`.
+
+### PR9-d — el valor imposible ya guardado se limpia al RESTAURAR, no en disco
+
+**Qué se encontró.** Un estudio guardado con un `-1718` escrito se abre con ese segmento en gris y
+un aviso, que es lo que la orden pide. Pero **el disco no se toca**: el número imposible sigue en
+`strain_sgl_num` del estudio archivado hasta que el médico vuelva a guardar ese estudio.
+
+**Por qué.** La regla de esta casa es que un cambio de criterio **no sale a reescribir lo que ya
+está en disco** —«No migrar estudios guardados»—. Lo que se documenta es qué muestra cada camino
+con lo viejo: la pantalla lo trata como «Sin dato» y avisa, el bull's eye del papel no lo estampa
+porque el segmento queda en tramo 0, y los promedios de la tabla no lo cuentan porque su celda
+exige todos sus segmentos.
+
+**Queda declarado.** No es un defecto: es la regla aplicada.
+
+### PR9-e — el «estudio largo» de la verificación no agota el caso peor
+
+**Qué se encontró.** El estudio largo que las sondas montan —un ETE con las cuatro válvulas, la
+aorta, el VD, la hemodinámica y el score de Wilkins integrado— entra hoy en **dos** hojas de
+cuerpo más la del anexo. No se probó un estudio con **varios** módulos avanzados integrados a la
+vez (amiloidosis, HFA-PEFF, constricción, posoperatorio), que es donde el cuerpo puede pasar de
+dos hojas.
+
+**Qué puede causar.** Nada medido. Lo que la orden pide para el estudio largo —sin título
+huérfano, sin línea cortada y con los mismos tamaños en las dos hojas— se cumple por
+**construcción** y no por la escena: la reserva de `checkPage` antes de un título es el título
+**más** su primera línea de datos, y la de cada línea es el renglón entero.
+
+**Queda declarado** para que la próxima tanda que toque el paginado sepa qué no se midió.
+
 ## PR8 — los cuadros, el copiado con formato, el PDF Tipo Word, el SGL y la tabla de cálculos (2026-11-24)
 
 **Mapa:** `docs/mapa/pr8-cuadros-copiado-strain.md` · **Fichas:** `docs/mapa/tests-fichas-1051.md`
