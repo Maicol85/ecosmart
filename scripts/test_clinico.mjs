@@ -67569,7 +67569,10 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
        sc-fsgl, los globos de las celdas de la tabla «Calculos de strain» de la pestana SGL. NO
        estan en Valvulas, igual que los de AI/VI: lo que cambia es el tamanio del registro, no lo
        que esta condicion afirma sobre los globos de esta pestana. */
-    Object.keys(VINFO).length === 155 && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+    /* ⚠️ ADAPTADO EN PR9-1.4: 155 -> 156. La nueva es sc-caja, el globo del TITULO de la
+       tabla «Calculos de strain», donde paso la frase de introduccion que esta tanda saco del
+       cuerpo de la caja. Lo que esta condicion afirma no cambia; cambia su denominador. */
+    Object.keys(VINFO).length === 156 && ('sc-caja' in VINFO) && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
       && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO)
       && ('masa-ref' in VINFO) && ('masa-ref-ei' in VINFO) && ('wi-aplica' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
@@ -79130,10 +79133,11 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      no una afirmacion sobre las ocho tarjetas de valvulas que este caso mide. */
   /* ADAPTADO EN PANT-37: 142 -> 143 por el globo wi-aplica del boton «What if». Es el
      DENOMINADOR del registro y no una de las tarjetas que este caso mide. */
-  /* ⚠️ ADAPTADO EN PR8: 150 -> 155, por los CINCO globos de las celdas de la tabla «Calculos de
+  /* ⚠️ ADAPTADO EN PR9-1.4: 155 -> 156, por sc-caja, el globo del TITULO de la caja.
+     ADAPTADO EN PR8: 150 -> 155, por los CINCO globos de las celdas de la tabla «Calculos de
      strain» (sc-prom, sc-niv, sc-terr, sc-asr y sc-fsgl). Lo que este denominador afirma no
      cambia: que el mecanismo existe y que el registro es el dueno unico. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 155 entradas',
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 156 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -79181,10 +79185,11 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
        ⚠️ ADAPTADO EN LA 3A: 144 -> 148. Las cuatro entradas nuevas son vd-strain-pl,
        tavi-pvl-ext, otr-cortri y diast-valsalva. NINGUNA esta en Valvulas: lo que cambia es el
        denominador del registro, no lo que este caso afirma sobre las tarjetas de esa pestana. */
-    /* ⚠️ ADAPTADO EN PR8: 150 -> 155, por los CINCO globos de las celdas de la tabla «Calculos de
+    /* ⚠️ ADAPTADO EN PR9-1.4: 155 -> 156, por sc-caja, el globo del TITULO de la caja.
+     ADAPTADO EN PR8: 150 -> 155, por los CINCO globos de las celdas de la tabla «Calculos de
        strain» -- sc-prom, sc-niv, sc-terr, sc-asr y sc-fsgl --. Lo que este denominador afirma no
        cambia: que el mecanismo exista y que el registro sea el dueno unico. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 155 && ('wi-aplica' in (REG() || {})),
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 156 && ('wi-aplica' in (REG() || {})) && ('sc-caja' in (REG() || {})),
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -80633,14 +80638,18 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
   /* ⚠️ ADAPTADO EN PR7: setenta y cinco -> SETENTA Y SEIS. La nueva es sgl-num, el globo del
      interruptor de datos numericos: es DESCRIPTIVO -explica como se usa el control- y por eso no
      tiene entrada en Referencias ni la necesita. */
-  /* ⚠️ ADAPTADO EN PR8 (TAREA 4): SETENTA Y SEIS -> OCHENTA Y UNA. Las cinco nuevas son los globos
+  /* ⚠️ ADAPTADO EN PR9-1.4: OCHENTA Y UNA -> OCHENTA Y DOS. La nueva es sc-caja, el globo del
+     TITULO de la tabla de calculos: dice que la tabla es de consulta y que cada calculo necesita
+     todos sus segmentos, o sea que explica la PANTALLA y no publica un corte, asi que no tiene
+     ficha en Referencias por el mismo motivo que las cinco de sus celdas.
+     ADAPTADO EN PR8 (TAREA 4): SETENTA Y SEIS -> OCHENTA Y UNA. Las cinco nuevas son los globos
      de la tabla «CALCULOS DE STRAIN» -sc-prom, sc-niv, sc-terr, sc-asr y sc-fsgl-. Las cinco citan
      su fuente DENTRO del globo -autor y anio- y ninguna tiene ficha en Referencias, por el MISMO
      motivo que las otras de esta lista: la tabla es de consulta, no publica un corte propio ni una
      recomendacion, asi que una ficha suya seria una entrada sin criterio detras. El limite que esta
      condicion declara no cambia; cambia su denominador, y la lista las sigue nombrando una por una,
      que es lo que hace que el dia que una consiga ficha el caso se ponga rojo. */
-  ex.push(['(C3) LIMITE DECLARADO: ochenta y una tarjetas sin boton, porque Referencias no tiene esa entrada',
+  ex.push(['(C3) LIMITE DECLARADO: ochenta y dos tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ⚠️ ADAPTADA EN LA TAREA 1 (18/11/2026): 74 -> 75. La entrada nueva es ev-indep, el globo
        del titulo del panel de Evidencia. No tiene ficha en Referencias por la MISMA razon que
        inf-min, tga-3d y clnk-guia: dice de QUE es la aplicacion y de donde salen las guias que
@@ -80697,7 +80706,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       + 'masa-ref,masa-ref-ei,mca-eco,mca-score,mca-sec,mca-vi,'
       + 'mch-adic,mch-ex,mch-hvi,mch-msub,mch-score,mch-sec,'
       + 'otr-cortri,'
-      + 'sc-asr,sc-fsgl,sc-niv,sc-prom,sc-terr,'
+      + 'sc-asr,sc-caja,sc-fsgl,sc-niv,sc-prom,sc-terr,'
       + 'sgl-num,'
       + 'tarj-esten-pulmonar,tarj-esten-tricuspide,tarj-insuf-pulmonar,tavi-calc,tavi-pvl-ext,'
       + 'tdf-eco,tdf-sec,tdf-vol,'
@@ -93764,20 +93773,28 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      dar sus CINCO puntos propios. Verificado por mutacion en un worktree: quitarle la clase al
      globo nuevo, achicarlo por debajo de 44 px y taparlo con un vecino ponen en rojo (K0), (K1)
      y (K2) respectivamente. */
-  /* ⚠️ ADAPTADO EN PR8 (TAREA 4): SETENTA -> OCHENTA. Los diez nuevos son los ⓘ de las diez celdas
-     con contenido de la tabla «CALCULOS DE STRAIN» -dos promedios globales, tres niveles, tres
-     territorios y dos formulas-, que apuntan a CINCO claves: una celda de cada grupo comparte su
-     texto con sus hermanas. Nacen con la clase vinfo-btn-44 a proposito, que es lo que los pone
-     bajo esta condicion. Lo que exige no cambia; cambia su denominador. */
-  ex.push(['(K0) DENOMINADOR: los OCHENTA globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
-    tapTodos.length === 80 && tapK.length === 79 && tapEv.length === 1
+  /* ⚠️ ADAPTADO EN PR9-1.3: OCHENTA -> SETENTA, y es consecuencia AUTORIZADA de la orden. Los
+     diez que salen son los ⓘ de las celdas de la tabla «CALCULOS DE STRAIN», que PR8 habia hecho
+     nacer con la clase vinfo-btn-44. La orden de PR9 pide que los iconos de esa tabla se vean
+     «del tamanio de la letra (14 px como maximo), sin cuadro ni relleno alrededor», y los 44 px de
+     CAJA de esa clase ponian la fila en 44 px de alto -la mitad de lo que la tanda vino a sacar-.
+     Hoy llevan vinfo-btn + sc-ico: el glifo mide 14 px y el area de TOQUE sigue siendo 44 x 44 por
+     el ::after absoluto de PANT-2, que no agranda la fila. Quien mide eso es TC-1058, con la caja
+     y el ::after por separado; esta condicion vuelve a su denominador de PR7.
+     ⚠️ Y LA RAZON QUE PR8 ESCRIBIO PARA PONERLES LA CLASE ERA FALSA, medido: sostenia que sin ella
+     el barrido del celular sumaria diez hallazgos ALTA. check_mobile.js marca .active en todas las
+     .tab-section antes de medir, pero NADIE llama a scRender al cargar la pagina, asi que la caja
+     tiene CERO hijos y CERO botones cuando el barrido pasa. Con los iconos en 14 px el barrido
+     sigue dando sus 38 ALTA exactos. Declarado en PR9-a. */
+  ex.push(['(K0) DENOMINADOR: los SETENTA globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
+    tapTodos.length === 70 && tapK.length === 69 && tapEv.length === 1
       && tapTodos.filter((x) => !x.k).length === 1
       && !!document.querySelector('#cm3d-ib.vinfo-btn-44')
       && tapTodos.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapTodos)]);
-  ex.push(['(K1) los ochenta miden 44x44 tambien con el mouse',
-    tapTodos.length === 80 && tapTodos.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapTodos)]);
+  ex.push(['(K1) los setenta miden 44x44 tambien con el mouse',
+    tapTodos.length === 70 && tapTodos.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapTodos)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapTodos.length === 80 && tapTodos.every((x) => x.propios === 5), JSON.stringify(tapTodos)]);
+    tapTodos.length === 70 && tapTodos.every((x) => x.propios === 5), JSON.stringify(tapTodos)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
@@ -164830,17 +164847,37 @@ caso('TC-1057',
       R.inputs = raiz.querySelectorAll('input').length;
       R.alto0 = Math.round(raiz.getBoundingClientRect().height);
       /* (A) APAGADOS, con el motivo en el boton Y en la celda */
-      const bs0 = raiz.querySelectorAll('.sc-bot button');
+      /* PR9-1 CAMBIO EL SELECTOR: los botones ya no viven en un .sc-bot debajo del nombre sino
+         en la MISMA linea, con la clase .sc-ico. Se buscan dentro de tbody para no contar el
+         globo del titulo de la caja, que esta fuera de la tabla. */
+      const bs0 = raiz.querySelectorAll('tbody .sc-ico');
       R.bot0 = bs0.length;
-      R.apag0 = Array.prototype.filter.call(bs0, b => b.disabled).length;
+      /* PR9-1.3: el icono apagado lleva aria-disabled y NO el atributo disabled -- un boton
+         disabled no emite eventos de mouse y su title, que es donde vive el motivo, no se
+         mostraria nunca. */
+      R.apag0 = Array.prototype.filter.call(bs0, b => b.getAttribute('aria-disabled') === 'true').length;
+      R.apagNativo0 = Array.prototype.filter.call(bs0, b => b.disabled).length;
+      /* PR9-1.2: la lista de lo que falta SALIO del cuerpo de la celda. La condicion de abajo
+         quedo INVERTIDA: antes exigia un renglon .sc-falta por celda y ahora exige CERO, y que
+         ninguna celda escriba la palabra en su texto. */
       R.faltas0 = raiz.querySelectorAll('.sc-falta').length;
-      const f0 = raiz.querySelector('.sc-falta');
-      R.motivoCelda = f0 ? f0.textContent.slice(0, 16) : 'NINGUNA';
-      const bCalc = Array.prototype.filter.call(bs0, b => b.disabled
+      R.celdaDiceFalta = Array.prototype.filter.call(raiz.querySelectorAll('tbody td'),
+        td => String(td.textContent || '').indexOf('Falta') >= 0).length;
+      const bCalc = Array.prototype.filter.call(bs0, b => b.getAttribute('aria-disabled') === 'true'
         && String(b.getAttribute('title') || '').indexOf('Calcular') === 0)[0];
       R.motivoBoton = bCalc ? String(bCalc.getAttribute('title')).indexOf('Falta:') > 0 : 'NO HAY';
-      R.botMin = Math.min.apply(null, Array.prototype.map.call(bs0,
-        b => Math.round(Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height))));
+      /* Y EL MOTIVO TAMBIEN EN EL aria-label, que es lo que lee el lector de pantalla. */
+      R.motivoAria = bCalc ? String(bCalc.getAttribute('aria-label')).indexOf('Falta:') > 0 : 'NO HAY';
+      /* PR9-1.3: el icono se VE en 14 px -el tamanio de la letra- y se TOCA en 44 por el
+         ::after absoluto. Se miden las dos cosas: la caja y el area de toque. */
+      R.botMax = Math.max.apply(null, Array.prototype.map.call(bs0,
+        b => Math.round(Math.max(b.getBoundingClientRect().width, b.getBoundingClientRect().height))));
+      R.toque = (function () { try {
+        const b = bs0[0]; if (!b) return 'NO HAY';
+        /* cualquiera sirve: el ::after es de la clase y no del estado */
+        const a = getComputedStyle(b, '::after');
+        return a.content !== 'none' ? (parseFloat(a.width) + 'x' + parseFloat(a.height)) : 'SIN ::after';
+      } catch (e) { return 'ERR' } })();
     }
     /* (B) CON LOS DIECISIETE CARGADOS: los promedios y las razones */
     const vs = [-20,-18,-16,-14,-12,-10, -19,-17,-15,-13,-11,-9, -8,-7,-6,-5, -4];
@@ -164852,8 +164889,8 @@ caso('TC-1057',
     R.fsgl = _hay('scFeviSobreSgl') ? scFeviSobreSgl() : 'NO';
     if (_hay('scRender')) scRender();
     if (raiz) {
-      const bs1 = raiz.querySelectorAll('.sc-bot button');
-      R.apag1 = Array.prototype.filter.call(bs1, b => b.disabled).length;
+      const bs1 = raiz.querySelectorAll('tbody .sc-ico');
+      R.apag1 = Array.prototype.filter.call(bs1, b => b.getAttribute('aria-disabled') === 'true').length;
       R.faltas1 = raiz.querySelectorAll('.sc-falta').length;
       R.alto1 = Math.round(raiz.getBoundingClientRect().height);
       if (_hay('scCalcular')) { scCalcular('g17'); scCalcular('basal'); scCalcular('asr'); scCalcular('fsgl'); }
@@ -164938,14 +164975,20 @@ caso('TC-1057',
     ['sin una sola casilla de inclusion', R.inputs === 0, String(R.inputs)],
     ['DENOMINADOR: sin numeros cargados sus botones estan apagados', R.apag0 >= 9, String(R.apag0)],
     ['con el motivo en el boton apagado', R.motivoBoton === true, String(R.motivoBoton)],
-    ['y tambien en un renglon dentro de la celda, con el nombre del segmento', R.faltas0 >= 9 && R.motivoCelda.indexOf('Falta:') === 0, R.faltas0 + '|' + R.motivoCelda],
-    ['sus botones se tocan en 44 px', R.botMin === 44, String(R.botMin)],
+    ['y tambien en su aria-label', R.motivoAria === true, String(R.motivoAria)],
+    ['el icono apagado NO lleva el atributo disabled, para que su tooltip se pueda ver', R.apagNativo0 === 0, String(R.apagNativo0)],
+    ['INVERTIDA EN PR9-1.2: la lista de lo que falta YA NO se escribe dentro de la celda', R.faltas0 === 0 && R.celdaDiceFalta === 0, R.faltas0 + '|' + R.celdaDiceFalta],
+    ['sus iconos se VEN en 14 px o menos', R.botMax <= 14 && R.botMax > 0, String(R.botMax)],
+    ['y se TOCAN en 44 px por el ::after, que no agranda la fila', R.toque === '44x44', String(R.toque)],
     ['con los diecisiete cargados, los promedios dan lo que tienen que dar', R.prom === '-12,-12.5,-15,-14,-6.5', String(R.prom)],
     ['el reparto por territorio es el de Contractilidad', R.terr === '[1,2,7,8,13,14,17][3,4,9,10,15][5,6,11,12,16]', String(R.terr)],
     ['el apical sparing relativo y la FEVI sobre SGL salen de sus formulas', Math.abs(R.asr - 0.2241379) < 1e-5 && Math.abs(R.fsgl - 3.4117647) < 1e-5, R.asr + '|' + R.fsgl],
     ['y los botones se prenden sin ninguna falta', R.apag1 <= 2 && R.faltas1 === 0, R.apag1 + '|' + R.faltas1],
-    ['los promedios se muestran con UN decimal y coma, y las razones con DOS', R.vals === '-12,0 % / -15,0 % / 0,22 / 3,41', R.vals],
-    ['al cambiar un numero que una celda uso, su resultado se borra', R.tras === '-15,0 % / 0,22 / 3,41', R.tras],
+    /* PR9-1.1: TODA celda publica su valor o una raya, asi que .sc-val existe en las diez y la
+       cadena trae las diez posiciones. Lo que la condicion mide no cambia: los decimales y la
+       coma de los cuatro calculados. */
+    ['los promedios se muestran con UN decimal y coma, y las razones con DOS', R.vals === '-12,0 % / -15,0 % / \u2014 / 0,22 / \u2014 / \u2014 / \u2014 / 3,41 / \u2014 / \u2014', R.vals],
+    ['al cambiar un numero que una celda uso, su resultado se borra y queda la raya', R.tras === '\u2014 / -15,0 % / \u2014 / 0,22 / \u2014 / \u2014 / \u2014 / 3,41 / \u2014 / \u2014', R.tras],
     ['DENOMINADOR: el contenedor quedo vacio antes de volver a abrir la pestania', R.vacio === 0, String(R.vacio)],
     ['y al abrir la pestania la tabla se pinta sola, con sus doce celdas', R.trasOnShow === 12, String(R.trasOnShow)],
     ['el apical sparing usa VALORES ABSOLUTOS: con el apice positivo la razon sigue siendo positiva',

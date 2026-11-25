@@ -1807,33 +1807,65 @@
      fila de botones. Por eso el nombre y el valor van en UN renglon de 13 px y los botones en el
      siguiente, que es la altura minima posible sin bajar el piso tactil -que es una regla de
      accesibilidad de esta casa y no se toca por una tabla-. Medido y declarado en PR8-h. */
-  .sc-caja { margin:14px auto 0; max-width:660px; background:var(--bg3);
-             border:1px solid var(--border); border-radius:8px; padding:7px 9px 8px; }
-  .sc-tit { font-size:11px; font-weight:700; color:var(--accent2); margin:0 0 5px;
-            display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-  .sc-nota { font-size:9.5px; color:var(--text2); margin:0 0 6px; line-height:1.4; }
-  .sc-tabla { width:100%; border-collapse:collapse; table-layout:fixed; }
-  .sc-tabla th { font-size:9.5px; font-weight:700; color:var(--text2); text-align:left;
-                 padding:1px 4px 3px; border-bottom:1px solid var(--border);
-                 text-transform:uppercase; letter-spacing:.3px; }
-  .sc-tabla td { font-size:10.5px; padding:2px 4px; vertical-align:top;
-                 border-bottom:1px solid var(--border); }
+  /* ══ PR9-1 · LA TABLA REHECHA: UNA LINEA POR CELDA ══════════════════════════════════════════
+     La caja ocupa el ancho de su CONTENIDO y no el de la tarjeta -fit-content con tope de
+     520 px-, cada celda es UN renglon -nombre corto, valor e iconos en linea- y la lista de lo
+     que falta sale del cuerpo: vive en el title y en el aria-label del icono apagado.
+     /!\ EL ICONO SE VE EN 14 px Y SE TOCA EN 44, por el ::after absoluto de PANT-2 -nunca por un
+     margen negativo-. El ::after no cambia la caja del boton, asi que la fila no crece.
+     /!\ Y ESTO CORRIGE UNA AFIRMACION DE PR8, MEDIDA: ese parrafo sostenia que sin la clase
+     vinfo-btn-44 los diez globos de esta tabla sumarian diez hallazgos ALTA al barrido del
+     celular. Es FALSO, y se verifico de las dos formas: con los iconos en 14 px el barrido sigue
+     dando 38 ALTA -su linea base exacta-, y una sonda que hace lo MISMO que check_mobile.js antes
+     de medir -marcar .active en todas las .tab-section- encuentra la caja con CERO hijos y CERO
+     botones, porque scRender no corre al cargar la pagina: nadie la llama hasta que el medico
+     abre la pestania o escribe un segmento. El barrido nunca vio esos treinta botones, ni a 44 px
+     ni a 28 ni a 14. Declarado en PR9-a. */
+  /* box-sizing CONTENT-BOX a proposito: con el border-box global, width:fit-content resuelve la
+     caja de BORDE al ancho del contenido y el relleno queda por dentro, asi que la tabla
+     desbordaba su propia caja por los 3 px que el relleno le come. Medido. */
+  .sc-caja { margin:14px auto 0; width:fit-content; max-width:520px; box-sizing:content-box;
+             background:var(--bg3); border:1px solid var(--border); border-radius:8px;
+             padding:5px 7px 6px; }
+  .sc-tit { font-size:11px; font-weight:700; color:var(--accent2); margin:0 0 3px;
+            display:flex; align-items:center; gap:4px; white-space:nowrap; line-height:1.2; }
+  /* width:max-content en la TABLA y no solo en la caja: con el ancho automatico el navegador
+     reparte las cuatro columnas sobre el ancho que la caja le da, y la caja lo derivaba de un
+     max-content que no contaba las lineas flex de las celdas -medido: la tabla quedaba en 413 px
+     con 423 de contenido y cada linea desbordaba su celda-. Pidiendole max-content a la tabla,
+     la caja lo hereda. */
+  .sc-tabla { border-collapse:collapse; width:max-content; }
+  .sc-tabla th { font-size:9px; font-weight:700; color:var(--text2); text-align:left;
+                 padding:0 5px 2px; border-bottom:1px solid var(--border);
+                 text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; }
+  .sc-tabla td { font-size:11px; padding:2px 5px; vertical-align:middle; line-height:1;
+                 border-bottom:1px solid var(--border); white-space:nowrap; }
   .sc-tabla tr:last-child td { border-bottom:0; }
-  .sc-lin { display:flex; align-items:baseline; gap:5px; }
-  .sc-nom { font-size:10px; color:var(--text2); line-height:1.3; }
-  .sc-val { font-size:12px; font-weight:700; white-space:nowrap; }
-  .sc-bot { display:flex; gap:1px; margin-top:1px; }
-  /* Los botones: 44 px de piso tactil, SIN cromo. Lo que se atenua es el peso visual y no el
-     area de toque, que es la receta que el visor y la biblioteca de esta casa ya usan. */
-  .sc-bot button { background:none; border:0; color:var(--text2); font-size:13px;
-                   line-height:1; padding:0; cursor:pointer; }
-  .sc-bot button[disabled] { opacity:.38; cursor:not-allowed; }
-  .sc-falta { font-size:9.5px; color:var(--text2); line-height:1.3; margin-top:1px; }
+  /* flex:0 0 auto en el nombre y en el valor: sin eso los dos son encogibles -el valor por
+     omision de flex-shrink es 1-, asi que el ancho MINIMO de la celda quedaba por debajo de su
+     contenido y la tabla se dejaba apretar 10 px, con la linea desbordando su propia celda. */
+  .sc-lin { display:flex; align-items:center; gap:4px; white-space:nowrap; }
+  .sc-nom { font-size:11px; color:var(--text2); flex:0 0 auto; }
+  .sc-val { font-size:11px; font-weight:700; flex:0 0 auto; }
+  /* Los iconos: finos, de UN color -currentColor-, sin cuadro, sin relleno y sin emoji. */
+  .sc-ico { background:none; border:0; padding:0; margin:0; color:var(--text2);
+            width:14px; height:14px; min-width:0; min-height:0; cursor:pointer;
+            display:inline-flex; align-items:center; justify-content:center;
+            position:relative; flex:0 0 auto; font-size:14px; line-height:1; }
+  .sc-ico svg { width:14px; height:14px; display:block; }
+  .sc-ico::after { content:''; position:absolute; left:50%; top:50%;
+                   width:44px; height:44px; transform:translate(-50%,-50%); }
+  /* /!\ EL ICONO APAGADO NO LLEVA EL ATRIBUTO disabled, Y NO ES UN DESCUIDO: un boton disabled
+     NO emite eventos de mouse, asi que su title no se muestra nunca al pasar el cursor -- y desde
+     PR9-1.2 ese title es el UNICO lugar donde vive la lista de lo que falta. Lleva aria-disabled,
+     que es lo que lee el lector de pantalla, y su clic DICE el motivo en vez de calcular. Es la
+     misma receta que PANT-34 y el prompt 7 ya dejaron escrita para el boton que tiene que
+     EXPLICAR por que esta bloqueado. */
+  .sc-ico[aria-disabled="true"] { opacity:.38; }
   @media (max-width: 760px) {
-    /* En celular las cuatro columnas de 150 px no entran: la tabla desplaza DENTRO de su caja y
-       el documento no gana desplazamiento horizontal, que es la receta medida de PANT-25. */
-    .sc-caja { overflow-x:auto; }
-    .sc-tabla { min-width:560px; }
+    /* En celular las cuatro columnas no entran: la tabla desplaza DENTRO de su caja y el
+       documento no gana desplazamiento horizontal, que es la receta medida de PANT-25. */
+    .sc-caja { overflow-x:auto; max-width:100%; width:auto; }
   }
   .frases-panel {
     position: absolute; inset: 0;                          /* la media query de móvil lo reposiciona */
@@ -53230,10 +53262,20 @@ const VINFO = Object.freeze({
      propia de esta aplicacion (PR7, 23/11/2026). */
   /* LOS CINCO TEXTOS DE LA TABLA DE CALCULOS (PR8-4.4). Citan autor y anio porque un globo es el
      unico lugar de esta aplicacion donde se cita; los folios viven en docs/PENDIENTES.md. */
+  /* EL GLOBO DEL TITULO DE LA CAJA (PR9-1.4). Lo que decia la frase de introduccion, que salio
+     del cuerpo para que la tabla quepa en tres renglones. */
+  'sc-caja': {
+    ancho: 360,
+    tit: 'Cálculos de strain',
+    lee: 'De consulta: no entra al informe ni al PDF.\n'
+       + 'Cada cálculo necesita todos sus segmentos con número cargado; mientras falte alguno, '
+       + 'el ícono de la calculadora queda apagado y dice cuáles.'
+  },
   'sc-prom': {
     ancho: 380,
     tit: 'Promedio de los valores por segmento',
-    lee: 'Promedio simple de los valores cargados por segmento.\n'
+    lee: '«17 seg.» promedia los diecisiete; «16 seg.» los dieciséis sin el casquete apical.\n'
+       + 'Promedio simple de los valores cargados por segmento.\n'
        + 'Puede diferir del SGL global que entrega el equipo.\n'
        + 'Voigt 2015 describe que el promedio de valores segmentarios equivale al global solo si '
        + 'los segmentos tienen igual longitud.'
@@ -53241,7 +53283,8 @@ const VINFO = Object.freeze({
   'sc-niv': {
     ancho: 380,
     tit: 'Promedio por nivel',
-    lee: 'Promedio simple de los valores cargados en los segmentos de ese nivel.\n'
+    lee: 'Basal: segmentos 1 a 6. Medio: 7 a 12. Apical: 13 a 16.\n'
+       + 'Promedio simple de los valores cargados en los segmentos de ese nivel.\n'
        + 'El nivel apical usa los cuatro segmentos apicales y NO incluye el casquete: es '
        + 'criterio de la aplicación.\n'
        + 'Puede diferir del SGL global que entrega el equipo.'
@@ -143893,20 +143936,20 @@ function _scN(x, dec){
    de «Globales» y la tercera de «Formulas». */
 const SC_COLS = Object.freeze([
   { tit:'Globales', cel:[
-      { k:'g17', nom:'Promedio 17 seg', tipo:'prom', grupo:'g17', usar:true, info:'sc-prom' },
-      { k:'g16', nom:'Promedio 16 seg (sin ápice)', tipo:'prom', grupo:'g16', usar:true, info:'sc-prom' },
+      { k:'g17', nom:'17 seg.', tipo:'prom', grupo:'g17', usar:true, info:'sc-prom' },
+      { k:'g16', nom:'16 seg.', tipo:'prom', grupo:'g16', usar:true, info:'sc-prom' },
       null ] },
   { tit:'Por nivel', cel:[
-      { k:'basal',  nom:'Basal (1-6)',    tipo:'prom', grupo:'basal',  info:'sc-niv' },
-      { k:'medio',  nom:'Medio (7-12)',   tipo:'prom', grupo:'medio',  info:'sc-niv' },
-      { k:'apical', nom:'Apical (13-16)', tipo:'prom', grupo:'apical', info:'sc-niv' } ] },
+      { k:'basal',  nom:'Basal',  tipo:'prom', grupo:'basal',  info:'sc-niv' },
+      { k:'medio',  nom:'Medio',  tipo:'prom', grupo:'medio',  info:'sc-niv' },
+      { k:'apical', nom:'Apical', tipo:'prom', grupo:'apical', info:'sc-niv' } ] },
   { tit:'Por territorio', cel:[
       { k:'DA', nom:'DA', tipo:'prom', terr:'DA', info:'sc-terr' },
       { k:'CD', nom:'CD', tipo:'prom', terr:'CD', info:'sc-terr' },
       { k:'CX', nom:'CX', tipo:'prom', terr:'CX', info:'sc-terr' } ] },
   { tit:'Fórmulas', cel:[
-      { k:'asr',  nom:'Apical sparing relativo', tipo:'asr',  info:'sc-asr' },
-      { k:'fsgl', nom:'FEVI / SGL',              tipo:'fsgl', info:'sc-fsgl' },
+      { k:'asr',  nom:'A. sparing', tipo:'asr',  info:'sc-asr' },
+      { k:'fsgl', nom:'FEVI/SGL',   tipo:'fsgl', info:'sc-fsgl' },
       null ] }
 ]);
 /* Los indices que una celda necesita. */
@@ -144014,17 +144057,91 @@ function scUsarComoSGL(k){
 }
 window.scUsarComoSGL = scUsarComoSGL;
 window.scCalcular = scCalcular;
-/* ══ EL DIBUJO. Con nodos, y lo que entra son numeros derivados. ══════════════════════════════ */
-function _scBoton(ico, titulo, fn, apagado, motivo){
+/* == EL DIBUJO. Con nodos, y lo que entra son numeros derivados. =============================
+   PR9-1 LO REHIZO: una linea por celda, nombre corto, valor y los iconos al final de la MISMA
+   linea. Lo que falta NO se escribe dentro de la celda -se ve en el title y en el aria-label
+   del icono apagado- y la frase de introduccion paso al globo del titulo.
+   /!\ LOS ICONOS SON SVG EN LINEA Y NO EMOJI, por dos razones medidas: un emoji se dibuja con
+   la fuente de emoji del sistema -en color, con su propio alto de linea y distinto en cada
+   sistema operativo-, asi que no se puede teniir con currentColor ni acotar a 14 px de verdad;
+   y el saneador de esta casa ya pago dos veces el precio de apostar a un glifo del sistema. */
+/* Los tres dibujos, en 14 x 14 y con currentColor. Se arman con createElementNS: un innerHTML
+   con marcado de SVG en un documento HTML crea elementos del espacio de nombres equivocado. */
+const SC_SVG = Object.freeze({
+  /* Calculadora: el marco en trazo, y la pantalla y las seis teclas en RELLENO. Las teclas se
+     dibujaron primero como puntos de trazo -h.01 con punta redonda- y MEDIDAS en una captura a
+     dos veces la escala no se veian: 14 px de icono son 28 px de pantalla, y un punto de 0,65
+     unidades sobre un lienzo de 16 queda en poco mas de un pixel. Con rectangulos rellenos de
+     1,6 unidades la tecla mide ~2,8 px y se lee. */
+  calc: Object.freeze([ ['rect',{x:2.6,y:1.4,width:10.8,height:13.2,rx:1.6,'stroke-width':1.2}],
+                        ['rect',{x:4.7,y:3.4,width:6.6,height:2.4,rx:0.6,fill:'currentColor',stroke:'none'}],
+                        ['rect',{x:4.7,y:7.6,width:1.7,height:1.6,rx:0.4,fill:'currentColor',stroke:'none'}],
+                        ['rect',{x:7.2,y:7.6,width:1.7,height:1.6,rx:0.4,fill:'currentColor',stroke:'none'}],
+                        ['rect',{x:9.7,y:7.6,width:1.7,height:1.6,rx:0.4,fill:'currentColor',stroke:'none'}],
+                        ['rect',{x:4.7,y:10.6,width:1.7,height:1.6,rx:0.4,fill:'currentColor',stroke:'none'}],
+                        ['rect',{x:7.2,y:10.6,width:1.7,height:1.6,rx:0.4,fill:'currentColor',stroke:'none'}],
+                        ['rect',{x:9.7,y:10.6,width:1.7,height:1.6,rx:0.4,fill:'currentColor',stroke:'none'}] ]),
+  /* Flecha hacia arriba. */
+  sube: Object.freeze([ ['path',{d:'M8 13.4V3.2','stroke-width':1.5}],
+                        ['path',{d:'M3.9 7.3L8 3.2l4.1 4.1','stroke-width':1.5}] ])
+});
+function _scSvg(cual){
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = document.createElementNS(NS, 'svg');
+  sv.setAttribute('viewBox', '0 0 16 16');
+  sv.setAttribute('fill', 'none');
+  sv.setAttribute('stroke', 'currentColor');
+  sv.setAttribute('stroke-width', '1.3');
+  sv.setAttribute('stroke-linecap', 'round');
+  sv.setAttribute('stroke-linejoin', 'round');
+  sv.setAttribute('aria-hidden', 'true');
+  (SC_SVG[cual] || []).forEach(function (par) {
+    const el = document.createElementNS(NS, par[0]);
+    Object.keys(par[1]).forEach(function (k) { el.setAttribute(k, String(par[1][k])) });
+    sv.appendChild(el);
+  });
+  return sv;
+}
+/* UN boton de icono. El glifo mide 14 px y la caja 28; el area de toque llega a 44 por el
+   ::after de la hoja, que NO agranda la fila. */
+function _scBoton(cual, titulo, fn, apagado, motivo){
   const b = document.createElement('button');
   b.type = 'button';
-  b.textContent = ico;
+  b.className = 'sc-ico';
+  b.appendChild(_scSvg(cual));
+  /* EL MOTIVO VIVE ACA Y EN NINGUN OTRO LADO (PR9-1.2): es el title que se ve al pasar el mouse
+     y el aria-label que lee el lector de pantalla. La orden lo saco del cuerpo de la celda. */
   const t = apagado ? (titulo + (motivo ? (' — ' + motivo) : '')) : titulo;
   b.setAttribute('title', t);
   b.setAttribute('aria-label', t);
-  if (apagado) { b.disabled = true; b.setAttribute('aria-disabled', 'true'); }
-  else b.addEventListener('click', fn);
+  if (apagado) {
+    b.setAttribute('aria-disabled', 'true');
+    /* Y el clic DICE el motivo: el icono apagado es el unico lugar que puede explicar por
+       que no se puede calcular, asi que tocarlo no puede no hacer nada. */
+    b.addEventListener('click', function () { if (typeof toast === 'function') toast(t); });
+  } else b.addEventListener('click', fn);
   return b;
+}
+/* El globo de un dato, con el glifo de texto de esta casa. */
+function _scGlobo(clave, etiqueta){
+  const bi = document.createElement('button');
+  bi.type = 'button';
+  /* ATENCION: lleva vinfo-btn -de ahi cuelga el mecanismo del globo- Y sc-ico, que es la que le
+     da el tamanio de la letra y el area de toque de 44 px por ::after. La clase vinfo-btn-44 de
+     PR8 queda afuera a proposito: sus 44 px de CAJA ponian la fila en 44 px de alto, que es la
+     mitad de lo que esta tanda vino a sacar. */
+  bi.className = 'vinfo-btn sc-ico';
+  bi.setAttribute('data-vinfo', clave);
+  bi.setAttribute('aria-expanded', 'false');
+  bi.setAttribute('aria-label', etiqueta);
+  /* /!\ Y SIN ATRIBUTO title, que es la convencion de los globos de esta casa y la encontro
+     TC-500 (A3): la explicacion vive en la TARJETA que el globo abre, y un title encima pone un
+     segundo cartel -el nativo del navegador- compitiendo con ella sobre el mismo boton. El
+     aria-label queda, que es lo que lee el lector de pantalla. Los otros dos botones de la celda
+     -la calculadora y la flecha- SI llevan title: no son globos. */
+  bi.textContent = 'ⓘ';
+  bi.addEventListener('click', function () { if (typeof vInfoClic === 'function') vInfoClic(bi) });
+  return bi;
 }
 function scRender(){
   const raiz = document.getElementById('sgl-calc');
@@ -144033,11 +144150,8 @@ function scRender(){
   while (raiz.firstChild) raiz.removeChild(raiz.firstChild);
   const h = document.createElement('div'); h.className = 'sc-tit';
   h.appendChild(document.createTextNode('🧮 Cálculos de strain'));
+  h.appendChild(_scGlobo('sc-caja', 'Qué es esta tabla y para qué sirve'));
   raiz.appendChild(h);
-  const n = document.createElement('p'); n.className = 'sc-nota';
-  n.textContent = 'De consulta: no entra al informe ni al PDF. Cada cálculo necesita todos sus '
-                + 'segmentos con número cargado.';
-  raiz.appendChild(n);
   const tb = document.createElement('table'); tb.className = 'sc-tabla';
   const th = document.createElement('thead'); const tr0 = document.createElement('tr');
   SC_COLS.forEach(function (col) {
@@ -144053,42 +144167,22 @@ function scRender(){
       if (!c) { td.appendChild(document.createTextNode('')); tr.appendChild(td); return; }
       const motivo = scMotivo(c);
       const res = _scRes[c.k];
+      /* UNA SOLA LINEA: nombre, valor -o la raya- y los iconos. */
       const lin = document.createElement('div'); lin.className = 'sc-lin';
       const nom = document.createElement('span'); nom.className = 'sc-nom'; nom.textContent = c.nom;
       lin.appendChild(nom);
-      if (res) { const vv = document.createElement('b'); vv.className = 'sc-val';
-                 vv.textContent = res.val; lin.appendChild(vv); }
-      td.appendChild(lin);
-      const bl = document.createElement('div'); bl.className = 'sc-bot';
-      bl.appendChild(_scBoton('🧮', 'Calcular', function () { scCalcular(c.k) }, !!motivo, motivo));
+      const vv = document.createElement('b'); vv.className = 'sc-val';
+      vv.textContent = res ? res.val : '—';
+      lin.appendChild(vv);
+      lin.appendChild(_scBoton('calc', 'Calcular', function () { scCalcular(c.k) }, !!motivo, motivo));
       if (c.usar) {
         const sinRes = !res;
-        bl.appendChild(_scBoton('⬆️', 'Usar como SGL global',
+        lin.appendChild(_scBoton('sube', 'Usar como SGL global',
           function () { scUsarComoSGL(c.k) }, sinRes,
           sinRes ? 'primero hay que calcularlo' : ''));
       }
-      const bi = document.createElement('button');
-      /* ATENCION: CON vinfo-btn-44 Y NO SOLO vinfo-btn. Un vinfo-btn pelado mide 15x11 px en
-         escritorio -su propia hoja lo declara- y check_mobile.js lo cuenta como toque chico de
-         severidad ALTA: diez globos nuevos habrian movido la linea base del celular en diez. Con
-         la clase de 44 px miden lo que el dedo toca y el barrido no suma ninguno. */
-      bi.type = 'button'; bi.className = 'vinfo-btn vinfo-btn-44';
-      bi.setAttribute('data-vinfo', c.info);
-      bi.setAttribute('aria-expanded', 'false');
-      bi.setAttribute('aria-label', 'De dónde sale este cálculo: ' + c.nom);
-      /* ⚠️ Y SIN ATRIBUTO `title`, que es la convencion de los globos de esta casa y la encontro
-         TC-500 (A3) -«ninguno de los globos de la app lleva atributo title ni al manual»-: la
-         explicacion vive en la TARJETA que el globo abre, y un title encima pone un segundo
-         cartel -el nativo del navegador- compitiendo con ella sobre el mismo boton. El aria-label
-         queda, que es lo que lee el lector de pantalla. Los otros dos botones de la celda -la
-         calculadora y la flecha- SI llevan title: no son globos, y la orden pide que los botones
-         de icono tengan su explicacion al pasar el mouse. */
-      bi.textContent = '\u24d8';
-      bi.addEventListener('click', function () { if (typeof vInfoClic === 'function') vInfoClic(bi) });
-      bl.appendChild(bi);
-      td.appendChild(bl);
-      if (motivo) { const fa = document.createElement('div'); fa.className = 'sc-falta';
-                    fa.textContent = motivo; td.appendChild(fa); }
+      lin.appendChild(_scGlobo(c.info, 'De dónde sale este cálculo: ' + c.nom));
+      td.appendChild(lin);
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
