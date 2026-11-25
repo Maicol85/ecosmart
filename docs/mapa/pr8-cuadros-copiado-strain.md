@@ -353,3 +353,15 @@ parecían de otros módulos** —`_lv3d`, `FORR_IC_CORTE`, `valvSev`— y no la 
    el DOM depende de que nadie más lo haya cerrado en el medio. Lo que la orden pide —«pregunta
    antes de reemplazar»— se mide **espiando la llamada** y comprobando que el campo no cambie
    mientras se espera la respuesta.
+
+---
+
+## → PR12 (25/11/2026): el TAMAÑO DE LETRA del texto copiado
+
+Los dos armadores de HTML de esta tanda —`cuadTextoHTML` y `cuadInformeHTML`— declaraban
+`font-size:11pt` **sólo en el `<div>` envoltorio**, y Pages y Word le asignan a todo bloque sin
+tamaño el de su propio estilo de párrafo: de ahí el **14** que el médico vio al pegar. PR12 puso el
+tamaño **en línea en cada bloque** con un solo dueño (`CW_PT` / `CW_FS` / `_cwB`) y **retiró la
+tipografía fija** del envoltorio. El **texto llano no cambió ni un byte**.
+
+→ **`docs/mapa/pr12-copiado-rwt-paleta.md` § 1.**

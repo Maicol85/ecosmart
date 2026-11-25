@@ -336,3 +336,19 @@ condiciones y ninguno por excepción**. Las fichas, en `docs/mapa/tests-fichas-1
 7. **La forma vacía tiene que traer TODAS las claves**: con un objeto de una sola clave, las
    condiciones de abajo leían `D.dib.length` sobre `undefined` y el `TypeError` se llevaba el caso
    entero.
+
+---
+
+## → PR12 (25/11/2026): el MAPA DE SGL DEL VISOR pasa a usar esta misma paleta
+
+Esta tanda dejó escrito que la paleta **no** alcanzaba al mapa de territorios del visor, «que usa
+una rampa de intensidad verde azulada por la razón que su propio comentario explica». **PR12
+revierte eso, por decisión de Maicol del 25/11/2026**: ese mapa lee hoy estos mismos ocho tramos,
+este mismo gris y `strainTramoDe`, con `_strPalColor` / `_strGris` / `_strColorPct`. Los dos
+diagramas miden la misma magnitud, así que compartir la escala es lo que los hace comparables en el
+mismo PDF; **la paleta de la MOTILIDAD sigue separada** y ésa no se tocó.
+
+Con eso, **TC-201 cambió de lado**: su condición exigía que las dos paletas **no** compartieran
+ningún color y hoy exige que el visor **saque** el suyo de ésta.
+
+→ **`docs/mapa/pr12-copiado-rwt-paleta.md` § 5.**

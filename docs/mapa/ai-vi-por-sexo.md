@@ -287,3 +287,16 @@ incluya pone en rojo una ficha perfecta.
 9. **La primera medición del registro contó 93 palabras sin tilde y 101 después de editar**, y la
    subida era mía: los textos nuevos de las fichas también salieron sin acentos. **Medir el
    detector antes y después, no sólo después.**
+
+---
+
+## → PR12 (25/11/2026): el corte de ESPESOR PARIETAL RELATIVO, medido y **sin cambios**
+
+La tanda PR12 fue a escribir el corte como «≥ 0,42» y encontró midiendo que **ya estaba así en las
+cinco superficies**: la lógica de `calcGeometriaVI` (el 0,42 exacto cae del lado concéntrico), el
+cuadro `ref-vi` (`≥0.42`), las fichas `GEO-VI-001` y `GEO-VI-002` («0,42 o más») y el cuadro de
+cortes por sexo (`≥ 0,42`). **No se cambió una línea**, y lo fija **TC-1065** como guarda de
+regresión. El criterio de **HFA-PEFF** conserva su `> 0,42` y su atribución a Pieske 2019, que es
+lo que esa figura imprime.
+
+→ **`docs/mapa/pr12-copiado-rwt-paleta.md` § 2** y `docs/PENDIENTES.md` → **PR12-b**.

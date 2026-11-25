@@ -1,3 +1,89 @@
+## PR12 — el tamaño del texto copiado, el corte de RWT, el rango de NT-proBNP y la paleta del visor (2026-11-25)
+
+**Sello** `v20261125-0132` · **md5** `b556f081` · **196.334** líneas · línea base `2830208`.
+**Sin push: lo corre Maicol.**
+
+**Seis tareas: cuatro escriben código y dos son de SOLO LECTURA.**
+
+| tarea | qué pasó |
+|---|---|
+| **1** · el tamaño de letra al pegar en Pages y Word | el HTML copiado llevaba `font-size:11pt` **sólo en el `<div>` envoltorio**; hoy lo lleva **en línea en cada bloque**, con `CW_PT` / `CW_FS` / `_cwB` de dueño único, y **sin tipografía fija** |
+| **2** · el corte de RWT «≥ 0,42» | **NO SE CAMBIÓ UNA LÍNEA**: ya estaba así en las cinco superficies. Medido, no supuesto |
+| **3** · el rango de NT-proBNP 375–600 | ayuda en la casilla **`hfaicos_bnp`** del HFA-ICOS —la única de NT-proBNP sin número—, con el chip `CRITERIO DE ECOSMART` |
+| **4** · AF-2, AF-4 y AF-5 | **solo lectura**: los tres siguen vivos en la app y los tres tienen decisión tomada el 16/11 que nunca se aplicó |
+| **5** · la paleta del mapa de SGL del visor | pasa de una rampa de intensidad propia a los **ocho tramos de `STRAIN_PAL`**, leídos del mismo dueño que la pestaña SGL |
+| **6** · los segmentos del SGL del visor | **solo lectura**: `docs/INFORME_SGL_VISOR_PR12.md` |
+
+**El diff son 97 líneas agregadas y 40 quitadas**, de las que **66 son código de verdad** y 31
+comentario, con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** `<input>`,
+`<select>` y `<textarea>` nuevos, **CERO** ids nuevos y **CERO** globos nuevos —128 claves y 131
+botones, idénticos en los dos árboles—. **Cero campos guardados nuevos** y las **457** columnas
+quietas: 805 `input[id]`, 293 `select[id]` y 18 `textarea[id]` en los dos.
+
+**Cobertura: TC-1064 a TC-1067**, y **TC-201 adaptado** con su denominador y su condición de color
+**INVERTIDOS**, el gris derivado del dueño, cuatro condiciones que pasaron de medir el color a
+medir el **número** y una condición **nueva** por tramo. **Cuatro de los cinco caen contra
+`2830208`**; **TC-1065 pasa en los dos a propósito** —la TAREA 2 no cambió nada— y se declara en
+`PENDIENTES.md` → **PR12-b**.
+
+**21/21 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
+vivo **idéntico** antes y después (`b556f081`) y las 21 anclas verificadas **ANTES** de correr. Al
+menos dos por grupo, y **cinco no revierten nada: la aplican DE MÁS**, porque las condiciones que
+las matan son **controles negativos**.
+⚠️ **EL PRIMER BARRIDO DEJÓ UNA SOBREVIVIENTE Y ERA UN HUECO REAL.** La mutación 10 —atribuirle a
+Pieske 2019 el operador inclusivo— pasaba porque la condición buscaba «> 0,42» en el texto del
+panel **entero**, y esa tabla tiene **DOS** filas con ese corte: cambiarle el operador a una seguía
+encontrándolo en la otra. Es el mismo agujero que PANT-22 y PR6 pagaron midiendo sobre el join de
+varias notas. Hoy se mide **dentro de cada fila** y se exige que **las dos** conserven su operador
+y su fuente; la mutación muere.
+
+**VERIFICACIÓN. LA SUITE COMPLETA NO SE CORRIÓ, POR ORDEN EXPRESA.** Se corrieron los **lotes de
+riesgo** de las zonas que la orden nombra —el copiado, los Cuadros, el visor, el SGL, el strain del
+visor, la geometría del VI, el criterio humoral y el censo de globos—: los **281** casos cuyo
+cuerpo toca alguna de ellas, seleccionados por el **patrón de su propio cuerpo** y no a ojo
+(`scripts/_lotes_pr12.sh`). Los demás **no se ejecutaron**, y se declara.
+**276/281 en SIETE lotes**, con los **281 ejecutados** y el md5 de `index.html` **idéntico** al
+abrir y al cerrar (`b556f081`).
+Los **CINCO** rojos son los **mismos cinco de la línea base**, medida **sobre `2830208` sin tocar
+nada** antes de escribir una línea —**272/277** allá—, o sea **preexistentes por construcción**:
+**TC-182**, **TC-857**, **TC-899** y **TC-1044** pasan **1/1 corridos aislados** —sensibilidad de
+lote—, y **TC-900 falla también aislado (0/1)**, así que es un rojo preexistente de HEAD y no de
+lote. **Ninguno es de esta tanda** y ninguno se tocó.
+⚠️ **Y LA PASADA DIO 275/281 CON UN SEXTO ROJO QUE ERA MÍO, consecuencia autorizada de la TAREA 1**:
+**TC-1053** —el caso de PR8 del copiado con formato— buscaba el literal `<b>` y `<u>` **sin
+atributos**, y la TAREA 1 les puso el tamaño en línea, así que contaba **cero** negritas sobre un
+HTML que sí las trae. Quedó **adaptado y más fuerte**: cuenta por **etiqueta**, con atributos o sin
+ellos, y busca el DOPPLER, el INFORME y el EN SUMA armando el fragmento con **`_cwB`**, el mismo
+dueño que los emite, así que ya no depende de cómo esté escrito el estilo. **Su lote, el 6, se
+rehizo entero con el archivo de casos final: 44/45**, con TC-1044 como único rojo y el md5 del
+árbol idéntico al abrir y al cerrar. No se rehizo la pasada completa y se declara con su motivo:
+**`index.html` no cambió** y lo único que se movió fue el archivo de casos — el mismo criterio con
+que la 3A, el prompt 4, P9, P10, PR6 y PR7 no rehicieron la suya.
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta,
+medido con la máquina sola y de a una medición por vez.
+⚠️ **LO QUE NO SE PUDO VERIFICAR, Y ES LO QUE EL MÉDICO TIENE QUE PROBAR: EL PEGADO REAL EN PAGES Y
+EN WORD.** Esta pasada no abre ninguno de los dos. Lo que se mide es el **contenido del
+portapapeles**; los cuatro primeros pasos de `docs/GUIA_PRUEBA_PR12.md` son exactamente eso.
+→ **PR12-a**
+
+**Lo declarado**, en `PENDIENTES.md` → **PR12-a** a **PR12-g**; el **mapa**, en
+`docs/mapa/pr12-copiado-rwt-paleta.md`; las **fichas**, en `docs/mapa/tests-fichas-1064.md`; el
+**informe de la TAREA 6**, en `docs/INFORME_SGL_VISOR_PR12.md`; la **guía manual**, en
+`docs/GUIA_PRUEBA_PR12.md` (14 pasos, los cuatro primeros sólo verificables a mano en Pages y
+Word); el **barrido**, en `scripts/_mut_pr12.py`; el **corredor de lotes**, en
+`scripts/_lotes_pr12.sh`; el **insertador de casos con su guardián**, en `scripts/_casos_pr12.py`.
+
+⚠️ **TRES TRAMPAS DE ESTA CASA, PAGADAS OTRA VEZ.** (1) El **acento grave dentro de mis propios
+comentarios** en el cuerpo de un caso, por **trigésima séptima** tanda seguida: lo cazó
+`check_backticks.py`, que señaló el archivo y la línea donde `node --check` sólo decía «missing )
+after argument list» apuntando al `caso(`. (2) **La barra invertida no sobrevive al template
+literal**: escribí `/\s/g` con UNA barra en dos regex de TC-201 y el cuerpo evaluado quedaba con
+`/s/g`, o sea reemplazando las eses; el resto del archivo las escribe con DOS. (3) **Un acceso
+pelado se lleva el caso entero**: mi propia adaptación de TC-201 cayó por `ReferenceError` contra
+el árbol anterior en vez de por condición, que es la lección de TC-827, y se cerró con un resolver
+con guarda.
+
 ## PR9 — la tabla de cálculos, el PDF «Tipo Word», los recuadros y el ingreso del SGL (2026-11-24/25)
 
 **Sello** `v20261124-2316` · **md5** `a5ce3ab2` · **196.277** líneas · línea base `1932582`, que

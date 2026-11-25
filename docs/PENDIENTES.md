@@ -40,6 +40,140 @@ se leen 20-80 lineas con `sed -n`.
 > hipótesis de la orden medidas una por una, está en **`docs/INVENTARIO_P37.md`**; el mapa, en
 > **`docs/mapa/pant37-what-if.md`**.
 
+## PR12 — el tamaño del texto copiado, el corte de RWT, el rango de NT-proBNP y la paleta del visor (2026-11-25)
+
+> Sello **`v20261125-0132`**, md5 **`b556f081`**. Línea base **`2830208`** (cierre de PR9).
+> El mapa, en `docs/mapa/pr12-copiado-rwt-paleta.md`; las fichas, en
+> `docs/mapa/tests-fichas-1064.md`; el informe de la TAREA 6, en
+> `docs/INFORME_SGL_VISOR_PR12.md`; la guía manual, en `docs/GUIA_PRUEBA_PR12.md`.
+
+### PR12-a — el pegado real en Pages y en Word no se pudo verificar
+
+**Qué se midió.** El **contenido del portapapeles**: que cada uno de los siete bloques del HTML
+copiado declare `font-size:11pt` en línea, que no aparezca ningún otro tamaño, que no se fije
+tipografía y que el texto llano no cambie. Lo fija **TC-1064**.
+
+**Qué NO se midió.** Cómo interpreta ese HTML **cada programa** al pegar. Esta pasada no abre Pages
+ni Word, y el 14 que el médico vio es una decisión del programa de destino sobre un bloque sin
+tamaño: lo que se corrigió es que ya no haya ningún bloque sin tamaño.
+
+**Para el médico:** pegar los dos copiados en Pages y en Word y confirmar que el cuerpo sale en 11.
+Si alguno sigue saliendo en otro tamaño, el dato que hace falta es **qué** bloque —un párrafo, un
+título, una viñeta— y en **qué** programa.
+
+### PR12-b — la TAREA 2 no cambió nada: el corte de RWT YA estaba en «0,42 incluido»
+
+**Qué se encontró, midiendo.** Las cinco superficies ya tenían el corte inclusivo: la lógica
+(`calcGeometriaVI` usa `r < 0.42` para el lado normal, o sea que el 0,42 exacto es aumentado), el
+cuadro de Referencias (`ref-vi` escribe `≥0.42`), las dos fichas de Evidencia (`GEO-VI-001` y
+`GEO-VI-002`, con «0,42 o más») y el cuadro de cortes por sexo (`≥ 0,42` en las dos columnas). Así
+que **no hubo nada que corregir**, y **TC-1065 pasa también contra el árbol anterior**: es una
+guarda de regresión y no lo que discrimina. Lo que lo pone rojo son las mutaciones 06 a 10.
+
+**La cláusula 2.2 de la orden no se disparó.** Ningún texto de la geometría le atribuye a una
+fuente un operador que esa fuente no escriba: la ASE/EACVI 2015 escribe en su **Figura 6**
+«increased RWT **≥ 0.42**», que es lo que las dos fichas dicen. Está transcrito en
+`docs/fuentes/FUENTES.md`.
+
+**Lo que NO se unificó, y queda declarado.** `ref-vi` escribe `≥0.42` —sin espacio y con punto, la
+convención de **esa** tabla, donde todas las cifras van con punto— y la tabla por sexo escribe
+`≥ 0,42`. El **operador**, que es lo que la decisión fija, es el mismo en las dos. `CLAUDE.md` ya
+documenta que las dos formas conviven a propósito para que el buscador de Referencias encuentre
+las dos, así que cambiar la tipografía de una celda sería churn sobre una tabla firmada. **Para el
+médico:** si quiere la forma «≥ 0,42» con espacio y coma en las dos, es un cambio de una celda.
+
+**Y una contradicción interna de la fuente que esta app ya resolvía y que sigue resuelta igual.** La
+**Tabla 6** de esa guía publica el espesor relativo normal como un rango que **incluye** el 0,42
+—«0.22–0.42 (M) y 0.24–0.42 (H)»— mientras su **Figura 6** usa `≥ 0.42` y `≤ 0.42`, que se solapan
+en el 0,42 exacto. La app resuelve el 0,42 **hacia el lado concéntrico**, que es la lectura de la
+Figura 6, y eso estaba declarado desde antes en el ítem **L-5**. **No se tocó.**
+
+### PR12-c — el rango de NT-proBNP: la casilla elegida y lo que la ayuda NO dice
+
+**Qué se encontró.** La app tiene **tres** controles de NT-proBNP y sólo **uno** sin número:
+`hfaicos_bnp`, la casilla «BNP / NT-proBNP basal elevado» del **HFA-ICOS** de cardio-oncología. Los
+campos `hf_ntprobnp` / `hf_bnp` del HFA-PEFF son **numéricos**, y sus casillas `hf_nt_may` /
+`hf_nt_men` ya traen en su rótulo el rango **publicado** de esa guía (125-220 en ritmo sinusal,
+365-660 en fibrilación auricular). Así que la ayuda fue a `hfaicos_bnp`, y **el HFA-PEFF no se
+tocó**: cambiarle su rango sería cambiar la lógica del puntaje, que la orden prohíbe.
+
+**Cómo quedó.** Un renglón de 10 px dentro de la misma etiqueta, con el chip estándar:
+`CRITERIO DE ECOSMART · NT-proBNP 375–600 pg/mL`. Sin `id`, sin `title`, sin campo nuevo, sin citar
+ninguna guía, sin tocar el puntaje y sin llegar al papel. Lo fija **TC-1066**.
+
+**DECISIÓN DEL MÉDICO PENDIENTE.** La ayuda dice el rango y **no dice qué significa estar dentro o
+fuera de él**, a propósito. `hfaicos_bnp` es un marcador **basal** —antes del tratamiento
+oncológico— y «elevado» no tiene tope: un valor por encima de 600 también está elevado, así que una
+frase como «se considera elevado entre 375 y 600» sería falsa y afirmarla es contenido clínico.
+**Si el rango tenía que ir en otro lugar, o si la ayuda tiene que decir qué significa, son una
+línea y dos.**
+
+### PR12-d — AF-2, AF-4 y AF-5 siguen en la app, y los registros de la app no los conocen
+
+**TAREA 4, de solo lectura.** Los tres están **vivos** en `index.html` y los tres tienen decisión
+tomada por Maicol el **16/11/2026 (02:42)** en
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/00_CONSOLIDADO/Pendientes_de_decision.docx` (sección 22,
+«Auditoría final hasta PANT-38») y en `Registro_de_movimientos.xlsx`:
+
+| id | dónde está en la app | qué dice el registro |
+|---|---|---|
+| **AF-2** | el globo ⓘ **`clnk-guia`** de Configuración → CeiboLink, último párrafo del campo `ojo` | «Resuelto: se corrige. **El texto nuevo de la guía del «?» reemplaza a la actual**, así que la frase «se corrigen con lo que pase de verdad» desaparece.» **TODAVÍA NO SE REEMPLAZÓ.** |
+| **AF-4** | dos entradas de **`_SIMP_NOTAS_METODO`**, el ⓘ «Simpson — notas de método» del visor | «Resuelto: se corrige. Regla general: **rótulo «criterio de EcoSmart»** en esas frases; si alguna concluye una conducta, se retira.» **El rótulo NO está.** |
+| **AF-5** | una entrada de **`_SIMP_NOTAS_METODO`**, el mismo ⓘ | igual que AF-4. **El rótulo NO está.** |
+
+**Ninguno se tocó** —la tarea era de solo lectura— y **ninguno aparece en `CLAUDE.md` ni en
+`docs/`**: esas decisiones nunca llegaron a los registros de la app, que es por lo que quedaron sin
+aplicar. **AF-6, en cambio, SÍ se aplicó**: el comentario de `_SIMP_NOTAS_METODO` registra que la ⓘ
+pasó a citar «Lang 2015» (autor-año) el 2026-11-16.
+
+**Para una tanda futura, y es una decisión del médico porque es contenido clínico visible:** los
+tres son textos de pantalla, no cortes. El de AF-2 se **retira** con su párrafo; los de AF-4 y AF-5
+necesitan el rótulo «criterio de EcoSmart» **o** la reformulación que el registro propone
+(«valores normales de eco 2D» en el de AF-5).
+
+### PR12-e — la paleta del visor revierte una decisión del 20/09, y TC-201 cambió de lado
+
+**Qué cambió.** El mapa de SGL del visor pasó de una **rampa de intensidad** de un solo tono a los
+**ocho tramos** de `STRAIN_PAL`. Decisión de Maicol del **25/11/2026**, que **revierte** la del
+**20/09/2026** que ese módulo tenía escrita.
+
+**Qué se conserva, y es la mitad que importa.** Sigue **sin graduar severidad** —los tramos son el
+valor medido repartido en escalones de cinco puntos, no bandas clínicas—, sigue **sin publicar
+atribución coronaria**, el **ápex (17) sigue gris** y el **número** impreso en cada territorio no
+se movió. La leyenda lo dice.
+
+**Lo que costó en cobertura.** **TC-201** quedó con su denominador y su condición de color
+**INVERTIDOS** —antes exigía que las dos paletas no compartieran ningún color y hoy exige que el
+visor **saque** el suyo de ella—, con el **gris derivado del dueño** en vez de escrito, con cuatro
+condiciones que pasaron de medir el **color** a medir el **número** —con ocho tramos de cinco
+puntos, dos valores distintos pueden caer en el mismo tramo— y con una condición **nueva**: el
+color de cada pared es el **tramo** de su valor. Y la condición «más acortamiento = más oscuro» se
+**retiró**: con esta paleta la luminancia ya no es monótona en la magnitud.
+
+**La paleta de la MOTILIDAD no se tocó**, y ésa es la única separación que sigue en pie: los dos
+diagramas pueden terminar en el mismo PDF y miden cosas distintas. TC-1067 lo fija con un control
+negativo.
+
+### PR12-f — el informe de la TAREA 6: el visor NO calcula strain por segmento
+
+**TAREA 6, de solo lectura.** El informe entero está en `docs/INFORME_SGL_VISOR_PR12.md`. Lo que
+hay que saber en una línea: **la premisa de la orden —«cada vista apical da 6 segmentos»— es
+falsa**. Cada ventana apical da **DOS** valores —las dos paredes del trazado, partidas en el ápex—
+y los 17 segmentos de la diana son una **forma de dibujo**: con las tres ventanas se pintan **16 de
+17** segmentos con **6 mediciones**, el **17 queda siempre gris** porque el método no lo mide, y el
+visor **ya combina** las tres ventanas y los dos paneles en un solo mapa.
+
+**Y el propio código ya tiene medido por qué partirlo en más tramos no da más información:**
+«dividir cada contorno en k partes iguales DE SU PROPIA longitud devuelve el global k veces»,
+dispersión exactamente cero.
+
+### PR12-g — los rojos de la línea base de esta tanda
+
+Medidos **sobre `2830208` sin tocar nada**, o sea preexistentes por construcción: **TC-182**,
+**TC-857**, **TC-899**, **TC-900** y **TC-1044**. Los cuatro primeros **pasan 1/1 corridos
+aislados** —sensibilidad de lote—; **TC-900 falla también aislado (0/1)**, así que es un rojo
+preexistente de HEAD y no de lote. **Ninguno es de esta tanda** y ninguno se tocó.
+
 ## PR9 — la tabla de cálculos, el PDF «Tipo Word», los recuadros y el ingreso del SGL (2026-11-25)
 
 **Mapa:** `docs/mapa/pr9-tabla-pdf-sgl.md` · **Fichas:** `docs/mapa/tests-fichas-1058.md`

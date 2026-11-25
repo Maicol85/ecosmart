@@ -12869,3 +12869,68 @@ nivel B-NR** (recomendación 3, folio **e163**). La ficha decía **e164** y qued
 | Medición incorrecta del TSVI en el informe | «Considerar medición incorrecta del TSVI o pseudo-severidad.» | **retirada** del papel | orden de Maicol | 23/11/2026 |
 | Repaso de las integrales en el informe | «revisar el diámetro del tracto de salida y el trazado de las integrales…» | **retirado**; se conserva «No configura la forma clásica» | orden de Maicol | 23/11/2026 |
 | Folio del umbral del cor triatriatum | e164 | **e165**, en el texto de apoyo de la recomendación 5, sin clase propia | ACC/AHA de congénitas, folio e165 | 23/11/2026 |
+
+---
+
+# La tanda PR12 (2026-11-25) — nada nuevo se citó, y dos cosas quedaron declaradas
+
+**NINGUNA FUENTE NUEVA ENTRÓ A LA APP EN ESTA TANDA.** Lo que hubo fue una relectura de lo ya
+transcrito y una decisión de **no citar**.
+
+## El corte de espesor parietal relativo: la fuente ya decía «≥»
+
+La TAREA 2 iba a escribir el corte como «≥ 0,42» y encontró que **ya estaba así**. Al verificar la
+atribución se releyó lo que este mismo archivo ya tenía transcrito de la **ASE/EACVI 2015** (Lang
+RM y cols., recomendaciones de cuantificación de cavidades):
+
+| dato | ubicación | hoja | folio | lo impreso |
+|---|---|---|---|---|
+| los cuatro cuadrantes | **Figura 6** | 17 | 17 | «concentric remodeling (normal LV mass with increased RWT **≥ 0.42**) or normal geometry (**RWT ≤ 0.42**)… increased LV mass can have either concentric (**RWT ≥ 0.42**) or eccentric (**RWT ≤ 0.42**) hypertrophy» |
+| el espesor relativo normal | **Tabla 6** | 17 | 17 | `Relative wall thickness (cm)` **0,22–0,42** (M) y **0,24–0,42** (H) |
+
+O sea que las fichas `GEO-VI-001` y `GEO-VI-002`, que dicen «con **0,42 o más** … está aumentado» y
+se lo atribuyen a esa Figura 6, **atribuyen bien**. La cláusula 2.2 de la orden de PR12 —«si algún
+texto de fuente o ⓘ atribuye a una fuente el símbolo «>», no le atribuyas «≥»»— **no se disparó**.
+
+⚠️ **Y LA CONTRADICCIÓN INTERNA DE ESA FUENTE EN EL 0,42 EXACTO SIGUE RESUELTA COMO ESTABA.** La
+Tabla 6 pone el 0,42 **adentro** del rango normal y la Figura 6 usa `≥` y `≤`, que **se solapan**
+en ese valor. La app lo resuelve **hacia el lado concéntrico**, que es la lectura de la Figura 6, y
+eso estaba declarado desde antes en `docs/PENDIENTES.md` → **L-5**. **No se tocó.**
+
+El criterio de **HFA-PEFF** conserva su «**> 0,42**» y su atribución a **Pieske 2019, Figura 3,
+folio 3305**, que es lo que esa figura imprime —ya transcrito más arriba en este archivo—. La orden
+de PR12 decía expresamente no tocarlo, y **TC-1065** lo fija con un control negativo que mide las
+**dos** filas de esa tabla por separado.
+
+## El rango de NT-proBNP: 375–600 pg/mL va **sin fuente**, como criterio de la aplicación
+
+La decisión de Maicol del **25/11/2026** fija el rango de NT-proBNP de esta aplicación en
+**375–600 pg/mL**, y la orden prohíbe expresamente citar una guía para el **600**.
+
+⚠️ **Y HAY UN NÚMERO PARECIDO EN LA BIBLIOTECA QUE NO ES ÉSTE Y NO SE MEZCLÓ.** La **Pieske 2019**
+publica, para el criterio **menor** del HFA-PEFF en fibrilación auricular, **375–660 pg/mL** en el
+texto del folio 3304 y **365–660** en su Figura 3 del folio 3305 —las dos formas están transcritas
+más arriba, con la nota de que la figura es un bitmap—. **Ése es otro corte, de otro criterio y de
+otra pregunta clínica**, y el rango de PR12 **no se le atribuye**.
+
+Por eso el renglón de ayuda de la casilla `hfaicos_bnp` va con el chip **`CRITERIO DE ECOSMART`** y
+**sin nombrar ninguna guía**, y **TC-1066** lo mide: cero apariciones de «Pieske», «ESC», «ACC»,
+«AHA», «ASE», «EACVI», «HFA-PEFF» y «660» en el texto de esa etiqueta.
+
+## La paleta del mapa de SGL del visor: una decisión, no una fuente
+
+Los ocho tramos de cinco puntos entre −20 y +20 son la **paleta propia** de esta aplicación, que
+PR7 ya declaró «no se presenta como la de ninguna marca» y **sin fuente**. PR12 sólo hace que el
+mapa del visor **lea** esa misma paleta en vez de tener una propia. **Ningún corte clínico se
+movió**, y el módulo sigue declarando que **no gradúa severidad** y que el único corte que la app
+aplica sobre el SGL —el −16 % del marco HFA-ICOS— está definido para **speckle tracking**, que no
+es ese método.
+
+## Cambios de evidencia
+
+| qué | antes | después |
+|---|---|---|
+| el corte de RWT de la geometría del VI | «0,42 o más», atribuido a la ASE/EACVI 2015, Figura 6, folio 17 | **sin cambio** — se verificó que la atribución es correcta |
+| el corte de RWT del HFA-PEFF | «> 0,42», atribuido a Pieske 2019, Figura 3, folio 3305 | **sin cambio** |
+| el rango de NT-proBNP de la casilla del HFA-ICOS | no existía | **375–600 pg/mL, criterio de la aplicación, sin fuente** |
+| la paleta del mapa de SGL del visor | rampa de intensidad propia, sin fuente | **los ocho tramos de `STRAIN_PAL`, sin fuente** |

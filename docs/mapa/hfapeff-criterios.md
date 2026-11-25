@@ -290,3 +290,18 @@ sus corchetes de cita y otra en la copia sin acentos que alimenta el papel—, a
 exija una sola aparición da un rojo que no describe ningún defecto.
 
 **`docs/mapa/aj7-correcciones.md` § 2.**
+
+---
+
+## → PR12 (25/11/2026): el rango de NT-proBNP fue a la casilla del HFA-ICOS, **no a este criterio**
+
+PR12 tenía que publicar el rango **375–600 pg/mL** en «la única casilla de NT-proBNP sin número».
+Censados los tres controles de NT-proBNP de la app, los de **este** criterio —`hf_ntprobnp` /
+`hf_bnp`, numéricos, y las casillas `hf_nt_may` / `hf_nt_men`— **ya traen su número**: el rango
+publicado de la guía, 125-220 en ritmo sinusal y 365-660 en fibrilación auricular. **Este criterio
+no se tocó**: cambiarle el rango sería cambiar la lógica del puntaje, que la orden prohíbe.
+
+La ayuda fue a **`hfaicos_bnp`**, la casilla «BNP / NT-proBNP basal elevado» del HFA-ICOS, rotulada
+**CRITERIO DE ECOSMART** porque ninguna fuente de la biblioteca respalda ese tope.
+
+→ **`docs/mapa/pr12-copiado-rwt-paleta.md` § 3** y `docs/PENDIENTES.md` → **PR12-c**.

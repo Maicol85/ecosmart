@@ -117,6 +117,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | **Tocar una COLUMNA del EXCEL del Laboratorio**: `LAB_XLS_MAP`, las 440 claves, los tipos, los alias de cabecera del importador o las dos columnas del G2 | `docs/mapa/excel-laboratorio.md` |
 | **Tocar la IMPORTACIÓN del Excel**: el guardián de columnas, las listas de valores, los rangos, el mensaje de las columnas calculadas o la exportación JSON | `docs/mapa/importacion-excel.md` |
 | **Tocar un CORTE del SGL, el SIGNO del strain en el papel, el RÓTULO de pantalla, los TERRITORIOS coronarios con su aviso, los PATRONES del ojo de buey o el 2,9 del score de amiloidosis** | `docs/mapa/aj9-sgl-patrones.md` |
+| **Tocar el TAMAÑO DE LETRA de los textos que la app copia con formato, el corte de ESPESOR PARIETAL RELATIVO, el rango de NT-proBNP de la casilla del HFA-ICOS, o la PALETA del mapa de SGL del VISOR** —sus ocho tramos, su gris, su leyenda o por qué TC-201 cambió de lado— | `docs/mapa/pr12-copiado-rwt-paleta.md` |
 | **Tocar la TABLA «Cálculos de strain»** —su línea única por celda, los nombres cortos, los tres íconos en SVG, el motivo que vive en el tooltip del ícono apagado o sus medidas—, **el CUERPO ÚNICO de letra del PDF «Tipo Word»**, **el AIRE que separa un recuadro de nota del bloque que sigue** en las nueve plantillas, **la REGLA de lo que una celda del bull's eye acepta**, **el cartel de FEVI/SGL** o **el REDONDEO de los promedios y las razones del strain** | `docs/mapa/pr9-tabla-pdf-sgl.md` |
 | **Tocar el BOTÓN DE ICONO del resumen de válvulas, el ARRASTRE de los cuadros con su intercambio y su marcador de destino, el COPIADO CON FORMATO de los dos botones, el TEXTO de los datos numéricos —la mayúscula inicial, los renglones de mensaje omitidos, la línea mitral, los tres grupos del VI—, el PDF «Tipo Word» rehecho, la ENTRADA DE DATOS del SGL —el violeta de arranque, el ciclo, el guion, el signo, el aviso— o la tabla «CÁLCULOS DE STRAIN»** | `docs/mapa/pr8-cuadros-copiado-strain.md` |
 | **Tocar la PALETA del bull's eye de strain** —los ocho tramos entre −20 y +20, el gris de SIN DATO, el borde que cae a la derecha o el color del número—, **el botón «Ingresar datos numéricos»** con su casilla y su convención de signo, **el guardado de los segmentos** con la migración de los cinco estados viejos, **las dos leyendas**, **los patrones de ejemplo recoloreados** o **la hoja del PDF con los DOS bull's eye** —la tabla arriba a la derecha y el texto debajo de ella— | `docs/mapa/pr7-paleta-strain-numeros.md` |
@@ -303,7 +304,30 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **14,14 MB / 196.277 líneas**, medido con `wc -c` y `wc -l` el 2026-11-24 al cierre de la tanda **PR9** (la tabla de cálculos de strain, el PDF «Tipo Word», los recuadros del PDF y el ingreso del SGL), sobre el árbol ya sellado: sello **`v20261124-2316`**, md5 **`a5ce3ab2`**.
+  sin frameworks. Hoy **14,14 MB / 196.334 líneas**, medido con `wc -c` y `wc -l` el 2026-11-25 al cierre de la tanda **PR12** (el tamaño del texto copiado con formato, el corte de RWT, el rango de NT-proBNP y la paleta del mapa de SGL del visor), sobre el árbol ya sellado: sello **`v20261125-0132`**, md5 **`b556f081`**.
+  El diff de PR12 son **97 líneas agregadas y 40 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `2830208` **sobre el árbol ya sellado**, de las que **66 son código
+  de verdad** y 31 comentario —las 97 cierran exacto, y el filtro lleva el estado del comentario de
+  bloque, que es lo que de verdad separa código de prosa—.
+  Con **CERO** `innerHTML`, `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y
+  **CERO** `<input>`, `<select>` y `<textarea>` nuevos: el único `<input` que el diff muestra es la
+  **misma** casilla `hfaicos_bnp`, cuya línea reaparece porque se le agregó el renglón de ayuda
+  **dentro de su `<label>`**. **CERO ids nuevos**: los dos que el diff muestra —`hfaicos_bnp` y
+  `eco-build-sello`— ya existían, y el segundo reaparece porque el sello cambió. Lo que entra es un
+  **`<span>` sin `id`**, que es lo que lo deja fuera del censo del estudio y del Excel **por
+  construcción**: medido en los dos árboles, **805** `input[id]`, **293** `select[id]` y **18**
+  `textarea[id]`, los tres **idénticos**, o sea **cero campos guardados nuevos** y las **457**
+  columnas quietas.
+  **Y CERO cortes clínicos, cero umbrales y cero fórmulas de severidad movidos**: la TAREA 2
+  **no cambió una línea** —el corte de RWT ya estaba en «0,42 incluido» en las cinco superficies—,
+  la TAREA 3 agrega un **rango de ayuda rotulado como criterio de la aplicación** que no vota en
+  ningún puntaje, y la TAREA 5 cambia **la paleta** con la que un diagrama se pinta sin mover un
+  solo valor medido ni graduar nada.
+  ⚠️ **POR SEXAGÉSIMA SEXTA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show 2830208:index.html` da **196.277** líneas,
+  **14.139.933** bytes y el md5 **`a5ce3ab2`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 14,14 MB / 196.277 al cierre de la tanda **PR9** (la tabla de cálculos de strain, el PDF «Tipo Word», los recuadros del PDF y el ingreso del SGL), sello **`v20261124-2316`**, md5 **`a5ce3ab2`**.)
   El diff de PR9 son **387 líneas agregadas y 110 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `1932582` **sobre el árbol ya sellado**, de las que **190 son código
   de verdad** y 197 comentario —las 387 cierran exacto, y el filtro lleva el estado del comentario
@@ -1795,6 +1819,32 @@ impecable.
 (`source.branch: main`, `path: /`, certificado aprobado). Lo que se pushea a `main` **es** lo que
 sale publicado.
 
+⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR PR12: `2830208`**, el cierre de la tanda **PR9** —sello
+`v20261124-2316`, md5 `a5ce3ab2`, 196.277 líneas—. **Es lo último que Maicol pusheó, y esta vez
+PR9 YA ESTÁ PUBLICADO**: verificado, `git rev-parse origin/main` da **`2830208`** y
+`git rev-list --count origin/main..main` daba **CERO** al abrir esta tanda. O sea que el párrafo de
+PR9 de más abajo, que declara `1932582` como punto de retorno y cuatro commits sin pushear, **es el
+registro de lo que esa tanda midió en su momento y ya no es el estado de hoy.**
+⚠️ **Y LA REFERENCIA ES EL REF LOCAL `origin/main`, que sólo se mueve al hacer `fetch` o `push`**:
+si Maicol pusheó algo desde otra máquina, hay que volver a medirlo con un `git fetch` antes de
+revertir nada. Para volver atrás SIN reescribir historia:
+
+```bash
+git revert --no-commit 2830208..main && git commit -m "Revertir PR12: volver al arbol de 2830208" && git push origin main
+```
+
+Y si lo que hay que volver atrás es **sólo lo que la página sirve** y no la documentación:
+
+```bash
+git checkout 2830208 -- index.html version.json && git commit -m "Volver index.html y version.json a 2830208" && git push origin main
+```
+
+⚠️ **Al revertir, el sello del pie vuelve al viejo y `CLAUDE.md` queda publicando el nuevo**, así
+que **TC-753 sale rojo con razón** hasta que el renglón de tamaño y la sección de la tanda se
+pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
+
+**El punto de retorno que PR9 declaró, textual, queda abajo.**
+
 ⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR PR9: `1932582`**, el cierre de la tanda **PR8** —sello
 `v20261124-1923`, md5 `0dc4d160`, 196.000 líneas—. **Es lo último que Maicol pusheó**, verificado:
 `git rev-parse origin/main` da **`1932582`** y `git rev-list --count origin/main..main` da
@@ -1936,6 +1986,212 @@ pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**La tanda PR12 (2026-11-25) — el tamaño del texto copiado, el corte de RWT, el rango de
+NT-proBNP, los tres textos sin fuente y la paleta del mapa de SGL del visor.** SEIS tareas —cuatro
+escriben código y DOS son de **solo lectura**— y TRES commits. Sello **`v20261125-0132`**, md5
+**`b556f081`**, **196.334** líneas. Línea base **`2830208`**, el cierre de PR9 y a la vez
+`origin/main`. **Sin push: lo corre Maicol.**
+
+**NADA CLÍNICO SE MOVIÓ, y es medible**: cero cortes, cero umbrales, cero fórmulas de severidad.
+**CERO** `<input>`, `<select>` y `<textarea>` nuevos —el único `<input` del diff es la **misma**
+casilla `hfaicos_bnp`, cuya línea reaparece porque se le agregó la ayuda **dentro** de su
+`<label>`—, **CERO ids nuevos** y **CERO globos nuevos**: medido en los dos árboles, **805**
+`input[id]`, **293** `select[id]`, **18** `textarea[id]`, **128** claves de globo y **131** botones
+de globo, los cinco **idénticos**, o sea **cero campos guardados nuevos** y las **457** columnas
+quietas.
+
+**TAREA 1 · EL TEXTO COPIADO SALÍA EN 14 PORQUE EL TAMAÑO VIVÍA SÓLO EN EL ENVOLTORIO.** Los dos
+armadores —`cuadTextoHTML`, los datos numéricos, y `cuadInformeHTML`, el informe con su EN SUMA—
+declaraban `font-size:11pt` en el `<div>` de afuera, y **cada `<p>`, el `<ul>`, cada `<li>` y los
+`<b>` / `<u>` salían sin tamaño propio**: Pages y Word le asignan a todo bloque sin tamaño el de su
+propio estilo de párrafo. Medido contra el árbol anterior: **45 bloques sin tamaño**.
+Hoy el tamaño va **en línea en los siete bloques** con **un solo dueño** —`CW_PT` = `'11pt'`,
+`CW_FS` y `_cwB(t, sub)` para la negrita y el subrayado, que Word trata con el tamaño de su propio
+estilo de carácter y no con el del párrafo—. **Un solo tamaño**: los títulos también en 11 pt.
+⚠️ **Y LA TIPOGRAFÍA SALE**: el envoltorio declaraba `font-family:Calibri,Arial,sans-serif` y hoy no
+declara ninguna, que es lo que la orden pide. El `color:#000` se conserva —evita que el texto se
+pegue con el color del tema de la app— y no es tipografía.
+⚠️ **EL TEXTO LLANO NO CAMBIA NI UN BYTE**: es la OTRA representación del mismo copiado, la red
+para pegar donde no se acepta formato. `cuadTexto()` y `cuadInformeTexto()` no se tocaron, y los dos
+botones siguen copiando **exactamente** lo que arman sus funciones, medido envolviendo
+`_cuadCopiar`, que es la única puerta de los dos.
+⚠️ **Y EL TÍTULO DE SECCIÓN SE ESCRIBE DISTINTO EN LAS DOS REPRESENTACIONES, DE ANTES DE ESTA
+TANDA**: el texto llano lo marca con **dos puntos** —«Aorta:»— y el HTML con **negrita**. Lo
+encontró TC-1064 comparando renglón por renglón; no se cambió nada y la condición acepta el renglón
+con o sin sus dos puntos.
+⚠️ **LO QUE NO SE PUDO VERIFICAR, Y ES LA MITAD QUE IMPORTA: EL PEGADO REAL EN PAGES Y EN WORD.**
+Lo que se mide es el **contenido del portapapeles**; cómo lo interpreta cada programa al pegar lo
+tiene que probar el médico, y la guía manual arranca con esos cuatro pasos. → **PR12-a**
+
+**TAREA 2 · EL CORTE DE RWT YA ESTABA EN «0,42 INCLUIDO», Y NO SE CAMBIÓ UNA LÍNEA.** Medido en las
+**cinco** superficies: la lógica —`calcGeometriaVI` usa `r < 0.42` para el lado normal, o sea que
+el **0,42 exacto es aumentado**—, el cuadro de Referencias (`ref-vi` escribe `≥0.42`), las dos
+fichas de Evidencia (`GEO-VI-001` y `GEO-VI-002`, con «0,42 o más») y el cuadro de cortes por sexo
+(`≥ 0,42`). Los cuatro cuadrantes, medidos en el borde: con masa normal **0,41 → Normal** y **0,42
+y 0,43 → Remodelado concéntrico**; con masa aumentada **0,41 → Hipertrofia excéntrica** y **0,42 y
+0,43 → Hipertrofia concéntrica**.
+⚠️ **LA CLÁUSULA 2.2 NO SE DISPARÓ**: ningún texto de la geometría le atribuye a una fuente un
+operador que no escriba. La **ASE/EACVI 2015** escribe en su **Figura 6** «increased RWT **≥
+0.42**», que es lo que las dos fichas dicen. El criterio de **HFA-PEFF** conserva su «**> 0,42**» y
+su atribución a **Pieske 2019, Figura 3, folio 3305**, que es lo que esa figura imprime.
+⚠️ **EL CONTROL NEGATIVO VA EN 0,414 Y NO EN 0,419, Y NO ES UN AJUSTE PARA QUE PASE**:
+`calcGeometriaVI` **normaliza** el RWT a los dos decimales que se **imprimen** en el informe, así
+que 0,419 redondea a 0,42 y cae —con razón— del lado aumentado. Ese redondeo es el que evita que la
+tabla del PDF y el narrativo se contradigan cerca del umbral y está declarado desde antes.
+**TC-1065 lo afirma explícitamente**, así que la condición quedó más fuerte que el control
+original.
+⚠️ **Y POR ESO TC-1065 PASA TAMBIÉN CONTRA EL ÁRBOL ANTERIOR**: es una **guarda de regresión** y no
+lo que discrimina. Lo que lo pone rojo son las mutaciones 06 a 10. → **PR12-b**
+
+**TAREA 3 · EL RANGO DE NT-proBNP FUE A LA ÚNICA CASILLA SIN NÚMERO, Y NO ES LA QUE LA ORDEN
+SUPONÍA.** Censados los **tres** controles de NT-proBNP: `hf_ntprobnp` / `hf_bnp` son **campos
+numéricos** del HFA-PEFF, y sus casillas `hf_nt_may` / `hf_nt_men` **ya traen** en su rótulo el
+rango publicado de esa guía (125-220 en ritmo sinusal, 365-660 en fibrilación auricular). La única
+**sin número** es **`hfaicos_bnp`**, «BNP / NT-proBNP basal elevado», del **HFA-ICOS** de
+cardio-oncología. **El HFA-PEFF no se tocó**: cambiarle su rango sería cambiar la lógica del
+puntaje, que la orden prohíbe.
+Hoy, debajo del rótulo —que **no cambió**— va un renglón de 10 px con el chip estándar:
+`CRITERIO DE ECOSMART · NT-proBNP 375–600 pg/mL`. **Sin `id`** —un control con id entraría a las
+457 columnas por existir y «Nuevo estudio» le escribiría su valor guardado—, **sin `title`** por la
+regla de TC-500, **sin campo de ingreso**, **sin citar ninguna guía** —la orden lo prohíbe para el
+600, y la de la biblioteca publica otro tope—, **sin tocar el puntaje** —tildarla lo mueve y
+destildarla lo devuelve exacto— y **sin llegar al papel**.
+⚠️ **LA AYUDA DICE EL RANGO Y NO DICE QUÉ SIGNIFICA ESTAR DENTRO O FUERA DE ÉL, A PROPÓSITO.**
+`hfaicos_bnp` es un marcador **basal** y «elevado» no tiene tope: un valor por encima de 600
+también está elevado, así que «se considera elevado entre 375 y 600» sería falso, y afirmarlo es
+contenido clínico. **Decisión del médico pendiente.** → **PR12-c**
+
+**TAREA 4 · LOS TRES TEXTOS SIN FUENTE SIGUEN EN LA APP, Y SUS DECISIONES NUNCA LLEGARON A LOS
+REGISTROS DE LA APP.** Solo lectura, nada se tocó. Los tres tienen decisión de Maicol del
+**16/11/2026 (02:42)** en `Pendientes_de_decision.docx` y en `Registro_de_movimientos.xlsx` de la
+biblioteca, y **ninguno aparece en `CLAUDE.md` ni en `docs/`**, que es por lo que quedaron sin
+aplicar. **AF-2** vive en el globo ⓘ **`clnk-guia`** —último párrafo— y el registro dice que el
+texto nuevo de la guía del «?» **reemplaza al actual**: **todavía no se reemplazó**. **AF-4** y
+**AF-5** viven en **`_SIMP_NOTAS_METODO`**, el ⓘ «Simpson — notas de método» del visor, y el
+registro les manda el rótulo «criterio de EcoSmart»: **no está** —medido, cero apariciones en ese
+bloque—. **AF-6, en cambio, SÍ se aplicó**: el comentario de ese mismo bloque registra que la ⓘ
+pasó a citar «Lang 2015», autor-año. → **PR12-d**
+
+**TAREA 5 · LA PALETA DEL MAPA DE SGL DEL VISOR, Y ESTO REVIERTE UNA DECISIÓN DEL 20/09.** Ese mapa
+—el que `_strBullsDibujar` pinta por **territorio**— usaba una **rampa de intensidad** de un solo
+tono (teal) cuya oscuridad crecía con la **magnitud**, con su propio gris `#9E9E9E`. Hoy usa los
+**ocho tramos** de `STRAIN_PAL`, de cinco puntos entre −20 y +20, de violeta a azul, más el gris de
+SIN DATO, con el tramo decidido por **`strainTramoDe`**. Decisión de Maicol del **25/11/2026**.
+⚠️ **SE LEE EN TIEMPO DE LLAMADA Y CON GUARDA, NO SE COPIA**: `_strPalColor` / `_strGris` /
+`_strColorPct`, la receta de `_CT`. Con una copia, el día que un tramo cambie de color este
+diagrama mostraría el anterior al lado de un bull's eye ya repintado.
+⚠️ **Y NO SE PUEDE PROBAR SUSTITUYENDO LA PALETA, que fue el primer intento**: `STRAIN_PAL` es un
+`const` de nivel de script —`window.STRAIN_PAL = otra` crea una propiedad **nueva** que no lo tapa,
+la trampa que `_imgEditado` y `_cinePendientes` ya documentan— y además está `Object.freeze`d. Lo
+que TC-1067 afirma es la **estructura**: las tres funciones nombran `STRAIN_PAL` y **no traen ningún
+color escrito salvo el respaldo**. La mutación 16 copia los ocho a mano y esa condición la caza;
+la que compara valor por valor la dejaría pasar.
+**La leyenda** son los ocho tramos con las ocho marcas de `STRAIN_MARCAS` y el cuadrado de SIN
+DATO, la **misma** referencia que `strainLeyendaHTML` pinta en la pestaña, medida **por píxeles**
+sobre un canvas propio con el resultado en `null` —que es como esa parte del dibujante se pinta
+igual, y lo que permite probarla sin trazar un solo contorno—.
+⚠️ **LA GEOMETRÍA NO SE MUEVE**: misma `ly`, mismo alto y el mismo `ly + 30 * esc` de retorno,
+porque de ese valor cuelgan **las dos líneas del descargo** que `_strBullsCanvas` dibuja debajo para
+la captura, y un canvas que se pasa **recorta en silencio**. La mutación 20 lo prueba.
+⚠️ **LO QUE NO CAMBIA, Y ES LO QUE IMPORTA**: sigue **sin graduar severidad** —los tramos son el
+valor medido en escalones de cinco puntos, no bandas clínicas; esta app borró a propósito la
+graduación del SGL y el único corte que aplica, el −16 % del marco HFA-ICOS, está definido para
+**speckle tracking**, que no es este método—, sigue **sin publicar atribución coronaria**, el **ápex
+(17) sigue gris** y el **número** de cada territorio no se movió. Y la **paleta de la MOTILIDAD
+sigue separada**: los dos diagramas pueden terminar en el mismo PDF y miden cosas distintas, con su
+control negativo en TC-1067. → **PR12-e**
+
+**TAREA 6 · EL VISOR NO CALCULA STRAIN POR SEGMENTO, Y LA PREMISA DE LA ORDEN ES FALSA.** Solo
+lectura; el informe entero está en `docs/INFORME_SGL_VISOR_PR12.md`. Cada ventana apical da **DOS**
+valores —las dos paredes del trazado, partidas en el **ápex**, que es la única partición que dos
+trazados libres admiten— y los 17 segmentos de la diana son una **forma de dibujo**: con las tres
+ventanas se pintan **16 de 17** segmentos con **6 mediciones** —los tres segmentos de una pared
+llevan el mismo número—, el **17 queda siempre gris** porque el método no lo mide, y el visor **ya
+combina** las tres ventanas y los dos paneles en un solo mapa, deduplicando por ventana+pared.
+⚠️ **Y EL PROPIO CÓDIGO YA TIENE MEDIDO POR QUÉ PARTIRLO EN MÁS TRAMOS NO DA MÁS INFORMACIÓN**:
+«dividir cada contorno en k partes iguales DE SU PROPIA longitud devuelve el global k veces»,
+dispersión exactamente cero. → **PR12-f**
+
+**COBERTURA: CUATRO casos nuevos, TC-1064 a TC-1067**, y **TC-201 adaptado**. **Cuatro de los cinco
+caen contra `2830208`** con el mismo archivo de casos y sólo el `index.html` distinto, **por
+condiciones o por su denominador declarado y NINGUNO por excepción**; **TC-1065 pasa en los dos a
+propósito**, declarado.
+**TC-201 quedó con su denominador y su condición de color INVERTIDOS** —antes exigía que las dos
+paletas **no** compartieran ningún color y hoy exige que el visor **saque** el suyo de ella—, con
+el **gris derivado del dueño** en vez de escrito a mano, con **cuatro** condiciones que pasaron de
+medir el **color** a medir el **número** —con ocho tramos de cinco puntos, dos valores distintos
+pueden caer en el mismo tramo y pintar igual, y el caso salía rojo sobre un diagrama que se portaba
+bien— y con una condición **NUEVA**: el color de cada pared es el **tramo** de su valor medido. Y
+la condición «más acortamiento = más oscuro» se **retiró**, porque con esta paleta la luminancia ya
+no es monótona en la magnitud.
+
+**21/21 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
+vivo **idéntico** antes y después (`b556f081`) y las **21 anclas verificadas ANTES** de correr. Al
+menos **dos por grupo** —las cuatro tareas que escriben código— y **cinco no revierten nada: la
+aplican DE MÁS**, porque las condiciones que las matan son **controles negativos** (que no se fije
+la tipografía, que no se le atribuya a una fuente un operador que no escribe, que el globo no lleve
+`title`, que la ayuda no lleve `id` y que no se cite una guía).
+⚠️ **EL PRIMER BARRIDO DEJÓ UNA SOBREVIVIENTE Y ERA UN HUECO REAL.** La mutación 10 pasaba porque
+la condición buscaba «> 0,42» en el texto del panel **entero**, y esa tabla tiene **DOS** filas con
+ese corte: cambiarle el operador a una seguía encontrándolo en la otra. Es el mismo agujero que
+PANT-22 y PR6 pagaron midiendo sobre el join de varias notas. Hoy se mide **dentro de cada fila** y
+se exige que **las dos** conserven su operador y su fuente; la mutación muere.
+
+**VERIFICACIÓN. LA SUITE COMPLETA NO SE CORRIÓ, POR ORDEN EXPRESA.** Se corrieron los **lotes de
+riesgo** de las zonas que la orden nombra —el copiado, los Cuadros, el visor, el SGL, el strain del
+visor, la geometría del VI, el criterio humoral y el censo de globos—: los **281** casos cuyo
+cuerpo toca alguna de ellas, seleccionados por el **patrón de su propio cuerpo** y no a ojo
+(`scripts/_lotes_pr12.sh`). Los demás **no se ejecutaron**, y se declara.
+**276/281 en SIETE lotes**, con los **281 ejecutados** y el md5 de `index.html` **idéntico** al
+abrir y al cerrar (`b556f081`).
+Los **CINCO** rojos son los **mismos cinco de la línea base**, medida **sobre `2830208` sin tocar
+nada** antes de escribir una línea —**272/277** allá—, o sea **preexistentes por construcción**:
+**TC-182**, **TC-857**, **TC-899** y **TC-1044** pasan **1/1 corridos aislados** —sensibilidad de
+lote—, y **TC-900 falla también aislado (0/1)**, así que es un rojo preexistente de HEAD y no de
+lote. **Ninguno es de esta tanda** y ninguno se tocó.
+⚠️ **Y LA PASADA DIO 275/281 CON UN SEXTO ROJO QUE ERA MÍO, consecuencia autorizada de la TAREA 1**:
+**TC-1053** —el caso de PR8 del copiado con formato— buscaba el literal `<b>` y `<u>` **sin
+atributos**, y la TAREA 1 les puso el tamaño en línea, así que contaba **cero** negritas sobre un
+HTML que sí las trae. Quedó **adaptado y más fuerte**: cuenta por **etiqueta**, con atributos o sin
+ellos, y busca el DOPPLER, el INFORME y el EN SUMA armando el fragmento con **`_cwB`**, el mismo
+dueño que los emite, así que ya no depende de cómo esté escrito el estilo. **Su lote, el 6, se
+rehizo entero con el archivo de casos final: 44/45**, con TC-1044 como único rojo y el md5 del
+árbol idéntico al abrir y al cerrar. No se rehizo la pasada completa y se declara con su motivo:
+**`index.html` no cambió** y lo único que se movió fue el archivo de casos — el mismo criterio con
+que la 3A, el prompt 4, P9, P10, PR6 y PR7 no rehicieron la suya.
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **Sin huérfanos
+nuevos.** **17 de 17** bloques de JS inline parsean. **CELULAR: 38 ALTA**, la línea base exacta,
+medido con la máquina sola y de a una medición por vez.
+⚠️ **LO QUE NO SE PUDO VERIFICAR, Y ES LO QUE EL MÉDICO TIENE QUE PROBAR: EL PEGADO REAL EN PAGES Y
+EN WORD.** Esta pasada no abre ninguno de los dos. Lo que se mide es el **contenido del
+portapapeles**; los cuatro primeros pasos de `docs/GUIA_PRUEBA_PR12.md` son exactamente eso.
+→ **PR12-a**
+
+⚠️ **TRES TRAMPAS DE ESTA CASA, PAGADAS OTRA VEZ.** (1) El **acento grave dentro de mis propios
+comentarios** en el cuerpo de un caso, por **trigésima séptima** tanda seguida: lo cazó
+`check_backticks.py`, que señala el archivo y la línea donde `node --check` sólo dice «missing )
+after argument list» apuntando al `caso(`. (2) **La barra invertida no sobrevive al template
+literal**: escribí `/\s/g` con UNA barra en dos expresiones regulares de TC-201 y el cuerpo
+evaluado quedaba con `/s/g`, o sea reemplazando las eses; el resto del archivo las escribe con DOS.
+(3) **Un acceso pelado se lleva el caso entero**: mi propia adaptación de TC-201 cayó por
+`ReferenceError` contra el árbol anterior **en vez de por condición**, que es la lección de TC-827,
+y se cerró con un resolver con guarda.
+⚠️ **Y UNA COSA DECLARADA DEL CONTEO CRUDO**: el chip «CRITERIO DE ECOSMART» pasa de **39 a 41**
+apariciones en el archivo, y **sólo UNA de las dos nuevas se dibuja**: la otra está dentro del
+**comentario** que declara la decisión. Ningún caso cuenta esos chips globalmente —los cuatro que
+los cuentan lo hacen **acotados** a una ficha—, así que no mueve nada.
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por vigésima sexta tanda
+seguida, y se declara en vez de dejarlo pasar: la orden no la pedía y el presupuesto se fue en las
+seis tareas y su verificación. Lo que hay que mudar hoy es todo lo anterior a **PR9**.
+
+Lo declarado, en **PR12-a** a **PR12-g**; el mapa, en `docs/mapa/pr12-copiado-rwt-paleta.md`; las
+fichas, en `docs/mapa/tests-fichas-1064.md`; el informe de la TAREA 6, en
+`docs/INFORME_SGL_VISOR_PR12.md`; la guía manual, en `docs/GUIA_PRUEBA_PR12.md` (14 pasos, los
+cuatro primeros sólo verificables a mano en Pages y Word); el barrido, en `scripts/_mut_pr12.py`;
+el corredor de lotes, en `scripts/_lotes_pr12.sh`; el insertador de casos con su guardián, en
+`scripts/_casos_pr12.py`.
 
 **La tanda PR9 (2026-11-24/25) — la tabla de cálculos, el PDF «Tipo Word», los recuadros del PDF
 y el ingreso del SGL.** CUATRO tareas y SIETE commits —contados con
