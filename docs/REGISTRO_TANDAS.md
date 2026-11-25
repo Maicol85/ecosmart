@@ -6,7 +6,9 @@ es a la vez `origin/main`. **Sin push.**
 **Commits:** `a4bda4f` (TAREA 1: la tabla en una línea por celda) · `f251c47` (TAREAS 2 y 3: el
 cuerpo único del PDF «Tipo Word» y el recuadro que pisaba) · `47c0faf` (TAREA 4: el valor
 imposible del SGL, el cartel de FEVI/SGL y el redondeo) · `a230baf` (cobertura: TC-1058 a
-TC-1063, el insertador y el barrido de 26 mutaciones) · `a0488f6` (el sello y la documentación).
+TC-1063, el insertador y el barrido de 26 mutaciones) · `a0488f6` (el sello y la documentación) · `edbc421` (la verificación: las dos mutaciones que
+sobrevivieron, los dieciséis lotes y el corredor que dejaba Chrome huérfanos) · el de cierre,
+que ajusta el conteo de commits y se cuenta a sí mismo. **SIETE en total.**
 
 ⚠️ **LAS TAREAS 2 Y 3 SALIERON EN UN SOLO COMMIT**, y se declara: las dos estaban ya aplicadas
 sobre el mismo archivo cuando se midieron juntas, y partirlas habría exigido rehacer el A/B del

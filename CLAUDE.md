@@ -1938,7 +1938,9 @@ pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
 
 **La tanda PR9 (2026-11-24/25) — la tabla de cálculos, el PDF «Tipo Word», los recuadros del PDF
-y el ingreso del SGL.** CUATRO tareas y CINCO commits. Sello **`v20261124-2316`**, md5
+y el ingreso del SGL.** CUATRO tareas y SIETE commits —contados con
+`git rev-list --count origin/main..main` AL CERRAR, y el commit que escribe este número entra
+en la cuenta—. Sello **`v20261124-2316`**, md5
 **`a5ce3ab2`**, **196.277** líneas. Línea base **`1932582`**, el cierre de PR8 y a la vez
 `origin/main`. **Sin push: lo corre Maicol.**
 
