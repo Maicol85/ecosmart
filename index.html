@@ -32666,6 +32666,46 @@ function strainTramoDe(n){
    valor POSITIVO, que es justo lo que un segmento discinetico necesita. Aca: sin signo se toma
    NEGATIVO -igual que el global- y con un mas explicito se respeta el positivo.
    Acepta coma o punto, el menos comun y el tipografico, y redondea a un decimal. */
+/* == PR9-4.1 · LO QUE UNA CELDA ACEPTA ======================================================
+   CRITERIO DE LA APLICACION, sin fuente: como maximo DOS cifras enteras, con signo y un decimal
+   opcional. De ahi sale que un 1718 no se pueda escribir ni pegar.
+   /!\ EL -1718 QUE EL MEDICO VIO SE REPRODUJO, y entraba por DOS puertas a la vez. La casilla
+   es type=text SIN maxlength, SIN inputmode y SIN pattern, asi que acepta cualquier cosa; y al
+   REABRIR un segmento la casilla NACE con el valor viejo escrito y seleccionado -inp.select()-,
+   de modo que tocarla para poner el cursor pierde la seleccion y lo que se escribe se APENDE:
+   -17 mas 18 da -1718. Medido en Chrome con el gesto real. Y strainTramoDe acota a [1,8], asi
+   que el color salia violeta y no delataba nada: el bull's eye se veia normal con un -1718
+   adentro, y los promedios de la tabla daban -111,8 %.
+   Se cierra por TRES lados: el filtro en vivo de la casilla -que no deja llegar a tres cifras,
+   ni escribiendo ni pegando-, la validacion al confirmar, y la limpieza al RESTAURAR un estudio
+   guardado que ya traiga un valor imposible. */
+const STRAIN_ENT_MAX = 2;
+/* Lo que se ACEPTA, ya normalizado: signo opcional, una o dos cifras enteras y hasta dos
+   decimales -el segundo se redondea al primero, que es lo que strainParseNum ya hacia; la orden
+   habla de «un decimal opcional» y rechazar 12,55 seria una restriccion que nadie pidio-. */
+const STRAIN_RE_OK = /^[+-]?[0-9]{1,2}([.][0-9]{1,2})?$/;
+/* Lo que puede llegar a serlo mientras se escribe, para el filtro en vivo. */
+const STRAIN_RE_PARCIAL = /^[+-]?[0-9]{0,2}([.][0-9]{0,2})?$/;
+/* Normaliza los tres guiones y la coma, que es lo primero que hace strainParseNum. */
+function strainNormTxt(txt){
+  return String(txt === null || txt === undefined ? '' : txt).trim()
+    .replace(/\u2212/g, '-').replace(/\u2013/g, '-').replace(/\u2014/g, '-')
+    .replace(/,/g, '.').replace(/\s/g, '');
+}
+/* El TEXTO entra en la regla? La cadena vacia SI: es como se borra un segmento. */
+function strainTxtValido(txt){
+  const t = strainNormTxt(txt);
+  return t === '' || STRAIN_RE_OK.test(t);
+}
+/* Y el NUMERO? Lo usa la restauracion, donde lo que llega de disco ya es un numero. */
+function strainNumValido(n){
+  const v = Number(n);
+  return isFinite(v) && Math.abs(v) < Math.pow(10, STRAIN_ENT_MAX);
+}
+const STRAIN_AVISO_REGLA = 'Cada segmento admite hasta dos cifras enteras, con signo y un decimal: '
+  + 'ese valor no se guardó';
+const STRAIN_AVISO_VIEJO = 'Un segmento traía un valor imposible (más de dos cifras enteras) y '
+  + 'quedó como «Sin dato»: volvé a cargarlo';
 function strainParseNum(txt){
   let t = String(txt === null || txt === undefined ? '' : txt).trim();
   if (!t) return null;
@@ -32683,6 +32723,9 @@ window.STRAIN_MIGRA = STRAIN_MIGRA; window.STRAIN_VER = STRAIN_VER;
 window.STRAIN_DEF = STRAIN_DEF;
 window.STRAIN_N_TRAMOS = STRAIN_N_TRAMOS;
 window.strainTramoDe = strainTramoDe; window.strainParseNum = strainParseNum;
+window.strainTxtValido = strainTxtValido; window.strainNumValido = strainNumValido;
+window.strainNormTxt = strainNormTxt; window.STRAIN_ENT_MAX = STRAIN_ENT_MAX;
+window.STRAIN_AVISO_REGLA = STRAIN_AVISO_REGLA; window.STRAIN_AVISO_VIEJO = STRAIN_AVISO_VIEJO;
 
 window.SGL_NORMAL_MAX = SGL_NORMAL_MAX; window.SGL_ANORMAL_MIN = SGL_ANORMAL_MIN;
 window.SGL_CATS = SGL_CATS; window.sglClasificar = sglClasificar;
@@ -74150,7 +74193,18 @@ function ESPEJOS_VIVOS() {
              Cuelga del debounce de 220 ms que este registro ya tiene, SIN temporizador nuevo.
              SOLO LEE, asi que no cae en la exclusion que este registro declara para los
              pintores que escriben campos del estudio. */
-          'cm3dEstudioSync'];
+          'cm3dEstudioSync',
+          /* PR9-4.2: la tabla de calculos de strain. La celda FEVI/SGL lee la FEVI de la
+             aplicacion y el campo de SGL global, y de esos dos cuelga su FIRMA: cambiar
+             cualquiera de los dos tiene que BORRAR el resultado ya calculado -lo hace _scPurgar,
+             que corre dentro de scRender-. Hasta PR8 scRender solo se llamaba al escribir un
+             SEGMENTO, asi que tocar la FEVI dejaba en pantalla un cociente calculado con la
+             FEVI anterior. Entra por el debounce de 220 ms que este registro ya tiene, sin
+             temporizador nuevo.
+             CUMPLE LA REGLA DE ESTA LISTA: SOLO PINTA. No escribe un solo campo del estudio
+             -sus resultados viven en _scRes, en memoria, y no van ni al guardado ni al Excel- y
+             no toca ninguna superficie firmada. */
+          'scRender'];
 }
 function _espejosBarrerTodos() {
   ESPEJOS_VIVOS().forEach(function (fn) {
@@ -141067,11 +141121,20 @@ function _restaurarStrain(campos){
        Un par que no cierra -un disco editado a mano, una migracion a medias- dejaria el color
        diciendo una cosa y el numero otra EN EL PAPEL FIRMADO, que es lo que `strainSet` existe
        para impedir. Ante la duda se conserva el COLOR, que es lo que el medico vio. */
+    /* PR9-4.1: UN VALOR GUARDADO QUE NO ENTRA EN LA REGLA DE LA CELDA SE TRATA COMO «Sin dato».
+       El estudio del medico ya tiene un -1718 escrito en disco, asi que reponerlo tal cual
+       volveria a contaminar los promedios de la tabla. El segmento queda en GRIS -tramo 0, que
+       es Sin dato- para que se vea que hay que volver a cargarlo, y se avisa UNA sola vez por
+       restauracion aunque sean varios. No se borra nada mas: los demas segmentos vuelven
+       exactamente como estaban. */
+    let _malos = 0;
     if (nums && typeof nums === 'object') Object.keys(nums).forEach(k=>{
       const v = Number(nums[k]);
       if (!isFinite(v)) return;
+      if (!strainNumValido(v)) { _malos++; strainEstado[k] = 0; delete strainNum[k]; return; }
       if ((strainEstado[k] || 0) === strainTramoDe(v)) strainNum[k] = Math.round(v * 10) / 10;
     });
+    if (_malos && typeof toast === 'function') toast(STRAIN_AVISO_VIEJO + '.');
   }
   if (typeof strainAplicarTodos === 'function') strainAplicarTodos();
 }
@@ -143658,6 +143721,13 @@ function strainSet(id, idx, num){
    el violeta de arranque. Mandarlo a gris convertia un borrado en una afirmacion nueva -«de este
    segmento no hay dato»- que nadie hizo. SIN DATO se elige ciclando, con el boton apagado. */
 function strainEscribir(id, txt){
+  /* PR9-4.1: lo que no entra en la regla de la celda NO SE GUARDA y se avisa. Va antes de
+     parsear: strainParseNum acepta cualquier magnitud -es el que dejaba pasar el -1718- y
+     cambiarlo a el romperia la restauracion, que es su otro llamador. */
+  if (!strainTxtValido(txt)) {
+    if (typeof toast === 'function') toast(STRAIN_AVISO_REGLA + '.');
+    return null;
+  }
   const n = strainParseNum(txt);
   if (n === null) { strainSet(id, STRAIN_DEF, null); return null; }
   strainSet(id, strainTramoDe(n), n);
@@ -143770,8 +143840,14 @@ function strainCajaAbrir(id, el){
   const inp = document.createElement('input');
   inp.type = 'text';
   inp.setAttribute('data-strain-caja', id);
-  inp.setAttribute('aria-label', 'Valor de strain de este segmento, de -20 a +20');
+  inp.setAttribute('aria-label', 'Valor de strain de este segmento, de -20 a +20: '
+    + 'hasta dos cifras enteras, con signo y un decimal');
   inp.setAttribute('autocomplete', 'off');
+  /* PR9-4.1: el tope duro de caracteres -+99.99 son seis- y el teclado numerico del celular.
+     maxlength NO alcanza por si solo: un pegado de «-1718» tiene cinco caracteres y entraria
+     igual, por eso ademas va el filtro en vivo de abajo. */
+  inp.setAttribute('maxlength', '6');
+  inp.setAttribute('inputmode', 'decimal');
   const v = strainNum[id];
   inp.value = (v === null || v === undefined || !isFinite(v)) ? '' : String(v);
   /* 72 x 44: el piso tactil de esta casa es 44 px y la casilla se toca con el dedo en tablet. */
@@ -143780,6 +143856,17 @@ function strainCajaAbrir(id, el){
     + 'background:var(--surface);color:var(--text);z-index:40;box-sizing:border-box;';
   inp.style.left = Math.round(r.left - rc.left + (isFinite(px) ? px : VB / 2) * k - 36) + 'px';
   inp.style.top  = Math.round(r.top  - rc.top  + (isFinite(py) ? py : VB / 2) * k - 22) + 'px';
+  /* EL FILTRO EN VIVO. Cubre el teclado Y el pegado -el evento input se dispara en los dos-, y
+     revierte al ultimo valor que podia llegar a ser valido en vez de borrar lo escrito: asi un
+     tercer digito simplemente no entra y el medico ve que no entro. */
+  let _ult = inp.value;
+  inp.addEventListener('input', function () {
+    if (STRAIN_RE_PARCIAL.test(strainNormTxt(inp.value))) { _ult = inp.value; return; }
+    const pos = inp.selectionStart;
+    inp.value = _ult;
+    try { inp.setSelectionRange(Math.max(0, (pos || 1) - 1), Math.max(0, (pos || 1) - 1)); } catch (e) {}
+    if (typeof toast === 'function') toast(STRAIN_AVISO_REGLA + '.');
+  });
   inp.addEventListener('keydown', function (ev) {
     if (ev.key === 'Enter') { ev.preventDefault(); strainCajaCerrar(true); }
     /* Escape se corta aca: el oyente generico de accesibilidad busca el dialogo visible y le
@@ -143992,10 +144079,30 @@ function scFeviSobreSgl(){
   if (!(d > 0)) return null;
   return f / d;
 }
+/* == PR9-4.4 · EL REDONDEO, SIMETRICO Y EN UN SOLO LUGAR ====================================
+   /!\ EL DEFECTO EXISTIA Y ESTA MEDIDO. Math.round de JavaScript redondea el medio hacia +oo,
+   no alejandose del cero: Math.round(-15.75 * 10) / 10 da -15,7 y Math.round(15.75 * 10) / 10
+   da 15,8. O sea que el mismo medio se redondeaba hacia ARRIBA en los dos signos, y como el
+   strain es casi siempre negativo el efecto practico era redondear SIEMPRE hacia cero. Medido
+   tambien en dos decimales: -0,125 daba -0,12 y +0,125 daba 0,13.
+   El caso que el medico vio: los cuatro apicales -16, -13, -17 y -17 promedian exactamente
+   -15,75, y la tabla publicaba -15,7 en vez de -15,8.
+   La regla es la que la orden fija: el medio se redondea ALEJANDOSE DEL CERO, igual para
+   positivos y negativos. Se implementa redondeando el VALOR ABSOLUTO y reponiendo el signo, que
+   es exactamente lo que strainParseNum ya hacia para el valor de un segmento -por eso ese
+   camino nunca tuvo el defecto-.
+   NINGUNA FORMULA CAMBIA: lo unico que se mueve es el redondeo final. */
+function _scRed(x, dec){
+  const v = Number(x);
+  if (!isFinite(v)) return NaN;
+  const f = Math.pow(10, dec);
+  const r = Math.round(Math.abs(v) * f) / f;
+  return v < 0 ? -r : r;
+}
 /* El formato: un decimal para los promedios, dos para las razones, y COMA decimal. */
 function _scN(x, dec){
   if (x === null || x === undefined || !isFinite(x)) return '';
-  return (Math.round(x * Math.pow(10, dec)) / Math.pow(10, dec)).toFixed(dec).replace('.', ',');
+  return _scRed(x, dec).toFixed(dec).replace('.', ',');
 }
 /* ══ LAS DOCE CELDAS, EN UN SOLO LUGAR ════════════════════════════════════════════════════════
    Cuatro columnas por tres filas. Una celda en null es un hueco: la orden deja vacias la tercera
@@ -144032,11 +144139,17 @@ function _scIdxDe(c){
 function scMotivo(c){
   if (!c) return '';
   if (c.tipo === 'fsgl') {
+    /* PR9-4.2: el cartel dice de DONDE sale cada mitad. La FEVI se toma de la aplicacion -el
+       mismo campo que publica el informe- y el SGL global del campo de SGL, que el medico puede
+       llenar a mano o con «Usar como SGL global». Con la FEVI cargada y el SGL vacio el texto
+       nombra SOLO el SGL global y dice con que FEVI se calcularia: asi el medico no sale a
+       buscar una FEVI que ya esta puesta. */
     const f = _scFevi(), g = _scSglCampo();
-    if (f === null && g === null) return 'Falta: FEVI y SGL global';
-    if (f === null) return 'Falta: FEVI';
-    if (g === null) return 'Falta: SGL global';
-    if (!(Math.abs(g) > 0)) return 'Falta: un SGL global distinto de cero';
+    const conFevi = (f === null) ? '' : ' FEVI tomada de la app: ' + _scN(f, 0) + ' %.';
+    if (f === null && g === null) return 'Falta: FEVI en la app y SGL global';
+    if (f === null) return 'Falta: FEVI en la app';
+    if (g === null) return 'Falta: SGL global.' + conFevi;
+    if (!(Math.abs(g) > 0)) return 'Falta: un SGL global distinto de cero.' + conFevi;
     return '';
   }
   return _scFaltanTxt(_scIdxDe(c));
@@ -144100,7 +144213,10 @@ function scUsarComoSGL(k){
   if (!c || !c.usar) return;
   const n = scValorCrudo(c);
   if (n === null) return;
-  const val = String(Math.round(n * 10) / 10);
+  /* PR9-4.4: el MISMO redondeo que publica la celda, para que lo que se escribe en el campo y
+     lo que el medico leyo en la tabla sean el mismo numero. Con Math.round pelado, un promedio
+     de -15,75 se mostraba -15,8 y escribia -15,7. */
+  const val = String(_scRed(n, 1));
   const el = document.getElementById('sgl_gls') || document.getElementById('sgl');
   if (!el) return;
   const hay = String(el.value == null ? '' : el.value).trim() !== '';
@@ -144260,6 +144376,7 @@ window.scRender = scRender;
 window.scPromedio = scPromedio; window.scApicalSparing = scApicalSparing;
 window.scFeviSobreSgl = scFeviSobreSgl; window.scMotivo = scMotivo;
 window.scValor = scValor; window.SC_GRUPOS = SC_GRUPOS; window.SC_COLS = SC_COLS;
+window._scRed = _scRed; window._scN = _scN;
 window._scTerr = _scTerr;
 window.strainNumTxt = strainNumTxt; window.strainColor = strainColor;
 window.strainNumTxtPantalla = strainNumTxtPantalla; window.strainIdx = strainIdx;
