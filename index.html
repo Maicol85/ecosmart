@@ -27049,7 +27049,18 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <div class="hfa-col">
         <div class="hfa-col-h">Humoral</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_troponina" onchange="hfaicosToggle('hfaicos_troponina')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Troponina basal elevada</span><span data-hfa-pts-de="hfaicos_troponina" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_bnp" onchange="hfaicosToggle('hfaicos_bnp')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">BNP / NT-proBNP basal elevado</span><span data-hfa-pts-de="hfaicos_bnp" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_bnp" onchange="hfaicosToggle('hfaicos_bnp')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">BNP / NT-proBNP basal elevado<!-- PR12-3 - EL RANGO COMO AYUDA, NO COMO CRITERIO DE NADIE. Decision de Maicol del
+             25/11/2026: el rango de NT-proBNP de esta aplicacion es 375-600 pg/mL. Va como texto
+             de AYUDA de la casilla y rotulado CRITERIO DE ECOSMART, porque ninguna fuente de la
+             biblioteca respalda ese tope: la que trae un rango publica otro, y la orden de esta
+             tanda prohibe expresamente mezclarlos o citar una guia para el 600.
+             /!\ NO ES UN CAMPO: es un <span> sin `id`. El censo del estudio y el Excel recorren
+             `input[id]` y `select[id]`, asi que un control con id entraria a las 457 columnas por
+             existir y «Nuevo estudio» le escribiria su valor guardado.
+             /!\ Y NO LLEVA `title`: la regla de TC-500 es que la explicacion vive en la tarjeta
+             que abre el globo, y un title encima pone un segundo cartel compitiendo con ella.
+             /!\ NO TOCA EL PUNTAJE: el peso de esta casilla lo decide `hfaicosFactores` por su
+             `pts`, que no se movio. --><span style="display:block;margin-top:2px;font-size:10px;font-weight:400;color:var(--text2);line-height:1.4;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;padding:0 4px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>NT-proBNP 375&ndash;600 pg/mL</span></span><span data-hfa-pts-de="hfaicos_bnp" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
       </div>
       <div class="hfa-col hfa-col-farm">
         <div class="hfa-col-h">Fármaco</div>
@@ -32619,8 +32630,12 @@ try { sglCortesPintar(); } catch (e) {}
    numero se publica tal cual. No se bloquea el ingreso.
 
    /!\ NO SE TOCA LA PALETA DE LA MOTILIDAD (CONTR_MOTILIDAD): es otro bull's eye, de otro
-   modulo, y los dos pueden terminar en el MISMO PDF. Tampoco el mapa de territorios del visor,
-   que usa una rampa de intensidad verde azulada por la razon que su propio comentario explica. */
+   modulo, y los dos pueden terminar en el MISMO PDF.
+   /!\ EL MAPA DE TERRITORIOS DEL VISOR SI USA ESTA PALETA DESDE PR12 (25/11/2026), por decision
+   de Maicol: antes tenia una rampa de intensidad propia y hoy lee estos mismos ocho tramos, este
+   mismo gris y `strainTramoDe`. Los dos diagramas miden la MISMA magnitud -el acortamiento
+   longitudinal-, asi que compartir la escala es lo que los hace comparables en el mismo PDF; con
+   la motilidad no pasa eso, y por eso esa separacion sigue en pie. */
 const STRAIN_PAL = Object.freeze([
   Object.freeze({ color:'#D4D4D0', rango:'Sin dato',  txt:'#2B2B2B' }),
   Object.freeze({ color:'#6A1B9A', rango:'-20 a -15', txt:'#FFFFFF' }),
@@ -82178,6 +82193,26 @@ window._cuadCopiar = _cuadCopiar;
    cuadTextoSecs() es el unico dueno: de el salen el texto llano, este HTML y el cuerpo del PDF
    Tipo Word. Con tres armadores, los tres podrian decir cosas distintas del mismo estudio.
    El escape es obligatorio: los valores traen los nombres y las notas que el medico escribio. */
+/* == PR12-1 · EL TAMANIO DE LETRA VA EN LINEA, EN CADA BLOQUE ===============================
+   Pages y Word le asignan su propio tamanio de parrafo a TODO bloque que no declare uno, asi que
+   el font-size del DIV envoltorio no alcanza: el texto pegado salia en 14 y tenia que salir en
+   11. El tamanio va ahora en CADA bloque -el envoltorio, los parrafos, los titulos, la negrita,
+   el subrayado, la lista y sus items-, que es la unica forma de que el pegado lo respete.
+   UN SOLO DUENIO: con el valor escrito en siete lugares, el dia que cambie uno queda viejo.
+   /!\ Y NO SE FIJA LA TIPOGRAFIA: hasta hoy el envoltorio declaraba «Calibri,Arial,sans-serif»,
+   y la orden de esta tanda dice que Pages y Word usen la suya. Lo UNICO que este estilo decide es
+   el tamanio; el `color:#000` se conserva, que es lo que evita que el texto se pegue en el color
+   del tema de la app.
+   /!\ EL TEXTO LLANO NO CAMBIA NI UN BYTE: es la OTRA representacion del mismo copiado, la red
+   para pegar donde no se acepta formato, y ahi lo que se pega es lo que el medico escribio. */
+const CW_PT = '11pt';
+const CW_FS = 'font-size:' + CW_PT + ';';
+/* Negrita y subrayado CON SU PROPIO tamanio: Word le da a <b> y a <u> el tamanio de su estilo de
+   caracter y no el del parrafo que los contiene, asi que un titulo sin esto se pega mas grande. */
+function _cwB(t, sub) {
+  const ab = '<b style="' + CW_FS + '">';
+  return sub ? (ab + '<u style="' + CW_FS + '">' + t + '</u></b>') : (ab + t + '</b>');
+}
 function _cwEscHtml(t) {
   return String(t == null ? '' : t)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -82186,16 +82221,16 @@ function _cwEscHtml(t) {
    separado por una linea entera. Las lineas EN BLANCO del texto son parrafos con un espacio
    duro, que es lo que Word conserva al pegar. */
 function _cwP(t, estilo) {
-  return '<p style="margin:0;' + (estilo || '') + '">' + t + '</p>';
+  return '<p style="margin:0;' + CW_FS + (estilo || '') + '">' + t + '</p>';
 }
 function cuadTextoHTML() {
   const secs = cuadTextoSecs();
   if (!secs.length) return '';
-  const p = ['<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#000;">'];
+  const p = ['<div style="' + CW_FS + 'color:#000;">'];
   secs.forEach(function (s, i) {
     /* DOPPLER en negrita Y SUBRAYADO; las demas secciones solo en negrita. */
     const t = _cwEscHtml(s.tit);
-    p.push(_cwP(s.tit === CW_DOPPLER_TIT ? ('<b><u>' + t + '</u></b>') : ('<b>' + t + '</b>')));
+    p.push(_cwP(_cwB(t, s.tit === CW_DOPPLER_TIT)));
     (s.lineas || []).forEach(function (l) {
       p.push(l === '' ? _cwP('&nbsp;') : _cwP(_cwEscHtml(_cwCap(l))));
     });
@@ -82246,19 +82281,19 @@ window.cuadSumaItems = cuadSumaItems;
 function cuadInformeHTML() {
   const q = cuadInformePartes();
   if (!q.inf && !q.suma) return '';
-  const p = ['<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#000;">'];
+  const p = ['<div style="' + CW_FS + 'color:#000;">'];
   if (q.inf) {
-    p.push(_cwP('<b><u>INFORME</u></b>'));
+    p.push(_cwP(_cwB('INFORME', true)));
     String(q.inf).split(/\r?\n/).forEach(function (l) {
       p.push(l.trim() === '' ? _cwP('&nbsp;') : _cwP(_cwEscHtml(l)));
     });
   }
   if (q.suma) {
     if (q.inf) p.push(_cwP('&nbsp;'));
-    p.push(_cwP('<b><u>EN SUMA:</u></b>'));
-    p.push('<ul style="margin:0 0 0 18px;padding:0;">');
+    p.push(_cwP(_cwB('EN SUMA:', true)));
+    p.push('<ul style="margin:0 0 0 18px;padding:0;' + CW_FS + '">');
     cuadSumaItems(q.suma).forEach(function (l) {
-      p.push('<li style="margin:0;">' + _cwEscHtml(l) + '</li>');
+      p.push('<li style="margin:0;' + CW_FS + '">' + _cwEscHtml(l) + '</li>');
     });
     p.push('</ul>');
   }
@@ -153295,12 +153330,17 @@ function _strCtrlEn(p) {
    en uno y «severamente anormal» en el otro. Es el defecto de las dos escalas incompatibles
    que este archivo ya documenta tres veces, sobre un documento firmado.
 
-   POR ESO LA ESCALA ES DE INTENSIDAD Y NO DE BANDAS: un solo tono —teal, que no existe en la
-   paleta GE— cuya oscuridad crece con la MAGNITUD del acortamiento, más el número impreso en
-   cada territorio. No nombra severidad y no se ancla a ningún umbral. Decisión de Maicol
-   (2026-09-20), y es además lo que ya hace `_labSglResumen`: esta app **borró a propósito** la
-   graduación del SGL, y el único corte que aplica —el −16 % del HFA-ICOS— está definido para
-   speckle tracking, que no es este método.
+   LA ESCALA ES LA MISMA QUE LA DEL BULL'S EYE DE LA PESTAÑA SGL (PR12, 25/11/2026), y esto
+   REVIERTE la decisión del 2026-09-20 que este módulo tenía escrita: hasta entonces era una rampa
+   de INTENSIDAD de un solo tono —teal— cuya oscuridad crecía con la MAGNITUD del acortamiento.
+   Hoy son los OCHO TRAMOS de cinco puntos entre −20 y +20, de violeta a azul, más el gris de SIN
+   DATO, los tres leídos de `STRAIN_PAL` y de `strainTramoDe`: no se copia un color ni un corte,
+   así que el día que la paleta cambie los dos diagramas se repintan juntos. Decisión de Maicol
+   (2026-11-25). El número impreso en cada territorio no se toca.
+   ⚠️ LO QUE NO CAMBIA, Y ES LO QUE IMPORTA: esto sigue SIN GRADUAR SEVERIDAD. Los tramos son el
+   valor medido repartido en escalones de cinco puntos, no bandas clínicas, y esta app **borró a
+   propósito** la graduación del SGL; el único corte que aplica —el −16 % del HFA-ICOS— está
+   definido para speckle tracking, que no es este método. La leyenda lo sigue diciendo.
 
    TAMPOCO PUBLICA ATRIBUCIÓN CORONARIA, y la forma de 17 segmentos lo hace MÁS importante de
    declarar, no menos: la diana se ve igual que la del informe —que sí trae territorio por
@@ -153373,14 +153413,22 @@ const _STR_SEG_FUENTE = {
 const _STR_SEG_ROTULO = { Anterior:7, Anterolateral:12, Inferolateral:11,
                           Inferior:10, Inferoseptal:9, Anteroseptal:8 };
 
-const _STR_GRIS = '#9E9E9E';
+/* ⚠️ ACÁ VIVÍAN `_STR_GRIS` —el gris propio, `#9E9E9E`— y `_strTono`, la rampa de intensidad
+   teal. Las dos salieron en PR12: el gris y el color de un territorio son ahora los de
+   `STRAIN_PAL`, la misma paleta del bull's eye de la pestaña SGL.
 
-/* Intensidad por MAGNITUD del acortamiento. 0 % → casi blanco, 30 % o más → teal oscuro.
-   El 30 no es un umbral clínico: es el tope de la rampa, y el número va impreso al lado. */
-function _strTono(pct) {
-  const m = Math.max(0, Math.min(30, Math.abs(pct))) / 30;
-  const l = Math.round(238 - 200 * m), v = Math.round(250 - 160 * m), z = Math.round(247 - 160 * m);
-  return 'rgb(' + Math.round(l * 0.35) + ',' + v + ',' + z + ')';
+   SE LEE CON GUARDA Y EN TIEMPO DE LLAMADA, no con un `const` que copie el color: es la receta
+   de `_CT` —el recoloreado de los patrones de ejemplo— y vale por si este bloque corriera antes
+   de que la paleta exista. Con una copia, el día que un tramo cambie de color este diagrama
+   seguiría mostrando el anterior al lado de un bull's eye ya repintado. */
+function _strPalColor(i) {
+  return (typeof STRAIN_PAL !== 'undefined' && STRAIN_PAL[i]) ? STRAIN_PAL[i].color : '#D4D4D0';
+}
+function _strGris() { return _strPalColor(0); }
+/* El color de un territorio: su TRAMO lo decide `strainTramoDe`, el mismo dueño que el bull's eye
+   de la pestaña, que acota los dos extremos y manda el borde al tramo de su derecha. */
+function _strColorPct(pct) {
+  return _strPalColor((typeof strainTramoDe === 'function') ? strainTramoDe(pct) : 0);
 }
 
 /* Dibuja el diagrama completo en un contexto 2D. `S` es el tamaño del lado. */
@@ -153430,7 +153478,7 @@ function _strBullsDibujar(cx2, S, R, conTitulo) {
   _STR_ANILLOS.forEach(SG => {
     const v = deSegmento(SG.seg);
     sector(r * SG.r0, r * SG.r1, SG.a[0], SG.a[1]);
-    cx2.fillStyle = v ? _strTono(v.pct) : _STR_GRIS;
+    cx2.fillStyle = v ? _strColorPct(v.pct) : _strGris();
     cx2.fill();
     cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = 1.2 * esc; cx2.stroke();
   });
@@ -153480,27 +153528,36 @@ function _strBullsDibujar(cx2, S, R, conTitulo) {
     cx2.fillText('sin datos', cx, cy + r + 15 * esc);
   }
 
-  /* Leyenda: rampa de intensidad. Dice qué codifica el color —magnitud— y qué NO —severidad—,
-     porque una rampa de color al lado de un número se lee como una escala clínica si nadie
-     aclara que no lo es. */
+  /* Leyenda: LOS OCHO TRAMOS de `STRAIN_PAL` con sus ocho marcas de `STRAIN_MARCAS` y el
+     cuadrado de SIN DATO — la MISMA referencia que `strainLeyendaHTML` pinta en la pestaña SGL,
+     leída del mismo dueño. Sigue diciendo qué NO codifica el color: una escala de colores al lado
+     de un número se lee como una graduación clínica si nadie aclara que no lo es.
+     ⚠️ LA GEOMETRÍA NO SE MUEVE —misma `ly`, mismo alto, mismas alturas de rótulo y el mismo
+     `ly + 30 * esc` de retorno—, porque de ese valor cuelgan las dos líneas del descargo que
+     `_strBullsCanvas` dibuja debajo, y un canvas que se pasa recorta EN SILENCIO. */
   const ly = cy + r + 34 * esc, lw = S * 0.46, lx = cx - lw / 2;
-  for (let i = 0; i <= 40; i++) {
-    cx2.fillStyle = _strTono(30 * i / 40);
-    cx2.fillRect(lx + lw * i / 41, ly, lw / 40 + 1, 9 * esc);
+  const nTr = (typeof STRAIN_N_TRAMOS !== 'undefined') ? STRAIN_N_TRAMOS : 8;
+  const bw = lw / nTr;
+  for (let i = 1; i <= nTr; i++) {
+    cx2.fillStyle = _strPalColor(i);
+    cx2.fillRect(lx + bw * (i - 1), ly, bw + 0.6, 9 * esc);
   }
   cx2.strokeStyle = '#cfd6e6'; cx2.lineWidth = 0.8 * esc;
   cx2.strokeRect(lx, ly, lw, 9 * esc);
-  cx2.fillStyle = _STR_GRIS;
+  cx2.fillStyle = _strGris();
   cx2.fillRect(lx + lw + 8 * esc, ly, 14 * esc, 9 * esc);
   cx2.strokeRect(lx + lw + 8 * esc, ly, 14 * esc, 9 * esc);
+  /* Las ocho marcas son el borde IZQUIERDO de cada tramo, igual que en la pestaña. */
   cx2.fillStyle = '#4b5563';
-  cx2.font = Math.round(8 * esc) + 'px system-ui, sans-serif';
-  cx2.textAlign = 'left';  cx2.fillText('0 %', lx, ly + 19 * esc);
-  cx2.textAlign = 'right'; cx2.fillText('−30 %', lx + lw, ly + 19 * esc);
-  cx2.textAlign = 'left';  cx2.fillText('sin datos', lx + lw + 8 * esc, ly + 19 * esc);
+  cx2.font = Math.round(7 * esc) + 'px system-ui, sans-serif';
+  cx2.textAlign = 'left';
+  ((typeof STRAIN_MARCAS !== 'undefined') ? STRAIN_MARCAS : []).forEach(function (v, i) {
+    cx2.fillText((v > 0 ? '+' : '') + v, lx + bw * i, ly + 19 * esc);
+  });
+  cx2.fillText('sin datos', lx + lw + 8 * esc, ly + 19 * esc);
   cx2.textAlign = 'center';
   cx2.font = Math.round(8 * esc) + 'px system-ui, sans-serif';
-  cx2.fillText('la intensidad es la MAGNITUD del acortamiento, no una graduación de severidad',
+  cx2.fillText('la misma referencia de colores que el bull\u2019s eye de la pestaña SGL; no gradúa severidad',
                cx, ly + 30 * esc);
   return { ly: ly + 30 * esc, esc: esc };
 }
@@ -187349,8 +187406,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261124-2316';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795572990687;                 /* eco-build-ms */
+const ECO_BUILD    = '20261125-0132';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795581121901;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -187436,7 +187493,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261124-2316</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261125-0132</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
