@@ -27049,18 +27049,24 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
       <div class="hfa-col">
         <div class="hfa-col-h">Humoral</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_troponina" onchange="hfaicosToggle('hfaicos_troponina')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">Troponina basal elevada</span><span data-hfa-pts-de="hfaicos_troponina" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_bnp" onchange="hfaicosToggle('hfaicos_bnp')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">BNP / NT-proBNP basal elevado<!-- PR12-3 - EL RANGO COMO AYUDA, NO COMO CRITERIO DE NADIE. Decision de Maicol del
-             25/11/2026: el rango de NT-proBNP de esta aplicacion es 375-600 pg/mL. Va como texto
-             de AYUDA de la casilla y rotulado CRITERIO DE ECOSMART, porque ninguna fuente de la
-             biblioteca respalda ese tope: la que trae un rango publica otro, y la orden de esta
-             tanda prohibe expresamente mezclarlos o citar una guia para el 600.
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px;border-radius:6px;cursor:pointer;min-height:36px;"><input type="checkbox" id="hfaicos_bnp" onchange="hfaicosToggle('hfaicos_bnp')" style="flex:0 0 auto;width:16px;height:16px;"><span style="flex:1;">BNP / NT-proBNP basal elevado<!-- == LOTE POST-PR13 - GRUPO C1 · SALE EL RANGO, ENTRA EL LIMITE DEL LABORATORIO ========
+             Decision de Maicol: el texto de ayuda ya NO publica «375-600 pg/mL» y dice «por encima
+             del limite superior del laboratorio local». Son dos cosas a la vez: el rango no tenia
+             fuente -PR12 lo rotulo «criterio de EcoSmart» justamente por eso- y ademas un marcador
+             BASAL elevado no tiene tope, asi que un rango con techo decia algo que no es cierto.
+             El limite del laboratorio es el unico valor que no hay que inventar: lo publica el
+             laboratorio que midio la muestra.
+             /!\ Y AHORA LLEVA GLOBO, con la cita de la fuente del marco (Lyon 2022): el rango
+             salia sin una, y el nombre de la guia va SOLO en el globo.
+             ANTES, para que quede el registro: PR12-3 escribia «CRITERIO DE ECOSMART ·
+             NT-proBNP 375-600 pg/mL».
              /!\ NO ES UN CAMPO: es un <span> sin `id`. El censo del estudio y el Excel recorren
              `input[id]` y `select[id]`, asi que un control con id entraria a las 457 columnas por
              existir y «Nuevo estudio» le escribiria su valor guardado.
              /!\ Y NO LLEVA `title`: la regla de TC-500 es que la explicacion vive en la tarjeta
              que abre el globo, y un title encima pone un segundo cartel compitiendo con ella.
              /!\ NO TOCA EL PUNTAJE: el peso de esta casilla lo decide `hfaicosFactores` por su
-             `pts`, que no se movio. --><span style="display:block;margin-top:2px;font-size:10px;font-weight:400;color:var(--text2);line-height:1.4;"><span style="display:inline-block;border:1px solid var(--border);border-radius:4px;padding:0 4px;margin-right:4px;font-size:9px;letter-spacing:.3px;">CRITERIO DE ECOSMART</span>NT-proBNP 375&ndash;600 pg/mL</span></span><span data-hfa-pts-de="hfaicos_bnp" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
+             `pts`, que no se movio. --><span style="display:block;margin-top:2px;font-size:10px;font-weight:400;color:var(--text2);line-height:1.4;">por encima del l&iacute;mite superior del laboratorio local</span></span><button type="button" class="vinfo-btn vinfo-btn-44" data-vinfo="hfaicos-bnp" aria-expanded="false" aria-label="Informaci&oacute;n sobre el marcador humoral basal" onclick="event.preventDefault();event.stopPropagation();vInfoClic(this)" style="flex:0 0 auto;">&#9432;</button><span data-hfa-pts-de="hfaicos_bnp" style="color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto;">1 pt</span></label>
       </div>
       <div class="hfa-col hfa-col-farm">
         <div class="hfa-col-h">Fármaco</div>
@@ -53372,6 +53378,22 @@ const VINFO = Object.freeze({
        + 'respecto de otras causas de hipertrofia.\n'
        + 'Se calcula con la FEVI cargada en la aplicación y el SGL global del campo; el uso del '
        + 'valor absoluto es criterio de la aplicación.'
+  },
+  /* GRUPO C1 del lote post-PR13. La casilla dice «por encima del limite superior del
+     laboratorio local» y el nombre de la fuente vive aca, que es la regla de la casa.
+     /!\ EL BOTON VIVE DENTRO DE UN <label> QUE ENVUELVE LA CASILLA, asi que su clic lleva
+     preventDefault y stopPropagation: sin eso, abrir el globo TILDARIA el factor y le movaria
+     el puntaje al medico. Es la unica diferencia con los otros globos de la app. */
+  'hfaicos-bnp': {
+    ancho: 360,
+    tit: 'Marcador humoral basal',
+    lee: 'La casilla marca un BNP o un NT-proBNP BASAL elevado, medido antes de empezar el '
+       + 'tratamiento oncologico.\n'
+       + 'El limite lo pone el laboratorio que midio la muestra: cada metodo tiene el suyo, y '
+       + 'por eso esta aplicacion no publica un numero propio.\n'
+       + 'Elevado no tiene tope: un valor muy por encima del limite tambien lo esta.\n'
+       + 'El factor pesa 1 punto en el puntaje de riesgo basal, igual que la troponina.',
+    fuente: 'Lyon 2022'
   },
   'sgl-num': {
     ancho: 380,
@@ -158593,7 +158615,19 @@ function _simpStat(rot, val, uni, bsa, col, gr) {
    la app no nombran guías, y `CLAUDE.md` deja la guía, la tabla y el folio PARA EL GLOBO ⓘ: hasta
    hoy ese nombre se imprimía en el panel, a la vista, que es lo que la regla no quiere. */
 const _SIMP_NOTAS_METODO = [
-  'El biplano no es el promedio de las dos ventanas: usa el producto cruzado de los diámetros de la A4C y la A2C, y el eje largo más largo de las dos. Qué lado queda más alto depende de la geometría, así que no se puede describir como una diferencia con dirección fija.',
+  /* ⚠️ GRUPO C2 DEL LOTE POST-PR13 · SALEN LAS FRASES AF-4 Y AF-5, Y ESTAN IDENTIFICADAS
+     CONTRA EL REGISTRO DE LA BIBLIOTECA, no a ojo. `Pendientes_de_decision.docx`, seccion 22,
+     filas AF-4 y AF-5 (commit 49a9e0f, MEDIR-4b), con el cotejo contra Lang 2015 hecho EN
+     IMAGEN el 16/11/2026: las tres frases «no figuran en la hoja 7 ni en la Tabla 1 (hoja 5)».
+     Decision de Maicol del 16/11 (02:42) y orden de este lote: se RETIRAN.
+       · AF-4, frase 1 — «Qué lado queda más alto depende de la geometría, así que no se puede
+         describir como una diferencia con dirección fija.» (esta entrada).
+       · AF-4, frase 2 — «en diástole y en sístole por separado» (la nota del eje largo).
+       · AF-5 — «y los valores normales con los que se clasifica salen de biplano» (la del
+         monoplanar).
+     Lo que QUEDA de cada una es exactamente lo que la fuente SI dice, que es lo que el cotejo
+     declara coincidente. */
+  'El biplano no es el promedio de las dos ventanas: usa el producto cruzado de los diámetros de la A4C y la A2C, y el eje largo más largo de las dos.',
   'Cada ventana muestra además SU monoplanar, que asume el disco circular. Las filas de arriba son de dónde salió el resultado; el que se integra al informe es el biplano. VEyec = VFD − VFS.',
   /* ⚠️ EL ⓘ CITA «Lang 2015», AUTOR-AÑO (2026-11-16). Decia «(ASE/EACVI 2015)», que es
      sociedad-año, y las dos notas de abajo decian «la guía» a secas sin nombrarla, asi que el
@@ -158602,11 +158636,11 @@ const _SIMP_NOTAS_METODO = [
      criterios propios—, y el enunciado de la tanda la fija para los ⓘ. El documento es el mismo
      en los tres casos (Lang RM y cols., recomendaciones de cuantificacion de cavidades); lo que
      cambia es como se lo nombra. */
-  'El eje largo que se usa es el más largo de las dos ventanas, en diástole y en sístole por separado (Lang 2015).',
+  'El eje largo que se usa es el más largo de las dos ventanas (Lang 2015).',
   'Cada trazado usa la escala de SU imagen, no una sola para los cuatro: la A4C y la A2C son adquisiciones distintas y su profundidad también.',
   'La clasificación de la FEVI es la misma que usa el informe.',
   'El método supone que el ápex está bien visualizado. Un ápex escorzado subestima los volúmenes; Lang 2015 lo lista entre sus limitaciones.',
-  'Un monoplanar asume el ventrículo circular en el corte transversal. Lang 2015 recomienda el biplano, y los valores normales con los que se clasifica salen de biplano. Un monoplanar no se integra al informe ni va al PDF: el campo «Método» sólo tiene Simpson biplano, Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el método.',
+  'Un monoplanar asume el ventrículo circular en el corte transversal. Lang 2015 recomienda el biplano. Un monoplanar no se integra al informe ni va al PDF: el campo «Método» sólo tiene Simpson biplano, Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el método.',
   'Para el biplano hay dos caminos: tocar «➕ Vista» y abrir el cineloop de la otra apical, o trazar la otra ventana en esta misma vista cambiando de cineloop. Lo confirmado no se pierde.',
   'Los contornos no se guardan con el estudio, sólo los números. Una tabla que volvió al reabrir el estudio no se puede seguir midiendo: para eso hay que volver a trazar.'
 ];

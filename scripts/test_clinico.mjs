@@ -67671,7 +67671,12 @@ caso('TC-471', 'Valvulas D1: la insuficiencia mitral en TRES columnas de SEIS co
     /* ⚠️ ADAPTADO EN PR9-1.4: 155 -> 156. La nueva es sc-caja, el globo del TITULO de la
        tabla «Calculos de strain», donde paso la frase de introduccion que esta tanda saco del
        cuerpo de la caja. Lo que esta condicion afirma no cambia; cambia su denominador. */
-    Object.keys(VINFO).length === 156 && ('sc-caja' in VINFO) && ('vd-tei' in VINFO) && ('tep-6060' in VINFO)
+    /* ADAPTADO el 2026-11-28 (lote post-PR13, GRUPO C1): 156 -> 157. La nueva es hfaicos-bnp,
+       el globo de la casilla del marcador humoral basal de cardio-oncologia, que entro al sacar
+       el rango 375-600 del texto de pantalla. No esta en Valvulas: lo que cambia es el
+       denominador del registro, no lo que esta condicion afirma sobre los globos de Valvulas. */
+    Object.keys(VINFO).length === 157 && ('sc-caja' in VINFO) && ('vd-tei' in VINFO)
+      && ('tep-6060' in VINFO) && ('hfaicos-bnp' in VINFO)
       && ('tavi-calc' in VINFO) && ('cc9-ebs-cel' in VINFO) && ('cc9-vap-sec' in VINFO)
       && ('masa-ref' in VINFO) && ('masa-ref-ei' in VINFO) && ('wi-aplica' in VINFO),
     'registro=' + (HAY_INFO ? Object.keys(VINFO).join(',') : 'SIN REGISTRO')]);
@@ -79236,7 +79241,7 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      ADAPTADO EN PR8: 150 -> 155, por los CINCO globos de las celdas de la tabla «Calculos de
      strain» (sc-prom, sc-niv, sc-terr, sc-asr y sc-fsgl). Lo que este denominador afirma no
      cambia: que el mecanismo existe y que el registro es el dueno unico. */
-  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 156 entradas',
+  ex.push(['DENOMINADOR: el mecanismo de los globos existe y el registro tiene las 157 entradas',
     /* ⚠️ ADAPTADO EN LA TANDA D: 56 -> 57. La entrada nueva es co-riesgo-basal, el globo de la
        clasificacion de riesgo cardiovascular basal, donde viven las clases y los niveles que la
        regla R2 saca de la linea visible. Lo que esta condicion afirma no cambia: que el
@@ -79288,7 +79293,8 @@ caso('TC-500', 'Tanda Q: las OCHO tarjetas i de las valvulas arriba de su pastil
      ADAPTADO EN PR8: 150 -> 155, por los CINCO globos de las celdas de la tabla «Calculos de
        strain» -- sc-prom, sc-niv, sc-terr, sc-asr y sc-fsgl --. Lo que este denominador afirma no
        cambia: que el mecanismo exista y que el registro sea el dueno unico. */
-    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 156 && ('wi-aplica' in (REG() || {})) && ('sc-caja' in (REG() || {})),
+    /* ADAPTADO el 2026-11-28 (lote post-PR13, GRUPO C1): 156 -> 157, por hfaicos-bnp. */
+    FN('vInfoClic') && !!CARD() && !!REG() && Object.keys(REG() || {}).length === 157 && ('wi-aplica' in (REG() || {})) && ('sc-caja' in (REG() || {})) && ('hfaicos-bnp' in (REG() || {})),
     'VINFO=' + (REG() ? Object.keys(REG()).length : 'SIN REGISTRO') + ' card=' + !!CARD()]);
   ex.push(['(A1) los OCHO botones de lesion existen, son BUTTON, sin atributo title y con aria-expanded',
     CLAVES.every(function (k) { const b = BTN(k);
@@ -80748,7 +80754,7 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
      recomendacion, asi que una ficha suya seria una entrada sin criterio detras. El limite que esta
      condicion declara no cambia; cambia su denominador, y la lista las sigue nombrando una por una,
      que es lo que hace que el dia que una consiga ficha el caso se ponga rojo. */
-  ex.push(['(C3) LIMITE DECLARADO: ochenta y dos tarjetas sin boton, porque Referencias no tiene esa entrada',
+  ex.push(['(C3) LIMITE DECLARADO: ochenta y tres tarjetas sin boton, porque Referencias no tiene esa entrada',
     /* ⚠️ ADAPTADA EN LA TAREA 1 (18/11/2026): 74 -> 75. La entrada nueva es ev-indep, el globo
        del titulo del panel de Evidencia. No tiene ficha en Referencias por la MISMA razon que
        inf-min, tga-3d y clnk-guia: dice de QUE es la aplicacion y de donde salen las guias que
@@ -80801,7 +80807,12 @@ caso('TC-502', 'Tanda P: Referencias en CINCO subpestanas sin perder una entrada
       + 'co-monitoreo,co-riesgo-basal,coa-card,cvr-coc,cvr-ecosmart,'
       + 'diast-valsalva,'
       + 'easv-grad,easv-sec,esub-grad,esub-sec,et-avt-cont,ev-indep,'
-      + 'hemo-forr,hemo-ic,hemo-rvs,inf-min,'
+      /* hfaicos-bnp AGREGADO el 2026-11-28 (lote post-PR13, GRUPO C1): es el globo de la
+         casilla del marcador humoral basal, que entro al sacar el rango 375-600 del texto de
+         pantalla. No tiene ficha en Referencias: dice que el limite lo pone el laboratorio que
+         midio la muestra y que esta aplicacion no publica un numero propio, o sea que no hay un
+         corte detras del que una ficha pudiera hablar. Ochenta y dos -> ochenta y tres. */
+      + 'hemo-forr,hemo-ic,hemo-rvs,hfaicos-bnp,inf-min,'
       + 'masa-ref,masa-ref-ei,mca-eco,mca-score,mca-sec,mca-vi,'
       + 'mch-adic,mch-ex,mch-hvi,mch-msub,mch-score,mch-sec,'
       + 'otr-cortri,'
@@ -93885,15 +93896,18 @@ caso('TC-535', 'Tanda AJ7: la linea de Fallot del EN SUMA sin la IP y el resumen
      .tab-section antes de medir, pero NADIE llama a scRender al cargar la pagina, asi que la caja
      tiene CERO hijos y CERO botones cuando el barrido pasa. Con los iconos en 14 px el barrido
      sigue dando sus 38 ALTA exactos. Declarado en PR9-a. */
-  ex.push(['(K0) DENOMINADOR: los SETENTA globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
-    tapTodos.length === 70 && tapK.length === 69 && tapEv.length === 1
+  ex.push(['(K0) DENOMINADOR: los SETENTA Y UN globos llevan la clase, tienen geometria y estan EN VISTA, y el unico sin clave es el del corazon maestro',
+    /* ADAPTADO el 2026-11-28 (lote post-PR13, GRUPO C1): 70 -> 71 globos con la clase y
+       69 -> 70 con clave, por hfaicos-bnp. El unico sin clave sigue siendo el del corazon
+       maestro. */
+    tapTodos.length === 71 && tapK.length === 70 && tapEv.length === 1
       && tapTodos.filter((x) => !x.k).length === 1
       && !!document.querySelector('#cm3d-ib.vinfo-btn-44')
       && tapTodos.every((x) => x.w > 0 && x.h > 0 && x.enVista), JSON.stringify(tapTodos)]);
-  ex.push(['(K1) los setenta miden 44x44 tambien con el mouse',
-    tapTodos.length === 70 && tapTodos.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapTodos)]);
+  ex.push(['(K1) los setenta y uno miden 44x44 tambien con el mouse',
+    tapTodos.length === 71 && tapTodos.every((x) => x.w >= 44 && x.h >= 44), JSON.stringify(tapTodos)]);
   ex.push(['(K2) y su caja NO tapa a ningun vecino: los cinco puntos dan el propio boton',
-    tapTodos.length === 70 && tapTodos.every((x) => x.propios === 5), JSON.stringify(tapTodos)]);
+    tapTodos.length === 71 && tapTodos.every((x) => x.propios === 5), JSON.stringify(tapTodos)]);
   ex.push(['(K3) CONTROL: los demas globos NO se tocaron y siguen con su piso solo tactil',
     document.querySelectorAll('button.vinfo-btn').length
       - document.querySelectorAll('button.vinfo-btn-44').length >= 10,
