@@ -431,6 +431,78 @@
      columna, y lo hace `_vSlotSync`. */
   #cine-ov.cine-max [id$="cine-ayuda"] { display: none !important; }
 
+  /* ══ LOTE POST-PR13 · GRUPO H — PANTALLA COMPLETA ══════════════════════════════════════════
+     En pantalla completa el overlay ES la pantalla, asi que se le saca el relleno y el modal se
+     lleva todo. La clase la pone y la saca `cineFsSync` leyendo el estado del NAVEGADOR, no el
+     boton: Escape y el gesto del sistema entran por ahi. */
+  #cine-ov.cine-fs { padding: 0 !important; background: #000 !important; }
+  #cine-ov.cine-fs > #cine-modal {
+    max-width: none !important; width: 100vw !important; height: 100vh !important;
+    max-height: none !important; border-radius: 0 !important; border: 0 !important;
+  }
+  #cine-ov.cine-fs { --cine-h: 100vh; }
+  /* El pie, el encabezado de la vista y la linea de ayuda se van: no son controles, son
+     etiquetas, y su alto es alto que la imagen puede usar. Misma decision que en `cine-max`. */
+  #cine-ov.cine-fs:not(.cine-con-b) #cine-pie { display: none !important; }
+  #cine-ov.cine-fs #cine-paneles:not(.cine-2v) [id$="cine-encab"] { display: none !important; }
+  #cine-ov.cine-fs [id$="cine-ayuda"] { display: none !important; }
+
+  /* ── LOS CONTROLES FLOTAN SOBRE LA IMAGEN ──
+     Solo en pantalla completa: la barra y la fila de reproduccion se apoyan sobre el borde de
+     abajo de la imagen en vez de ocupar alto propio, que es lo que deja la imagen entera a la
+     vista. `pointer-events` queda en auto para que sigan siendo botones. */
+  #cine-ov.cine-fs [id$="cine-barra"],
+  #cine-ov.cine-fs [id$="cine-ctrl"] {
+    position: absolute; left: 0; right: 0; z-index: 6;
+    background: rgba(8,10,14,.72); backdrop-filter: blur(3px);
+    padding: 4px 8px; margin: 0;
+  }
+  #cine-ov.cine-fs [id$="cine-ctrl"] { bottom: 0; }
+  #cine-ov.cine-fs [id$="cine-barra"] { bottom: 46px; }
+  #cine-ov.cine-fs [id$="cine-panel"] { position: relative; }
+
+  /* ── SE ESCONDEN SOLOS A LOS 3 SEGUNDOS ──
+     Con `opacity` y `pointer-events:none`, NO con `display:none`: con display el alto cambia, la
+     imagen se reacomoda y el visor late cada tres segundos. Asi lo unico que pasa es que dejan
+     de verse y de recibir el toque; la transicion los devuelve sin salto.
+     /!\ EL BOTON DE PANTALLA COMPLETA Y EL DE TAMANIO NO SE ESCONDEN: son la unica forma de
+     salir con el mouse, y un boton de salida que desaparece deja al medico sin puerta. */
+  #cine-ov.cine-fs.cine-fs-ocultos [id$="cine-barra"],
+  #cine-ov.cine-fs.cine-fs-ocultos [id$="cine-ctrl"],
+  #cine-ov.cine-fs.cine-fs-ocultos .cine-imgbtns-br,
+  #cine-ov.cine-fs.cine-fs-ocultos .cine-imgbtns-bl {
+    opacity: 0; pointer-events: none;
+  }
+  #cine-ov.cine-fs [id$="cine-barra"],
+  #cine-ov.cine-fs [id$="cine-ctrl"],
+  #cine-ov.cine-fs .cine-imgbtns-br,
+  #cine-ov.cine-fs .cine-imgbtns-bl { transition: opacity .22s ease; }
+  /* Y el cursor se va con ellos: un puntero quieto sobre una ecografia a pantalla completa tapa
+     justo lo que se esta mirando. */
+  #cine-ov.cine-fs.cine-fs-ocultos [id$="cine-recorte"] { cursor: none; }
+
+  /* ── EL ▶/⏸ BREVE ──
+     Se desvanece en 0,75 s, por debajo del segundo que el pedido fija. No recibe el toque: es
+     una senial, y si lo recibiera se comeria el clic siguiente. */
+  #cine-fs-senial {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    font-size: 54px; line-height: 1; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.75);
+    opacity: 0; pointer-events: none; z-index: 8;
+  }
+  #cine-fs-senial.cine-fs-senial-on { animation: cineFsSen .75s ease-out 1 forwards; }
+  @keyframes cineFsSen {
+    0%   { opacity: .96; transform: translate(-50%,-50%) scale(.86); }
+    100% { opacity: 0;   transform: translate(-50%,-50%) scale(1.12); }
+  }
+  /* Con «reducir animaciones» del sistema no se anima: se muestra y se apaga. */
+  @media (prefers-reduced-motion: reduce) {
+    #cine-fs-senial.cine-fs-senial-on { animation: cineFsSen .75s step-end 1 forwards; }
+    #cine-ov.cine-fs [id$="cine-barra"],
+    #cine-ov.cine-fs [id$="cine-ctrl"],
+    #cine-ov.cine-fs .cine-imgbtns-br,
+    #cine-ov.cine-fs .cine-imgbtns-bl { transition: none; }
+  }
+
   /* ── LA BARRA UNICA ──────────────────────────────────────────────────────────────────────
      ⚠️ UN SOLO FORMATO PARA TODOS: esquinas RECTAS y el MISMO ancho, que es el pedido literal.
      El ancho se fija con `flex:0 0 <n>px` y no con `min-width`, porque `.btn` trae su propio
@@ -148520,6 +148592,13 @@ function _vPanelHTML(p, esB) {
                   'title="Maximizar el visor" aria-label="Maximizar el visor">' +
                   '<span id="' + p + 'cine-maxi-ico">\u2922</span></button>' +
                 ibtn('cine-pan', '&#187;', 'Esconder la columna de medidas y darle todo el ancho a la imagen', 'cine-pan-btn') +
+                /* ══ LOTE POST-PR13 · GRUPO H — PANTALLA COMPLETA DE VERDAD ═══════════════
+                   Va DEBAJO del boton de columna, que es lo que el pedido dice, y el racimo
+                   apila en columna. No es lo mismo que `cine-maxi`: ese es el TAMANIO GRANDE
+                   -la mayor parte de la ventana del navegador, con su barra de direcciones
+                   arriba- y esto es la pantalla completa del sistema, por `requestFullscreen`.
+                   Cero apariciones de esa API en el archivo antes de este lote. */
+                ibtn('cine-fs', '&#9974;', 'Pantalla completa', '') +
               '</div>' +
               '<div class="cine-imgbtns cine-imgbtns-br" id="' + p + 'cine-imgbr">' +
                 ibtn('cine-fprev', '&#8249;', 'Cuadro anterior', '') +
@@ -148528,7 +148607,10 @@ function _vPanelHTML(p, esB) {
               '<div class="cine-imgbtns cine-imgbtns-bl" id="' + p + 'cine-imgbl"></div>' +
             '</div>' +
           '</div>' +
-          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+          /* LOTE POST-PR13 · GRUPO H: esta fila no tenia `id` y la pantalla completa la necesita
+             para apoyarla sobre el borde de abajo de la imagen. Prefijado, como todo lo de la
+             plantilla: con dos vistas abiertas un id sin prefijo queda duplicado. */
+          '<div id="' + p + 'cine-ctrl" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
             btn('cine-play', 'btn-ghost', '▶ Reproducir', 'min-width:88px;', 'Reproduce el cineloop a la velocidad que declara el archivo.') +
             '<input type="range" id="' + p + 'cine-slider" min="0" value="0" style="flex:1;min-width:100px;">' +
             '<span id="' + p + 'cine-num" style="font-size:10.5px;color:var(--text2);' +
@@ -150022,12 +150104,39 @@ function _vCablear(V) {
      envoltura no agrega nada y sugiere que el estado es por vista. */
   const bpan = q('cine-pan');
   if (bpan) bpan.onclick = cinePanelToggle;
+  /* LOTE POST-PR13 · GRUPO H. Tampoco va envuelto, por lo mismo: la pantalla completa es del
+     VISOR y no de una vista. */
+  const bfs = q('cine-fs');
+  if (bfs) bfs.onclick = cineFsToggle;
+  /* El boton nace con su glifo y su `aria-pressed` puestos por el DUENIO del estado, y no con un
+     valor escrito en el marcado: con dos vistas abiertas, dos botones de la misma accion no
+     pueden decir cosas distintas, y el que nace despues tiene que nacer sincronizado. */
+  try { cineFsSync(); } catch (e) {}
   /* ══ P11 (1.3) — EL FOCO DE VISTA SE ANOTA CON EL GESTO REAL ═══════════════════════════════
      `pointerdown` y no `click`: el medico «entra» a una vista al apoyar el dedo o el boton, y
      un clic que arranca un trazado no llega nunca a `click`. Se registra sobre el PANEL —no
      sobre el canvas— para que tocar la columna o la barra de esa vista tambien la enfoque.
      ⚠️ NO SE REPINTA SI NO CAMBIO: `_vMaxSync` mueve nodos, y moverlos en cada `pointerdown`
      le quitaria el foco de teclado a lo que el medico acaba de tocar. */
+  /* ══ LOTE POST-PR13 · GRUPO H — EL CLIC SOBRE LA IMAGEN PAUSA Y REANUDA ═══════════════════
+     Va sobre el ENVOLTORIO de la imagen (`cine-recorte`) y no sobre el canvas, porque el canvas
+     de medicion esta encima y se come el clic cuando se esta midiendo — que es justamente el
+     caso en que esto NO tiene que actuar.
+     ⚠️ CEDE EN TRES CASOS, y los tres estan en `_cineFsPuedePausar` o aca:
+       · con la columna a la vista y fuera de pantalla completa no hace nada, que es el pedido
+         literal: ahi el clic sigue haciendo lo que hacia;
+       · mientras se mide, tampoco: el clic para medir sigue midiendo;
+       · y un clic sobre un BOTON de los racimos que flotan encima de la imagen no pausa: son
+         controles, y `closest` los reconoce. Sin esto, tocar «cuadro siguiente» pausaria de paso.
+     Se escucha en `click` y no en `pointerdown`: un arrastre que empieza sobre la imagen -el
+     trazado de un contorno- no tiene que pausar, y un arrastre no produce `click`. */
+  const rec = q('cine-recorte');
+  if (rec) rec.addEventListener('click', function (ev) {
+    const t = ev.target;
+    if (t && t.closest && t.closest('.cine-imgbtns')) return;
+    _cineFsDespertar();
+    cineFsPausaToggle(V);
+  });
   const pan = q('cine-panel');
   if (pan) pan.addEventListener('pointerdown', () => {
     if (_vFoco === V) return;
@@ -150349,6 +150458,140 @@ function cineCuadro(paso) {
   cineIr(Math.max(0, Math.min(L.cuadros - 1, (D.cuadro | 0) + (paso | 0))));
 }
 window.cineCuadro = cineCuadro;
+
+/* ══ LOTE POST-PR13 · GRUPO H — PANTALLA COMPLETA, CONTROLES QUE SE ESCONDEN Y PAUSA AL TOCAR ══
+
+   ⚠️ ES `requestFullscreen` Y NO OTRA CLASE DE «GRANDE». El visor ya tenia `cine-max`, que es el
+   TAMANIO GRANDE: ocupa casi toda la ventana del navegador y deja su barra de direcciones arriba.
+   Esto es la pantalla completa del sistema, que es lo que el pedido nombra y lo que hace que
+   Escape salga por el camino nativo. Antes de este lote el archivo tenia CERO apariciones de esa
+   API.
+
+   ⚠️ EL ESTADO LO DICE EL NAVEGADOR Y NO UNA BANDERA PROPIA. La clase `cine-fs` la pone y la saca
+   el oyente de `fullscreenchange`, no el boton: la pantalla completa se puede salir por Escape,
+   por el gesto del sistema o porque el navegador la cancela, y una bandera propia se quedaria
+   diciendo que seguimos ahi con el visor ya en su tamanio. El boton PIDE, el evento DECIDE.
+
+   ⚠️ Y SE PIDE SOBRE EL OVERLAY, no sobre el canvas: la pantalla completa de un canvas se lleva
+   la imagen sola, sin la barra, sin la columna de medidas y sin los botones. */
+let _cineFsTimer = null;
+
+function _cineFsEl() { return document.getElementById('cine-ov'); }
+function cineFsActiva() {
+  const e = document.fullscreenElement || document.webkitFullscreenElement || null;
+  const ov = _cineFsEl();
+  return !!(e && ov && (e === ov || ov.contains(e)));
+}
+window.cineFsActiva = cineFsActiva;
+
+function cineFsToggle() {
+  const ov = _cineFsEl();
+  if (!ov) return;
+  try {
+    if (cineFsActiva()) {
+      const salir = document.exitFullscreen || document.webkitExitFullscreen;
+      if (salir) salir.call(document);
+      return;
+    }
+    const pedir = ov.requestFullscreen || ov.webkitRequestFullscreen;
+    /* Sin la API no se finge: se cae al TAMANIO GRANDE, que es lo mas parecido que el visor
+       tiene, en vez de dejar un boton que no hace nada. */
+    if (pedir) { const r = pedir.call(ov); if (r && r.catch) r.catch(function () { cineMaxToggle(); }); }
+    else cineMaxToggle();
+  } catch (e) { try { cineMaxToggle(); } catch (e2) {} }
+}
+window.cineFsToggle = cineFsToggle;
+
+/* El glifo de los dos botones de tamanio y el `aria-pressed`, sobre TODAS las vistas: con dos
+   vistas abiertas, dos botones de la misma accion no pueden decir cosas distintas. */
+function cineFsSync() {
+  const ov = _cineFsEl();
+  const on = cineFsActiva();
+  if (ov) ov.classList.toggle('cine-fs', on);
+  Array.prototype.forEach.call(document.querySelectorAll('#cine-ov [id$="cine-fs"]'), function (b) {
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.setAttribute('title', on ? 'Salir de pantalla completa' : 'Pantalla completa');
+    b.setAttribute('aria-label', b.getAttribute('title'));
+    b.innerHTML = on ? '&#9986;' : '&#9974;';
+  });
+  if (on) _cineFsDespertar(); else _cineFsMostrar();
+  try { _vReencajar(); } catch (e) {}
+}
+window.cineFsSync = cineFsSync;
+
+/* ── LOS CONTROLES SE ESCONDEN SOLOS ──
+   ⚠️ SOLO EN PANTALLA COMPLETA, y es deliberado: en tamanio Normal el visor convive con la
+   pagina y unos controles que desaparecen serian controles que el medico no encuentra. */
+const CINE_FS_OCULTAR_MS = 3000;
+
+function _cineFsMostrar() {
+  const ov = _cineFsEl();
+  if (ov) ov.classList.remove('cine-fs-ocultos');
+  if (_cineFsTimer) { clearTimeout(_cineFsTimer); _cineFsTimer = null; }
+}
+function _cineFsDespertar() {
+  const ov = _cineFsEl();
+  if (!ov) return;
+  ov.classList.remove('cine-fs-ocultos');
+  if (_cineFsTimer) clearTimeout(_cineFsTimer);
+  if (!cineFsActiva()) { _cineFsTimer = null; return; }
+  _cineFsTimer = setTimeout(function () {
+    /* Se vuelve a preguntar al salir del temporizador: entre que se armo y que vence se pudo
+       haber salido de pantalla completa, y esconder los controles ahi los deja escondidos en el
+       tamanio Normal, donde nada los vuelve a mostrar. */
+    if (cineFsActiva()) { const o = _cineFsEl(); if (o) o.classList.add('cine-fs-ocultos'); }
+  }, CINE_FS_OCULTAR_MS);
+}
+window._cineFsDespertar = _cineFsDespertar;
+
+/* ── EL ▶/⏸ BREVE ──
+   Un glifo grande en el centro de la imagen que se desvanece en menos de un segundo. Es la unica
+   senial de que el toque hizo algo: sin el, un clic que pausa un cineloop quieto en un cuadro
+   parecido al anterior no se distingue de un clic que no hizo nada. */
+function _cineFsSenial(txt) {
+  const ov = _cineFsEl();
+  if (!ov) return;
+  let d = document.getElementById('cine-fs-senial');
+  if (!d) {
+    d = document.createElement('div');
+    d.id = 'cine-fs-senial';
+    d.setAttribute('aria-hidden', 'true');
+    ov.appendChild(d);
+  }
+  d.textContent = String(txt);
+  d.classList.remove('cine-fs-senial-on');
+  /* Se fuerza el recalculo para que la animacion vuelva a arrancar con dos toques seguidos. */
+  void d.offsetWidth;
+  d.classList.add('cine-fs-senial-on');
+}
+
+/* ── PAUSA / REANUDA, con sus cuatro guardas ──
+   ⚠️ SOLO CON LA COLUMNA OCULTA O EN PANTALLA COMPLETA, que es el pedido literal: con la columna
+   a la vista el clic sobre la imagen sigue haciendo exactamente lo que hacia.
+   ⚠️ Y NUNCA MIENTRAS SE MIDE. El clic para medir sigue midiendo: ahi el gesto ya tiene dueno
+   -`cv.onclick`, que es el canvas de medicion- y pausar de paso le cambiaria el cuadro al medico
+   justo cuando esta marcando un punto. Se mira `medOn` de la vista, no una variable global. */
+function _cineFsPuedePausar(V) {
+  const ov = _cineFsEl();
+  if (!ov) return false;
+  if (V && V.medOn) return false;
+  return cineFsActiva() || ov.classList.contains('cine-sinpanel');
+}
+function cineFsPausaToggle(V) {
+  const W = V || _V;
+  if (!_cineFsPuedePausar(W)) return false;
+  const D = W && W.datos;
+  if (!D) return false;
+  const corria = !!D.timer;
+  /* ⚠️ EL DUENIO DEL PLAY Y DE LA PAUSA ES `cineToggle`, Y YA HACE EL TOGGLE. La primera version
+     de esto llamaba a `_cineDetener` y a `cinePlay`, y `cinePlay` NO EXISTE: el error lo cazo la
+     sonda y no la lectura. Con el dueno, ademas, el intervalo se arma con el `_vCon` que esa
+     funcion ya le pone -el temporizador corre fuera de todo contexto- y no con uno copiado. */
+  _vCon(W, function () { cineToggle(); });
+  _cineFsSenial(corria ? '\u23f8' : '\u25b6');
+  return true;
+}
+window.cineFsPausaToggle = cineFsPausaToggle;
 
 function cineMaxToggle() {
   const ov = document.getElementById('cine-ov');
@@ -150755,7 +150998,15 @@ function _cineAbrir(loops, puerta) {
          · con una tecla modificada tampoco, que son atajos del navegador.
        Mueve el cuadro de la vista CON FOCO, que con una sola vista es la unica. */
     document.addEventListener('keydown', function (ev) {
-      if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+      /* ══ LOTE POST-PR13 · GRUPO H — LA BARRA ESPACIADORA PAUSA Y REANUDA ═══════════════════
+         Entra por el MISMO oyente que las flechas y con las MISMAS cuatro guardas: con dos
+         oyentes, el dia que una guarda cambie uno de los dos queda viejo. Y el espacio las
+         necesita todas igual o mas que las flechas: sobre un boton enfocado el navegador lo
+         usa para apretarlo, y sobre un campo de texto escribe un espacio.
+         ⚠️ Y UN BOTON ENFOCADO SE RESPETA: ahi el espacio es «apretar este boton». Se mira
+         tambien BUTTON, que la lista de las flechas no necesitaba. */
+      const esEspacio = (ev.key === ' ' || ev.key === 'Spacebar' || ev.code === 'Space');
+      if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight' && !esEspacio) return;
       if (ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
       const o = document.getElementById('cine-ov');
       if (!o || o.style.display === 'none') return;
@@ -150764,11 +151015,38 @@ function _cineAbrir(loops, puerta) {
       if (a) {
         const tag = (a.tagName || '').toUpperCase();
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || a.isContentEditable) return;
+        if (esEspacio && (tag === 'BUTTON' || tag === 'A' || a.getAttribute('role') === 'button')) return;
       }
       ev.preventDefault();
+      /* Cualquier tecla del visor despierta los controles escondidos: el pedido dice que
+         reaparecen al mover o tocar, y el teclado es la tercera forma de estar usandolo. */
+      _cineFsDespertar();
       const V = _vFocoVista();
+      if (esEspacio) {
+        /* ⚠️ EL ESPACIO PAUSA SIEMPRE, tambien con la columna a la vista. No es lo mismo que el
+           CLIC: el clic sobre la imagen compite con la medicion y con lo que ese gesto ya hacia,
+           y una tecla no compite con nada. Lo unico que se respeta es que no se este midiendo
+           con un gesto a medio hacer, que es lo que la guarda de abajo mira. */
+        const D = V && V.datos;
+        if (!D) return;
+        const corria = !!D.timer;
+        _vCon(V, function () { cineToggle(); });   // el dueno del play/pausa, que ya hace el toggle
+        if (typeof _cineFsSenial === 'function') _cineFsSenial(corria ? '\u23f8' : '\u25b6');
+        return;
+      }
       _vCon(V, () => cineCuadro(ev.key === 'ArrowLeft' ? -1 : 1));
     });
+    /* El movimiento del puntero despierta los controles. Va en el DOCUMENTO y no en el overlay
+       por lo mismo que el teclado, y la funcion sale enseguida si no estamos en pantalla
+       completa: es un oyente que corre en cada movimiento del mouse. */
+    document.addEventListener('pointermove', function () {
+      if (!cineFsActiva()) return;
+      _cineFsDespertar();
+    }, { passive: true });
+    /* El ESTADO lo dice el navegador: Escape, el gesto del sistema y el boton entran todos por
+       aca. Los dos nombres del evento, que es como esta casa escribe las dos formas. */
+    document.addEventListener('fullscreenchange', cineFsSync);
+    document.addEventListener('webkitfullscreenchange', cineFsSync);
     _vCablear(_vistaA);
     /* ══ MEDIR-1 — LOS CUATRO PANELES SE MUDAN A LA COLUMNA DERECHA ═══════════════════════
        ⚠️ MEDIR-4 — YA NO SON CUATRO, SON DOS. `cine-biplano` y `cine-simp-uni` se quedan DONDE
