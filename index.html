@@ -151769,6 +151769,54 @@ function _medAreaDown(ev) {
   _medTrazo = [p];
 }
 
+/* ══ RETROCEDER MIENTRAS SE DIBUJA ══════════════════════════════════════════════════════════
+   LOTE POST-PR13 · GRUPO D. Como en los ecógrafos: si el dedo vuelve sobre el camino ya trazado,
+   los puntos se van quitando hasta donde retrocedió, y si vuelve a avanzar sigue desde ahí.
+
+   ⚠️ VA EN `_medAreaMove` Y EN NINGÚN OTRO LADO, y eso es lo que lo deja alcanzando a TODAS las
+   herramientas de contorno a la vez: las seis que arrastran —área, Simpson, strain del VI, LARS,
+   strain del VD y la envolvente del VTI, las que `_MED_HERR_ARRASTRE` declara— comparten este
+   único recolector de puntos. No hay una segunda copia que se pueda quedar vieja.
+
+   CÓMO SE DECIDE QUE EL DEDO RETROCEDIÓ, y por qué no se mira el ángulo. Lo que se pregunta es si
+   el punto nuevo cae CERCA de un punto ANTERIOR del trazo —no del último, que es siempre el más
+   cercano—, y se recorre de atrás hacia adelante salteando los `MED_RETRO_SALTO` últimos. Con el
+   ángulo entre los dos últimos segmentos, un trazo lento y tembloroso sobre el endocardio da
+   vueltas de más de 90° todo el tiempo y el contorno se desarmaría solo; con la cercanía a un
+   punto viejo, lo único que lo dispara es volver de verdad sobre lo dibujado.
+
+   LOS TRES NÚMEROS, Y DE DÓNDE SALEN. El radio es `MED_RETRO_RADIO` en píxeles de imagen: tiene
+   que ser más grande que el paso de decimación —2 px— para que un retroceso real entre, y más
+   chico que la separación entre dos tramos vecinos del endocardio para que acercarse al otro lado
+   de la pared no borre nada. El salto de `MED_RETRO_SALTO` puntos es lo que evita que el propio
+   último tramo se cuente como retroceso. Y `MED_RETRO_MIN` es el piso de puntos por debajo del
+   cual no se retrocede nada: con un trazo de dos o tres puntos no hay camino al que volver, y
+   borrarlos dejaría el gesto sin arranque.
+   ⚠️ EN TÁCTIL EL DEDO TAPA LO QUE DIBUJA, así que el radio se mide en píxeles de IMAGEN y no de
+   pantalla: en una imagen chica ampliada, un dedo de 10 px de pantalla son menos píxeles de
+   imagen, y el umbral no cambia de significado con el tamaño del visor. */
+const MED_RETRO_RADIO = 7;   // px de imagen - mas que la decimacion de 2, menos que dos tramos vecinos
+const MED_RETRO_SALTO = 4;   // puntos del final que no se miran: son el tramo que se esta dibujando
+const MED_RETRO_MIN   = 8;   // por debajo de esto no hay camino al que volver
+
+/* ¿EL PUNTO NUEVO CAE SOBRE UN TRAMO YA DIBUJADO? Devuelve el índice hasta el que hay que
+   recortar, o −1. Pura y expuesta: se prueba sola, sin un canvas ni un gesto. */
+function medRetroIndice(pts, p, radio, salto, min) {
+  if (!pts || pts.length < (min == null ? MED_RETRO_MIN : min)) return -1;
+  const R = (radio == null ? MED_RETRO_RADIO : radio);
+  const S = (salto == null ? MED_RETRO_SALTO : salto);
+  const R2 = R * R;
+  /* De atrás hacia adelante: se vuelve al punto viejo MÁS NUEVO que esté dentro del radio, que es
+     el retroceso más corto. Con el más viejo, un trazo que se cruza a sí mismo —una envolvente de
+     dos latidos, por ejemplo— se borraría entero de un golpe. */
+  for (let i = pts.length - 1 - S; i >= 1; i--) {
+    const dx = p.x - pts[i].x, dy = p.y - pts[i].y;
+    if (dx * dx + dy * dy <= R2) return i;
+  }
+  return -1;
+}
+window.medRetroIndice = medRetroIndice;
+
 function _medAreaMove(ev) {
   /* Ajuste en tiempo real del contorno sugerido. */
   if (_strain && _strain.arrastrando != null) {
@@ -151781,6 +151829,18 @@ function _medAreaMove(ev) {
   if (!_medTrazo) return;
   const p = _medPuntoCanvas(ev);
   if (!p) return;
+  /* ⚠️ EL RETROCESO SE MIRA ANTES DE LA DECIMACIÓN, y no después. La decimación descarta el punto
+     cuando está a menos de 2 px del último, y un dedo que vuelve despacio sobre el trazo produce
+     justamente eso: con el orden al revés, retroceder lento no haría nada. */
+  const corte = medRetroIndice(_medTrazo, p);
+  if (corte >= 0) {
+    /* Se recorta hasta el punto al que volvió, inclusive: desde ahí el trazo sigue como si nunca
+       se hubiera dibujado el tramo de más. No se mide nada ni se cierra: soltar sigue haciendo lo
+       mismo que siempre. */
+    _medTrazo = _medTrazo.slice(0, corte + 1);
+    _medPintar();
+    return;
+  }
   /* Se decima: un arrastre suelta cientos de eventos y guardar cada uno no agrega ni un
      milímetro cuadrado de precisión, sólo trabajo de dibujo. 2 px de imagen es menos que el
      grosor de la línea. */
@@ -155968,14 +156028,19 @@ window.medSimpsonDocAlPDF = medSimpsonDocAlPDF;
 
 /* Tabla y no ternario anidado: con cinco herramientas la cadena ya no se leía, y meter una
    sexta en el lugar equivocado del anidamiento es un error que no da error. */
+/* LA FRASE DEL RETROCESO, con UN SOLO DUEÑO y pegada a las cuatro ayudas de contorno. Un gesto
+   que la pantalla no anuncia no se usa, y éste es el que el médico pidió. Las de clic —velocidad,
+   tiempo, frecuencia y distancia— no la llevan: ahí no hay trazo al que volver. */
+const MED_RETRO_AYUDA = ' Si te equivocás, sin soltar volvé con el dedo sobre lo dibujado: se '
+                      + 'borra hasta ahí y podés seguir desde ese punto.';
 const _MED_COMO = {
-  area:   'Mantené apretado y recorré el borde: al soltar, el contorno se cierra solo y sale el área en cm².',
+  area:   'Mantené apretado y recorré el borde: al soltar, el contorno se cierra solo y sale el área en cm².' + MED_RETRO_AYUDA,
   vel:    'Hacé clic en el pico del trazo espectral: sale la velocidad y el gradiente (ΔP = 4·V²). Sólo funciona sobre Doppler con el eje en cm/s.',
   tiempo: 'Dos clics sobre el eje temporal y sale el intervalo en ms (TDE, TRIV, tiempo de aceleración). Sólo cuenta la separación horizontal.',
   fc:     'Dos clics sobre la MISMA onda de dos latidos seguidos: sale el intervalo RR y la frecuencia (60.000 / RR).',
-  strain: 'Mantené apretado y recorré el borde del VI, del anillo mitral septal al lateral pasando por el ápex. Se traza en diástole y en sístole.',
-  lars:   'Mantené apretado y recorré el contorno interno de la aurícula izquierda. Se traza en tres momentos del ciclo.',
-  vd:     'Mantené apretado y recorré SÓLO la pared libre del VD, del anillo tricuspídeo lateral al septal pasando por el ápex. Se traza en diástole y en sístole.',
+  strain: 'Mantené apretado y recorré el borde del VI, del anillo mitral septal al lateral pasando por el ápex. Se traza en diástole y en sístole.' + MED_RETRO_AYUDA,
+  lars:   'Mantené apretado y recorré el contorno interno de la aurícula izquierda. Se traza en tres momentos del ciclo.' + MED_RETRO_AYUDA,
+  vd:     'Mantené apretado y recorré SÓLO la pared libre del VD, del anillo tricuspídeo lateral al septal pasando por el ápex. Se traza en diástole y en sístole.' + MED_RETRO_AYUDA,
   dist:   'Hacé clic en dos puntos para medir.'
 };
 const _medComo = () => _MED_COMO[_medHerr] || _MED_COMO.dist;
