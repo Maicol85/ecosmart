@@ -153505,6 +153505,18 @@ function _strFontEnSector(cx2, txt, px, py, cxx, cyy, a0, a1, rIn, rOut, nom, mi
   return min;
 }
 
+/* LAS DOS LÍNEAS DEL DESCARGO DE LA CAPTURA, con UN SOLO DUEÑO.
+   ⚠️ HASTA HOY LAS ESCRIBÍA `_strBullsCanvas` CON DOS `fillText` DE UNA SOLA LÍNEA, y el canvas
+   las RECORTABA EN SILENCIO: medido, a 640 px —el tamaño real de la captura— la primera mide
+   850 px contra un canvas de 640, o sea 105 px cortados a CADA lado, y a 300 px se cortan las
+   dos. Un canvas no avisa cuando se pasa: el texto simplemente no está.
+   Viven acá porque el ALTO que ocupan tiene que entrar en la cuenta del radio, y esa cuenta la
+   hace el dibujante. Con el texto en un lado y la reserva de alto en el otro, el día que una
+   palabra cambie el radio se queda viejo y el renglón vuelve a salirse. */
+const _STR_CAP_L1 = 'Calculado por método de dos contornos manuales — NO equivalente al '
+                  + 'speckle tracking automático.';
+const _STR_CAP_L2 = 'Orientativo, requiere correlación clínica. ';
+
 /* Dibuja el diagrama completo en un contexto 2D. `S` es el tamaño del lado.
 
    ⚠️ EL RADIO SE DERIVA DE LO QUE EL RESTO NECESITA, Y NO ES UNA CONSTANTE AJUSTADA A MANO. Un
@@ -153540,7 +153552,24 @@ function _strBullsDibujar(cx2, S, R, conTitulo) {
      más suma 11; después van 7 de aire, que cubren el descendente de la última línea.
      Y en la CAPTURA, las dos líneas del descargo que `_strBullsCanvas` dibuja a +16 y +28 de la
      base devuelta, más su descendente y su aire: 34. */
-  const uDebajo = 34 + 46 + 11 * (leyLineas.length - 1) + 7 + (conTitulo ? 34 : 0);
+  /* ── EL DESCARGO DE LA CAPTURA SE MIDE ACÁ, por el mismo motivo que la leyenda: de su alto
+     sale el radio. Cada línea se parte en los renglones que entran en el ancho del canvas, con
+     márgenes parejos de 8 unidades a cada lado —los mismos que la leyenda—, y el alto reservado
+     es el de los renglones que de verdad salieron.
+     La primera base cae a +16 de la base devuelta y cada renglón suma 12; al final van 6 de
+     descendente. Con un renglón cada una eso da 34, que es exactamente lo que este archivo
+     reservaba cuando las dos líneas se dibujaban enteras —y es lo que hace que el diagrama no
+     se mueva ni un píxel cuando el descargo entra en dos renglones. */
+  let capL1 = [], capL2 = [], uCap = 0;
+  if (conTitulo) {
+    const capAncho = S - u(16);
+    cx2.font = 'bold ' + Math.round(u(9)) + 'px system-ui, sans-serif';
+    capL1 = _strEnvolver(cx2, _STR_CAP_L1, capAncho, 3);
+    cx2.font = Math.round(u(9)) + 'px system-ui, sans-serif';
+    capL2 = _strEnvolver(cx2, _STR_CAP_L2 + ((R && R.etiqueta) || '') + '.', capAncho, 3);
+    uCap = 16 + 12 * (capL1.length + capL2.length - 1) + 6;
+  }
+  const uDebajo = 34 + 46 + 11 * (leyLineas.length - 1) + 7 + uCap;
   const uArriba = conTitulo ? 30 : 7;
   const r = Math.max(u(40), (S - u(uArriba) - u(uDebajo)) / 2);
   const cx = S / 2, cy = u(uArriba) + r;
@@ -153683,7 +153712,31 @@ function _strBullsDibujar(cx2, S, R, conTitulo) {
      condición recalculaba la geometría con los números del dibujante copiados, y el día que el
      radio pasó a derivarse de lo que el resto necesita se quedó midiendo en otro lado. Un
      dibujante que dice dónde dibujó no se puede desincronizar de quien lo mide. */
-  return { ly: yFin, esc: esc, cx: cx, cy: cy, r: r, rIn: rIn };
+  /* ── EL DESCARGO, DIBUJADO POR EL MISMO DUEÑO QUE LO MIDIÓ ──
+     Sólo en la captura. Centrado, dentro del ancho medido arriba y con las mismas palabras: lo
+     único que cambió es dónde se parten. */
+  let yCap = yFin;
+  if (conTitulo) {
+    cx2.textAlign = 'center';
+    let yc = yFin + u(16);
+    cx2.fillStyle = '#92400e';
+    cx2.font = 'bold ' + Math.round(u(9)) + 'px system-ui, sans-serif';
+    capL1.forEach(function (t) { cx2.fillText(t, cx, yc); yc += u(12); });
+    cx2.fillStyle = '#4b5563';
+    cx2.font = Math.round(u(9)) + 'px system-ui, sans-serif';
+    capL2.forEach(function (t) { cx2.fillText(t, cx, yc); yc += u(12); });
+    yCap = yc - u(12);
+  }
+  /* ⚠️ DEVUELVE TAMBIÉN DÓNDE DIBUJÓ. `ly` es la base del ÚLTIMO renglón del diagrama —la
+     leyenda— y `lyFin` la del último renglón dibujado, descargo incluido: `ly` se conserva con
+     su significado de siempre para no mover a quien lo mida, y `lyFin` es lo que necesita quien
+     quiera saber dónde termina la imagen. `cx`, `cy`, `r` y `rIn` los necesita cualquiera que
+     quiera MEDIR el diagrama —hoy, la condición de TC-201 que muestrea el color de cada pared—.
+     Hasta PR13 esa condición recalculaba la geometría con los números del dibujante copiados, y
+     el día que el radio pasó a derivarse de lo que el resto necesita se quedó midiendo en otro
+     lado. Un dibujante que dice dónde dibujó no se puede desincronizar de quien lo mide. */
+  return { ly: yFin, lyFin: yCap, esc: esc, cx: cx, cy: cy, r: r, rIn: rIn,
+           capL1: capL1.length, capL2: capL2.length };
 }
 
 /* Repinta el canvas del panel. Se llama después de cada `_medEstado`, porque la barra se
@@ -153726,15 +153779,10 @@ function _strBullsCanvas() {
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
   const c2 = cv.getContext('2d');
-  const fin = _strBullsDibujar(c2, S, R, true);
-  const e = fin.esc;
-  c2.textAlign = 'center'; c2.fillStyle = '#92400e';
-  c2.font = 'bold ' + Math.round(9 * e) + 'px system-ui, sans-serif';
-  c2.fillText('Calculado por método de dos contornos manuales — NO equivalente al speckle tracking automático.',
-              S / 2, fin.ly + 16 * e);
-  c2.fillStyle = '#4b5563';
-  c2.font = Math.round(9 * e) + 'px system-ui, sans-serif';
-  c2.fillText('Orientativo, requiere correlación clínica. ' + R.etiqueta + '.', S / 2, fin.ly + 28 * e);
+  /* El descargo lo dibuja el MISMO dibujante, que es el que mide cuánto ocupa y de ahí saca el
+     radio. Hasta el lote post-PR13 se escribía acá con dos `fillText` de una línea y el canvas
+     lo recortaba a los costados sin avisar. */
+  _strBullsDibujar(c2, S, R, true);
   return cv;
 }
 window._strBullsCanvas = _strBullsCanvas;
