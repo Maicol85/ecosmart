@@ -154008,7 +154008,54 @@ window.medStrainCapturar = medStrainCapturar;
    inventarles una sería la cuarta escala del mismo dato, que es lo que esta app viene evitando
    desde que borró la graduación del SGL. */
 
-const LARS_RESERVORIO_NORMAL = 18;       // % — ASE 2025
+const LARS_RESERVORIO_NORMAL = 18;       // % - ASE 2025; la fuente y el folio, en _LARS_NOTAS
+
+/* ══ LAS NOTAS DEL LARS, CON SU FUENTE ═══════════════════════════════════════════════════════
+   LOTE POST-PR13 · GRUPOS F3, F4 y F6. Van en el globo ⓘ del panel, que es donde esta casa pone
+   el nombre de una guia, su autor, su anio y su folio; la pantalla DESCRIBE el valor.
+
+   ⚠️ EL CORTE DE 18 % ESTA CONFIRMADO, Y LA PREMISA DEL PEDIDO NO SE REPRODUJO. El pedido decia
+   que el 18 % «corresponde a otro contexto (guia diastolica)» y que el limite inferior de lo
+   normal es 23 %. Leida la guia de strain de la ASE en la biblioteca —Thomas y cols., JASE
+   2025;38(11), con la regla de folio `folio = hoja + 984` comprobada en el pie impreso de las
+   hojas 1, 11 y 23 (985, 995 y 1007)—, en su hoja 23 / folio 1007 dice, textual, que «the
+   committee believes that using LASr < 18% would provide the...» y, en su lista de puntos
+   clave, «Impaired LASr of <18% is associated with elevated LV filling pressures».
+   O sea que el 18 % es el corte que el COMITE de esa guia respalda, y no un valor de otro
+   contexto. **El corte NO se toca.**
+   ⚠️ Y EL 23 % EXISTE, pero es de UN ESTUDIO que la guia cita en esa misma hoja —«in 139
+   patients, LASr < 23% had superior prediction of invasive LV...»—, no la recomendacion del
+   comite. Por eso no se usa.
+   ⚠️ EL VALOR NORMAL DEL RESERVORIO SI SE PUDO PRECISAR: la hoja 11 / folio 995 publica 39 %
+   (IC 95 % del valor medio, 38-41 %) de un metaanalisis de 2.542 sanos en 40 estudios. Esa misma
+   hoja da conducto 23 % (IC 21-25) y contraccion 17 % (IC 16-19), que es lo que hoy la app
+   publica como «sin corte publicado»: AGREGARLOS ES CONTENIDO CLINICO NUEVO y lo decide el
+   medico. Declarado en PENDIENTES -> L13-f. */
+const _LARS_NOTAS = [
+  'Se traza el contorno interno de la pared de la aurícula izquierda en tres momentos del ciclo, '
+  + 'y de los tres perímetros salen el reservorio, el conducto y la contracción.',
+  /* GRUPO F4 · LA CUERDA DEL PLANO MITRAL, CONFIRMADA MIDIENDO. `_strainLargoPx` suma los
+     segmentos del primer punto al ultimo y NO cierra el contorno, asi que el perimetro es solo
+     la pared recorrida. El DIBUJO si cierra la figura -con `closePath`-, que es lo que puede
+     hacer pensar lo contrario, y por eso esta frase existe. */
+  'El perímetro que se mide es sólo la pared que recorrés: la línea que cierra la figura por el '
+  + 'plano mitral se dibuja para que se vea el contorno, pero no se suma al perímetro.',
+  /* GRUPO F6 · QUE ES LA PRE-CONTRACCION, y el aviso de cuando no se puede identificar. */
+  'La pre-contracción es el punto donde empieza la onda P del electrocardiograma: el final del '
+  + 'llenado pasivo, justo antes de que la aurícula se contraiga.',
+  'Sin el electrocardiograma a la vista, o en fibrilación auricular —donde no hay onda P ni '
+  + 'contracción auricular—, ese punto no se puede identificar: ahí sólo el reservorio es '
+  + 'confiable. No se bloquea nada; los otros dos valores se muestran igual.',
+  'Los tres contornos tienen que recorrer la misma extensión de pared: el reservorio compara la '
+  + 'misma aurícula en tres momentos, no tres recorridos distintos.',
+  'Cada contorno se ve sólo en el cuadro en que se trazó.',
+  'El valor normal del reservorio es 39 %, con un intervalo de confianza del 95 % de 38 a 41 %, '
+  + 'de un metaanálisis de 2.542 personas sanas en 40 estudios (Thomas 2025, hoja 11, folio 995).',
+  'Un reservorio por debajo de 18 % se asocia a presiones de llenado del ventrículo izquierdo '
+  + 'elevadas, y es el corte que el comité de esa fuente respalda (Thomas 2025, hoja 23, '
+  + 'folio 1007).',
+  'El conducto y la contracción se muestran sin valor de referencia.'
+];
 const _LARS_PASOS = [
   { k:'min', rot:'AI mínima',
     tit:'Trazado 1 — AI en su tamaño MÍNIMO',
@@ -154018,7 +154065,18 @@ const _LARS_PASOS = [
     guia:'Avanzá hasta el <b>final de la sístole</b> — cuando la AI se ve <b>más grande</b>, justo antes de que la válvula mitral se abra.' },
   { k:'preA', rot:'Pre-contracción',
     tit:'Trazado 3 — apertura mitral',
-    guia:'Avanzá hasta que la <b>válvula mitral esté abierta</b> —llenado pasivo del VI—, al final de la diástasis, <b>justo antes de la contracción auricular</b> (onda P).' }
+    /* ⚠️ LOTE POST-PR13 · GRUPO F6 · QUE ES LA PRE-CONTRACCION, EN EL PANEL Y NO SOLO EN EL
+       GLOBO. La frase decia «justo antes de la contraccion auricular (onda P)», que supone que
+       ya se sabe que es: ahora lo dice. Y AVISA sin bloquear que sin electrocardiograma a la
+       vista, o en fibrilacion auricular, ese punto no se puede identificar -no hay onda P ni
+       contraccion auricular-, asi que ahi solo el reservorio es confiable. No se bloquea nada:
+       los otros dos valores se siguen mostrando y los tres pasos se siguen pidiendo. */
+    guia:'Es el punto donde <b>empieza la onda P</b> del electrocardiograma: el final del llenado '
+       + 'pasivo del VI, <b>justo antes de que la aurícula se contraiga</b>. Avanzá hasta que la '
+       + '<b>válvula mitral esté abierta</b>, al final de la diástasis.'
+       + '<div style="margin-top:4px;color:#fbbf24;">Sin el electrocardiograma a la vista, o en '
+       + '<b>fibrilación auricular</b> —donde no hay onda P ni contracción auricular—, este punto '
+       + 'no se puede identificar: ahí sólo el <b>reservorio</b> es confiable. Se mide igual.</div>' }
 ];
 
 function _larsIniciar() {
@@ -154044,8 +154102,15 @@ function _contornoLargo(pts, queEs) {
   const cmPorPx = v.esc.mmPorPx / 10;
   const borde = _strainLargoPx(pts) * cmPorPx;
   if (!(borde > 0)) return { ok:false, motivo:'El trazado es demasiado chico para medir ' + (queEs || 'esta estructura') + '.' };
+  /* ⚠️ LOTE POST-PR13 · GRUPO F5 · EL TRAZO GUARDA EN QUE CUADRO SE DIBUJO. Sin esto los tres
+     contornos del LARS se dibujaban los TRES a la vez, uno encima del otro, en cualquier cuadro:
+     el medico pausaba en la AI minima y veia tambien la maxima y la pre-contraccion superpuestas,
+     que es justo lo que no se puede leer. `loop` identifica el cineloop y `cuadro` el fotograma;
+     los dos salen del mismo `_cineDatos` del que ya salia el nombre. */
   return { ok:true, dato: { pts, cmPorPx, bordeCm: borde,
-                            imagen: (_cineDatos && _cineDatos.loops[_cineDatos.i].nombre) || '' } };
+                            imagen: (_cineDatos && _cineDatos.loops[_cineDatos.i].nombre) || '',
+                            loop: _cineDatos ? (_cineDatos.i | 0) : null,
+                            cuadro: _cineDatos ? (_cineDatos.cuadro | 0) : null } };
 }
 
 function _larsAceptar(pts) {
@@ -154099,8 +154164,25 @@ window.medLarsReiniciar = medLarsReiniciar;
    y leída literal significaba lo contrario—. Por eso en pantalla va con palabras y nunca con
    el operador solo. */
 
-const VD_STRAIN_NORMAL = -20;   // % — ASE 2025 de MAYO, pared libre, Tabla 1 folio 145:
-                                //     normal = mas negativo que -20 %, IGUAL en los dos sexos.
+const VD_STRAIN_NORMAL = -20;   // % - pared libre; la fuente y el folio, en _VD_NOTAS
+
+/* LAS NOTAS DEL STRAIN DEL VD, con su fuente. LOTE POST-PR13 · GRUPO F3: el nombre de la guia,
+   su tabla y su folio salieron del texto de pantalla y viven aca. El corte esta confirmado: la
+   tanda 3A lo releyo EN IMAGEN en la Tabla 1 de la ASE 2025 de corazon derecho, hoja 5, con el
+   folio 145 impreso en el pie («Mukherjee, M et al | 145»), y su nota al pie dice «Absolute
+   values and ranges for strain are shown». */
+const _VD_NOTAS = [
+  'Se traza SÓLO la pared libre del ventrículo derecho, del anillo tricuspídeo lateral hasta el '
+  + 'ápex. El septo no entra.',
+  'Con el septo adentro el número es el del strain global del ventrículo derecho, que promedia '
+  + 'pared libre y septo y da valores menos negativos: los cortes de este panel no le '
+  + 'corresponden.',
+  'Se traza en diástole y en sístole, recorriendo el mismo trayecto en las dos.',
+  'Normal es más negativo que −20 %, igual en hombres y en mujeres (Mukherjee 2025, Tabla 1, '
+  + 'hoja 5, folio 145, y el texto del folio 159).',
+  'Es el método de dos contornos manuales: no equivale al speckle tracking automático, y no se '
+  + 'integra al informe firmado.'
+];
 
 function _vdIniciar() {
   _vd = { fase:'d', trazos:{ d:null, s:null }, pendiente:null,
@@ -154118,7 +154200,7 @@ function _vdAceptar(pts) {
 
 function medVdConfirmar() {
   if (!_vd || !_vd.pendiente) {
-    avisoProp('Falta el contorno', 'Trazá primero la pared libre del VD: mantené apretado y recorré del anillo tricuspídeo lateral, por el ápex del VD, hasta el anillo septal.');
+    avisoProp('Falta el contorno', 'Trazá primero la pared libre del VD: mantené apretado y recorré del anillo tricuspídeo lateral hasta el ápex del VD.');
     return;
   }
   _vd.trazos[_vd.fase] = _vd.pendiente;
@@ -154289,10 +154371,21 @@ function _vdPanel() {
   let cab = '<div style="font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:6px;">' +
     'El <b>strain de pared libre del VD</b> mide la deformación de la pared lateral del ' +
     'ventrículo derecho. Usá la <b>apical 4 cámaras enfocada en el VD</b> (RV-focused A4C).<br>' +
-    'Trazá <b>sólo la pared libre</b>: del <b>anillo tricuspídeo lateral</b>, por el <b>ápex del ' +
-    'VD</b>, hasta el <b>anillo septal</b>. <b style="color:#fbbf24;">No incluyas el septo ' +
-    'interventricular</b> — con el septo adentro el número es otra magnitud y los cortes de ' +
-    'abajo no le corresponden.</div>';
+    /* ⚠️ LOTE POST-PR13 · GRUPO F1 · SE CORRIGIO UNA CONTRADICCION QUE EL MEDICO VIO. Este texto
+       decia «del anillo tricuspideo lateral, por el apex del VD, HASTA EL ANILLO SEPTAL» y dos
+       lineas despues «no incluyas el septo interventricular»: las dos cosas no pueden ser, porque
+       un trazo que va de un anillo al otro pasando por el apex recorre la pared libre Y el septo,
+       que es el strain GLOBAL y no el de pared libre.
+       La pared libre va del anillo tricuspideo lateral AL APEX, y ahi termina.
+       /!\ EL CALCULO NO HUBO QUE TOCARLO, y esta medido: `_vdCalcular` hace (Ls-Ld)/Ld sobre
+       `bordeCm`, que es el largo del trazo que el medico dibujo. O sea que mide exactamente lo
+       que se traza, y lo que estaba mal era lo que la pantalla le pedia trazar. */
+    'Trazá <b>sólo la pared libre</b>: del <b>anillo tricuspídeo lateral</b> hasta el <b>ápex ' +
+    'del VD</b>. <b style="color:#fbbf24;">No incluyas el septo interventricular</b> — con el ' +
+    'septo adentro el número es el del strain global del VD, que es otra magnitud, y los cortes ' +
+    'de abajo no le corresponden. ' +
+    /* GRUPO F3: la fuente con su autor, su anio y su folio, en el globo. */
+    _medInfoBoton('vd-metodo', 'Strain del VD — notas de método', _VD_NOTAS) + '</div>';
   const fila = (k, rot) => {
     const T = _vd.trazos[k];
     return '<div style="font-size:11px;line-height:1.6;' + (T ? '' : 'color:var(--text2);') + '">' +
@@ -154311,7 +154404,7 @@ function _vdPanel() {
       '<div style="margin-top:4px;padding:6px 8px;border-radius:6px;border-left:3px solid ' +
         (_vd.fase === 'd' ? '#22d36a' : '#60a5fa') + ';background:rgba(120,140,170,.07);' +
         'font-size:10px;line-height:1.55;">' + P.guia +
-        '<br>Trazá la pared libre: anillo lateral → ápex del VD → anillo septal.</div>' +
+        '<br>Trazá la pared libre: anillo tricuspídeo lateral → ápex del VD. El septo no entra.</div>' +
       '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
         'Mantené apretado y recorré la pared. ' +
         (_vd.pendiente ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar».</b>' : '') +
@@ -154330,10 +154423,13 @@ function _vdPanel() {
     const col = !R.plausible ? '#fbbf24' : (R.normal === null ? '#e5e7eb' : (R.normal ? '#22d36a' : '#fb923c'));
     /* Los cortes van con PALABRAS y no con el operador solo: «más negativo que −20 %» no se
        puede leer al revés, y «< −20 %» sí. */
+    /* ⚠️ GRUPO F3 · SALE EL NOMBRE DE LA GUIA, SU TABLA Y SU FOLIO DEL TEXTO DE PANTALLA. El
+       corte esta confirmado -ASE 2025 de corazon derecho, Tabla 1, hoja 5, folio 145 impreso en
+       el pie, releido en imagen por la tanda 3A- asi que la pantalla DESCRIBE el valor y la cita
+       con autor y anio vive en el globo ⓘ de este panel. */
     const refs = '<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.55;">' +
-      'Normal (ASE 2025 de mayo, pared libre, Tabla 1 · folio 145, y texto del folio 159): ' +
-      '<b>más negativo que −20 %</b>, igual en hombres y en mujeres. Menos negativo que ese ' +
-      'valor es anormal.' +
+      'Normal: <b>más negativo que −20 %</b>, igual en hombres y en mujeres. Menos negativo que ' +
+      'ese valor es anormal.' +
     '</div>';
     res = '<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border);">' +
       '<div style="font-size:13px;line-height:1.7;">Strain VD pared libre ' +
@@ -154399,8 +154495,10 @@ const _LARS_DISCLAIMER =
   '<div style="margin-top:7px;padding:7px 9px;border-radius:7px;border-left:3px solid #fbbf24;' +
     'background:rgba(251,191,36,.07);font-size:10px;line-height:1.55;color:var(--text2);">' +
     '<b>Calculado por método de tres contornos manuales</b> en momentos clave del ciclo. ' +
+    /* GRUPO F3: sale el nombre de la guia del texto de pantalla; la cita con su autor, su anio
+       y su folio vive en el globo ⓘ de este panel. */
     'No equivalente al speckle tracking automático. <b>Sólo el reservorio tiene valor de ' +
-    'referencia publicado (≥18 %, ASE 2025).</b> Usar como orientación clínica. ' +
+    'referencia publicado.</b> Usar como orientación clínica. ' +
     '<b>No se integra al informe firmado.</b>' +
   '</div>';
 
@@ -154410,10 +154508,13 @@ function _larsPanel() {
   const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + _V.pfx + id +
     '" style="padding:3px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
 
+  /* GRUPO F3 del lote post-PR13: el globo con la fuente, su autor, su anio y su folio. En la
+     pantalla queda la descripcion del valor; la cita vive aca. */
   let cab = '<div style="font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:6px;">' +
     'El <b>strain auricular izquierdo (LARS)</b> mide la deformación de la pared de la aurícula ' +
     'izquierda en tres momentos del ciclo. Hay que trazar el <b>contorno interno de la AI</b> en ' +
-    'tres cuadros distintos.</div>';
+    'tres cuadros distintos. Cada contorno se ve sólo en el cuadro en que se trazó. ' +
+    _medInfoBoton('lars-metodo', 'LARS — notas de método', _LARS_NOTAS) + '</div>';
   cab += _LARS_PASOS.map((P, i) => {
     const T = _lars.trazos[P.k];
     const marca = T ? '✅' : (i === _lars.paso ? '▶️' : '⬜');
@@ -154458,15 +154559,26 @@ function _larsPanel() {
     res = '<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--border);">' +
       '<div style="font-size:13px;">LARS reservorio <b style="font-size:19px;color:' + col + ';">' +
         R.res.toFixed(1) + ' %</b></div>' +
-      fila('Reservorio', R.res, 'normal ≥ ' + LARS_RESERVORIO_NORMAL + ' % (ASE 2025)') +
+      /* ⚠️ GRUPO F3 · SALE EL NOMBRE DE LA GUIA DEL TEXTO DE PANTALLA. El rotulo describe el
+         valor; la fuente con su autor, su anio y su folio vive en el globo ⓘ de este panel, que
+         es la regla fija de esta casa. */
+      fila('Reservorio', R.res, 'normal ' + LARS_RESERVORIO_NORMAL + ' % o más') +
       fila('Conducto', R.cond, 'sin corte publicado') +
       fila('Contracción', R.ctr, 'sin corte publicado') +
       '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;">' +
         'Perímetros: mínima ' + R.L1.toFixed(1) + ' → máxima ' + R.L2.toFixed(1) +
         ' → pre-contracción ' + R.L3.toFixed(1) + ' cm. ' +
         'Reservorio = conducto + contracción' + (R.identidad ? ' ✓' : ' <b style="color:#f87171;">✗</b>') + '. ' +
-        '<b>Conducto y contracción se muestran como MAGNITUD;</b> la ASE los publica con signo ' +
-        'negativo (−' + R.cond.toFixed(1) + ' % y −' + R.ctr.toFixed(1) + ' %). Son los mismos valores.' +
+        /* ⚠️ GRUPO F2 · EL DOBLE SIGNO «−−39,0» QUE EL MEDICO VIO. Esta linea antepone un menos
+           a cada valor, y los dos salen POSITIVOS cuando el orden de los tres cuadros es el
+           esperado. Con el orden al reves -L3 por encima de L2, o L2 por debajo de L1- el
+           conducto o la contraccion salen NEGATIVOS, y el menos de aca quedaba encima: «−−39,0».
+           Se publica el valor ABSOLUTO con su unico menos. Que el orden este mal lo sigue
+           diciendo el aviso de abajo, que es su lugar: esto es como se escribe un numero, no un
+           hallazgo. */
+        '<b>Conducto y contracción se muestran como MAGNITUD;</b> otras publicaciones los dan con ' +
+        'signo negativo (−' + Math.abs(R.cond).toFixed(1) + ' % y −' + Math.abs(R.ctr).toFixed(1) +
+        ' %). Son los mismos valores.' +
       '</div>' +
       (!R.ordenOk
         ? '<div style="font-size:10px;color:#f87171;margin-top:5px;line-height:1.5;"><b>⚠️ Los tres perímetros no están en el orden esperado</b> ' +
@@ -155149,10 +155261,17 @@ function _medPintar() {
         cx.fillText(t2, q.x + 11*esc, q.y - 2*esc);
       }
     };
+    /* ⚠️ GRUPO F5 · UN TRAZO SE DIBUJA SOLO EN EL CUADRO EN QUE SE TRAZO. Los tres contornos del
+       LARS son de tres momentos distintos del ciclo: dibujarlos juntos sobre un cuadro cualquiera
+       pone tres paredes superpuestas y ninguna es la de la imagen que se esta viendo.
+       /!\ FALLA HACIA DIBUJAR: un trazo sin cuadro -uno guardado antes de este lote, o uno
+       restaurado- se sigue mostrando, porque esconderlo le sacaria al medico algo que hoy ve. */
+    const _aqui = (T) => !T || T.cuadro == null || !_cineDatos
+      || (T.loop === (_cineDatos.i | 0) && T.cuadro === (_cineDatos.cuadro | 0));
     if (!_lars.ocultar) {
-      dibujarAI(_lars.trazos.min,  COLS.min,  'AI mín.');
-      dibujarAI(_lars.trazos.max,  COLS.max,  'AI máx.');
-      dibujarAI(_lars.trazos.preA, COLS.preA, 'pre-A');
+      if (_aqui(_lars.trazos.min))  dibujarAI(_lars.trazos.min,  COLS.min,  'AI mín.');
+      if (_aqui(_lars.trazos.max))  dibujarAI(_lars.trazos.max,  COLS.max,  'AI máx.');
+      if (_aqui(_lars.trazos.preA)) dibujarAI(_lars.trazos.preA, COLS.preA, 'pre-A');
     }
     if (_lars.pendiente) dibujarAI(_lars.pendiente, '#fbbf24', null);
   }
@@ -156101,7 +156220,7 @@ const _MED_COMO = {
   fc:     'Dos clics sobre la MISMA onda de dos latidos seguidos: sale el intervalo RR y la frecuencia (60.000 / RR).',
   strain: 'Mantené apretado y recorré el borde del VI, del anillo mitral septal al lateral pasando por el ápex. Se traza en diástole y en sístole.' + MED_RETRO_AYUDA,
   lars:   'Mantené apretado y recorré el contorno interno de la aurícula izquierda. Se traza en tres momentos del ciclo.' + MED_RETRO_AYUDA,
-  vd:     'Mantené apretado y recorré SÓLO la pared libre del VD, del anillo tricuspídeo lateral al septal pasando por el ápex. Se traza en diástole y en sístole.' + MED_RETRO_AYUDA,
+  vd:     'Mantené apretado y recorré SÓLO la pared libre del VD, del anillo tricuspídeo lateral hasta el ápex. El septo no entra. Se traza en diástole y en sístole.' + MED_RETRO_AYUDA,
   dist:   'Hacé clic en dos puntos para medir.'
 };
 const _medComo = () => _MED_COMO[_medHerr] || _MED_COMO.dist;
