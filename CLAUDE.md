@@ -305,7 +305,7 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **14,19 MB / 197.092 líneas**, medido con `wc -c` y `wc -l` el 2026-11-28 al cierre del **lote post-PR13** (ocho grupos: la captura del mapa, el copiado a Pages, los textos, el retroceso del trazado, «Cambiar vista», el LARS y el strain del VD, la flecha del SGL y la pantalla completa del visor), sobre el árbol ya sellado: sello **`v20261128-0251`**, md5 **`8e4caaee`**.
+  sin frameworks. Hoy **14,20 MB / 197.138 líneas**, medido con `wc -c` y `wc -l` el 2026-11-28 al cierre del **lote post-PR13** (ocho grupos: la captura del mapa, el copiado a Pages, los textos, el retroceso del trazado, «Cambiar vista», el LARS y el strain del VD, la flecha del SGL y la pantalla completa del visor), sobre el árbol ya sellado: sello **`v20261128-0316`**, md5 **`c1c7de77`**.
   El diff del lote son **683 líneas agregadas y 51 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `d3e08ed` **sobre el árbol ya sellado**, de las que **343 son código
   de verdad**, 312 comentario y 28 en blanco —las 683 cierran exacto, y el filtro lleva el estado
@@ -2082,7 +2082,7 @@ pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
 **El lote post-PR13 (2026-11-28) — ocho grupos: la captura del mapa, el copiado a Pages, los
 textos, el retroceso del trazado, «Cambiar vista», el LARS y el strain del VD, la flecha del SGL y
 la pantalla completa del visor.** OCHO grupos independientes y NUEVE commits. Sello
-**`v20261128-0251`**, md5 **`8e4caaee`**, **197.092** líneas. Línea base **`d3e08ed`**, el cierre
+**`v20261128-0316`**, md5 **`c1c7de77`**, **197.138** líneas. Línea base **`d3e08ed`**, el cierre
 de PR13. **Sin push: lo corre Maicol.**
 
 **TRES PREMISAS DE LA ORDEN NO SE REPRODUJERON, Y LAS TRES CAMBIARON QUÉ HABÍA QUE HACER.**

@@ -153949,6 +153949,25 @@ function _strFontEnSector(cx2, txt, px, py, cxx, cyy, a0, a1, rIn, rOut, nom, mi
   return min;
 }
 
+/* ⚠️ LAS ABREVIATURAS DEL NOMBRE DE PARED, Y POR QUÉ HACEN FALTA.
+   El radio del diagrama se DERIVA de lo que el resto necesita, y desde que el descargo de la
+   captura se parte en los renglones que entran, ese alto **varía con el largo de la etiqueta del
+   resultado**: con la etiqueta corta el descargo sale en tres renglones y con una larga en cuatro,
+   y entre los dos casos el radio cambia un 8 %. Medido: con cuatro renglones, «Anterolateral» y
+   «Anteroseptal» —los dos nombres más largos— ya no entran en su sector **ni en el tamaño mínimo
+   de letra**, y `_strFontEnSector` los dibuja en el mínimo igual, o sea desbordando el polígono.
+   Lo cazó TC-1069, que prueba las cuatro esquinas del rectángulo contra el polígono real.
+   ⚠️ SE ABREVIA EL NOMBRE Y NO SE BAJA LA LETRA, y es la decisión de fondo: bajar el mínimo deja
+   un rótulo que no se lee, que es justamente lo que PR13 vino a arreglar. Un nombre abreviado
+   sigue identificando la pared — es lo que hace cualquier bull's eye impreso.
+   Y se abrevia SÓLO si hace falta: con el nombre entero entrando, se dibuja entero. */
+const _STR_PARED_CORTA = Object.freeze({
+  'Anterolateral': 'Anterolat.',
+  'Anteroseptal':  'Anterosept.',
+  'Inferolateral': 'Inferolat.',
+  'Inferoseptal':  'Inferosept.'
+});
+
 /* LAS DOS LÍNEAS DEL DESCARGO DE LA CAPTURA, con UN SOLO DUEÑO.
    ⚠️ HASTA HOY LAS ESCRIBÍA `_strBullsCanvas` CON DOS `fillText` DE UNA SOLA LÍNEA, y el canvas
    las RECORTABA EN SILENCIO: medido, a 640 px —el tamaño real de la captura— la primera mide
@@ -154066,9 +154085,27 @@ function _strBullsDibujar(cx2, S, R, conTitulo) {
     cx2.textAlign = 'center'; cx2.textBaseline = 'middle';
     cx2.fillStyle = _strTxtSobre(idx);
     const pn = { x: cx + Math.cos(am) * rhoNom, y: cy + Math.sin(am) * rhoNom };
-    _strFontEnSector(cx2, sc.pared, pn.x, pn.y, cx, cy, sc.a[0], sc.a[1], rIn, r,
-                     Math.round(u(8.5)), Math.max(5, Math.round(u(5))), false);
-    cx2.fillText(sc.pared, pn.x, pn.y);
+    /* El nombre entero si entra; si no, su abreviatura. `_strFontEnSector` devuelve el tamaño
+       elegido Y deja la fuente puesta, así que para saber si ENTRÓ hay que volver a probar las
+       cuatro esquinas con esa fuente: la función devuelve el mínimo también cuando nada entra. */
+    const nomMin = Math.max(5, Math.round(u(5)));
+    let nom = sc.pared;
+    const cabe = function (t) {
+      const px = _strFontEnSector(cx2, t, pn.x, pn.y, cx, cy, sc.a[0], sc.a[1], rIn, r,
+                                  Math.round(u(8.5)), nomMin, false);
+      if (px > nomMin) return true;
+      /* En el mínimo: se comprueba de verdad, con la fuente ya puesta por la función. */
+      const w = cx2.measureText(t).width, h = px * 0.78;
+      return _strEnSector(pn.x - w/2, pn.y - h/2, cx, cy, sc.a[0], sc.a[1], rIn, r)
+          && _strEnSector(pn.x + w/2, pn.y - h/2, cx, cy, sc.a[0], sc.a[1], rIn, r)
+          && _strEnSector(pn.x - w/2, pn.y + h/2, cx, cy, sc.a[0], sc.a[1], rIn, r)
+          && _strEnSector(pn.x + w/2, pn.y + h/2, cx, cy, sc.a[0], sc.a[1], rIn, r);
+    };
+    if (!cabe(nom) && _STR_PARED_CORTA[sc.pared]) {
+      nom = _STR_PARED_CORTA[sc.pared];
+      cabe(nom);   // deja la fuente del nombre abreviado puesta
+    }
+    cx2.fillText(nom, pn.x, pn.y);
     const txt = t ? _strFmt(t.pct) : 'Sin dato';
     const pv = { x: cx + Math.cos(am) * rhoNum, y: cy + Math.sin(am) * rhoNum };
     _strFontEnSector(cx2, txt, pv.x, pv.y, cx, cy, sc.a[0], sc.a[1], rIn, r,
@@ -154219,7 +154256,16 @@ function _strBullsRepintar() {
 function _strBullsCanvas() {
   const R = _strResultadoVivo();
   if (!R) return null;
-  const S = 640;
+  /* ⚠️ EL LADO PASA DE 640 A 760, Y ES UNA CONSECUENCIA MEDIDA DEL DESCARGO QUE AHORA SE PARTE.
+     Con el aviso en dos renglones por línea, la reserva de alto debajo del diagrama pasa de 34 a
+     58 unidades, y el radio -que se DERIVA de lo que el resto necesita- bajaba de 158 a 134 px:
+     un 15 % menos, con el que los dos nombres de pared más largos -«Anterolateral» y
+     «Anteroseptal»- dejaban de entrar en su sector ni en el tamaño mínimo de letra. Lo cazó
+     TC-1069, que mide las cuatro esquinas del rectángulo contra el polígono real.
+     Se agranda el lienzo en vez de achicar la letra o abreviar el nombre: la captura va al PDF y
+     a la biblioteca, así que lo que se gana es resolución. 760² son un 41 % más de píxeles que
+     640², y el JPEG sale al 92 %. */
+  const S = 760;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
   const c2 = cv.getContext('2d');
@@ -188164,8 +188210,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261128-0251';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795845104116;                 /* eco-build-ms */
+const ECO_BUILD    = '20261128-0316';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795846564063;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -188251,7 +188297,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261128-0251</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261128-0316</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

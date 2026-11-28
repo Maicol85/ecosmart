@@ -1,6 +1,6 @@
 ## Lote post-PR13 — ocho grupos: la captura del mapa, el copiado, los textos, el trazado, la vista, el LARS y el VD, la tabla del SGL y la pantalla completa (2026-11-28)
 
-**Sello** `v20261128-0251` · **md5** `8e4caaee` · **197.092** líneas · línea base `d3e08ed`.
+**Sello** `v20261128-0316` · **md5** `c1c7de77` · **197.138** líneas · línea base `d3e08ed`.
 **Sin push: lo corre Maicol.**
 
 **Ocho grupos independientes, A a H, un commit cada uno. Los ocho se hicieron; el G era verificar.**

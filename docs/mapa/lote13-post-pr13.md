@@ -26,6 +26,30 @@ del último renglón dibujado, descargo incluido: así quien mida `ly` no se mue
 por palabra, **cero** puntos suspensivos y margen de 4 px o más a los dos lados. Antes, a 640 px
 la primera línea medía **850 px contra un canvas de 640**.
 
+### ⚠️ Lo que esto trajo, y que el barrido destapó: el radio depende del descargo
+
+Como el radio **se deriva** de lo que el resto necesita, y el descargo ahora ocupa los renglones
+que hagan falta, **ese alto varía con el largo de la etiqueta del resultado**: con la etiqueta
+corta sale en tres renglones y con una larga en cuatro, y entre los dos casos el radio cambia un
+8 %. Medido: con cuatro renglones, **«Anterolateral» y «Anteroseptal»** —los dos nombres más
+largos— ya no entraban en su sector **ni en el tamaño mínimo de letra**, y `_strFontEnSector` los
+dibujaba en el mínimo igual, o sea desbordando el polígono. Lo cazó **TC-1069**, que prueba las
+cuatro esquinas del rectángulo contra el polígono real.
+
+**Se cerró por dos lados:**
+
+1. **El nombre de la pared se abrevia si no entra** (`_STR_PARED_CORTA`, cuatro entradas), y
+   **sólo** si no entra: con el nombre entero entrando, se dibuja entero. **Se abrevia y no se
+   baja la letra**, que es la decisión de fondo: bajar el mínimo deja un rótulo que no se lee, que
+   es justamente lo que PR13 vino a arreglar.
+2. **El lado de la captura pasa de 640 a 760**, así el caso típico dibuja los nombres **enteros** y
+   la abreviatura queda como red. 760² son un 41 % más de píxeles, y la captura va al PDF y a la
+   biblioteca: lo que se gana es resolución.
+
+Medido después: **cero** rótulos fuera del polígono en 640, 760 y 900 px. Y **TC-1069 pasa a
+derivar el lado del propio `_strBullsCanvas`** en vez de escribirlo a mano, así que el día que
+cambie otra vez lo sigue solo.
+
 ---
 
 ## B · El tamaño del texto que se copia

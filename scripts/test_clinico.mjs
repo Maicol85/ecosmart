@@ -166069,12 +166069,21 @@ caso('TC-1066',
   R.txt = txt.slice(0, 170);
 
   R.rotulo = txt.indexOf('BNP / NT-proBNP basal elevado') >= 0;
-  R.rango = txt.indexOf('375') >= 0 && txt.indexOf('600') >= 0
-         && (txt.indexOf('pg/mL') >= 0 || txt.indexOf('pg/ml') >= 0);
+  /* /!\ INVERTIDA EN EL LOTE POST-PR13 (GRUPO C1), Y FALLA POR LOS DOS LADOS. Hasta hoy exigia que
+     la ayuda publicara «375-600 pg/mL»; por orden de Maicol ese rango SALIO -no tenia fuente, y un
+     marcador BASAL elevado no tiene tope, asi que un rango con techo decia algo que no es cierto- y
+     la ayuda dice «por encima del limite superior del laboratorio local». Hoy se exige la frase
+     nueva Y que el rango ya no este. */
+  R.rango = txt.indexOf('375') < 0 && txt.indexOf('600') < 0
+         && txt.indexOf('por encima del l') >= 0 && txt.indexOf('laboratorio local') >= 0;
   /* ROTULADO COMO CRITERIO PROPIO Y SIN NOMBRAR NINGUNA GUIA: la orden prohibe citar una fuente
      para el 600, y la de la biblioteca trae otro tope. */
-  R.criterio = txt.toUpperCase().indexOf('CRITERIO DE ECOSMART') >= 0
-            || txt.toLowerCase().indexOf('criterio de la aplicaci') >= 0;
+  /* /!\ INVERTIDA EN EL LOTE POST-PR13 (GRUPO C1): el chip de criterio propio salio CON el rango,
+     porque ya no hay ningun numero propio que declarar -el limite lo pone el laboratorio-. Y en su
+     lugar la casilla gana un globo con la cita de la fuente del marco, que es lo que esta
+     condicion exige ahora. */
+  R.criterio = txt.toUpperCase().indexOf('CRITERIO DE ECOSMART') < 0
+            && !!(lab && lab.querySelector('[data-vinfo="hfaicos-bnp"]'));
   R.sinGuia = ['Pieske', 'ESC', 'ACC', 'AHA', 'ASE', 'EACVI', 'HFA-PEFF', '660']
                 .every(gg => txt.indexOf(gg) < 0);
   /* SIN title EN NINGUN NODO: es la regla de TC-500. */
@@ -166111,8 +166120,10 @@ caso('TC-1066',
   return { extra: [
     ['DENOMINADOR: la casilla y su etiqueta existen', R.hay && R.hayLab, R.txt],
     ['el rotulo de la casilla no cambio', R.rotulo, R.rotulo],
-    ['la ayuda publica el rango 375 a 600 pg/mL', R.rango, R.rango],
-    ['y va rotulado como criterio de la aplicacion', R.criterio, R.criterio],
+    ['la ayuda ya NO publica el rango y dice el limite del laboratorio (INVERTIDA en el lote post-PR13)',
+      R.rango, R.txt],
+    ['sin el chip de criterio propio -ya no hay numero propio- y con su globo de fuente',
+      R.criterio, R.criterio],
     ['sin citar ninguna guia ni el otro tope', R.sinGuia, R.sinGuia],
     ['ningun nodo de la etiqueta lleva title', R.sinTitle, R.sinTitle],
     ['un solo control en la etiqueta, y es la casilla', R.unSoloControl, R.unSoloControl],
@@ -166476,7 +166487,18 @@ caso('TC-1069',
              pie: T.map(function (t) { return t.t }).filter(function (t) { return t.indexOf('SGL') === 0 || t.indexOf('pared') >= 0 }) };
   };
 
-  const M3 = medir(300, false, RES), M6 = medir(640, true, RES), M4 = medir(300, false, RES4);
+  /* /!\ EL LADO DE LA CAPTURA SE DERIVA Y NO SE ESCRIBE, y es la adaptacion del lote post-PR13.
+     Estaba en 640 a mano, y el grupo A -que hace que el descargo quemado se parta en los renglones
+     que entran- subio la reserva de alto debajo del diagrama, con lo que el radio bajo un 15 por
+     ciento y los dos nombres de pared mas largos dejaban de entrar en su sector: la captura paso a
+     760 justamente por eso. Si el lado se escribe aca, el caso mide un tamanio que la app ya no
+     usa; derivandolo del propio _strBullsCanvas, lo sigue solo. */
+  const LADO = (function () {
+    try { const m = /const S = (\\d+);/.exec(String(_strBullsCanvas));
+          return m ? parseInt(m[1], 10) : 760; } catch (e) { return 760 }
+  })();
+  R.ladoCaptura = LADO;
+  const M3 = medir(300, false, RES), M6 = medir(LADO, true, RES), M4 = medir(300, false, RES4);
   const todos = function (M, k) { return M.sect.every(function (x) { return x[k] }) };
   R.unSolo = todos(M3,'unSoloColor') && todos(M6,'unSoloColor') && todos(M4,'unSoloColor');
   R.colorVisor = todos(M3,'igualAlVisor') && todos(M6,'igualAlVisor') && todos(M4,'igualAlVisor');
@@ -166505,7 +166527,8 @@ caso('TC-1069',
       M3.sect.map(function (x) { return x.color + (x.igualAlVisor ? '' : '!=' + x.esperadoVisor) }).join(' ')],
     ['CRUZADO contra la pestania SGL: el mismo valor, el mismo color', R.colorPest,
       M3.sect.map(function (x) { return x.esperadoPestania }).join(' ')],
-    ['el nombre y el numero entran DENTRO del poligono del sector', R.textoEntra, R.malTexto || 'los doce entran'],
+    ['el nombre y el numero entran DENTRO del poligono del sector, en el lado que la captura usa',
+      R.textoEntra, 'lado=' + R.ladoCaptura + ' ' + (R.malTexto || 'los doce entran')],
     ['el numero va con COMA, como la pestania', R.coma === 6 && R.conPunto === 0,
       'conComa=' + R.coma + ' conPunto=' + R.conPunto],
     ['una pared sin dato sale gris y dice Sin dato', R.sinDato6 && R.sinDato4,
