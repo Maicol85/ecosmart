@@ -1,3 +1,74 @@
+## Lote post-PR13 — ocho grupos: la captura del mapa, el copiado, los textos, el trazado, la vista, el LARS y el VD, la tabla del SGL y la pantalla completa (2026-11-28)
+
+**Sello** `v20261128-0251` · **md5** `8e4caaee` · **197.092** líneas · línea base `d3e08ed`.
+**Sin push: lo corre Maicol.**
+
+**Ocho grupos independientes, A a H, un commit cada uno. Los ocho se hicieron; el G era verificar.**
+
+| grupo | qué pasó |
+|---|---|
+| **A** · la captura del mapa | las dos líneas del aviso quemado se **miden dentro del dibujante** y se parten en los renglones que entran. Antes, a 640 px la primera medía **850 px contra un canvas de 640**: 105 px cortados a cada lado |
+| **B** · el copiado a Pages | el tamaño pasa a **píxeles**. Medido con `textutil` —el motor de Cocoa que Pages usa—: `11pt` da `\fs29` = **14,5 pt** y `11px` da `\fs22` = **11,0**. **Se aparta de la letra de la orden**, que pedía puntos |
+| **C** · los textos | la casilla del NT-proBNP deja de publicar un rango y dice el límite del laboratorio, con globo que cita **Lyon 2022**; salen las **tres frases** de AF-4 y AF-5 de las notas del Simpson |
+| **D** · retroceder al trazar | `medRetroIndice` en `_medAreaMove`, el único recolector de puntos: alcanza a las **seis** herramientas de arrastre a la vez. Se mira **antes** de decimar |
+| **E** · «‹ Cambiar vista» | con su salida sin elegir y su pregunta. **No pierde nada por construcción**: mueve el puntero, no el contenido |
+| **F** · LARS y VD | se corrige la **contradicción** del trazado del VD, el **doble signo**, las dos citas pasan al globo, cada trazo se dibuja **sólo en su cuadro** y se explica la pre-contracción |
+| **G** · la flecha del SGL | **verificado y sin cambios**: ya estaba como lo acordado desde PR9 |
+| **H** · pantalla completa | `requestFullscreen`, con el estado leído del **navegador** y no de una bandera propia, controles que se esconden a los 3 s, pausa al tocar y barra espaciadora |
+
+**El diff son 683 líneas agregadas y 51 quitadas** en `index.html`, medido con
+`git diff --numstat` contra `d3e08ed` **sobre el árbol ya sellado**, de las que **343 son código de
+verdad**, 312 comentario y 28 en blanco — las 683 cierran exacto, con el filtro llevando el estado
+del comentario de bloque.
+
+Con **CERO** `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y **UN** solo
+`innerHTML` nuevo: `b.innerHTML = on ? '&#9986;' : '&#9974;'`, **dos entidades literales** y ni un
+dato de nadie — **Semgrep queda en su línea base exacta de 126**.
+
+**CERO `<input>`, `<select>` y `<textarea>` nuevos**: el único `<input` que el diff muestra es la
+**misma** casilla `hfaicos_bnp`, cuya línea reaparece porque se le cambió la ayuda **dentro** de su
+`<label>`. Medido en los dos árboles con la misma sonda y con el detector de que son dos: **812**
+`input[id]`, **297** `select[id]`, **29** `textarea[id]` y **381** claves de `LAB_XLS_MAP`, los
+cuatro **idénticos**, o sea **cero campos guardados nuevos** y las **457** columnas quietas.
+
+**TRES ids nuevos** —`cine-fs` y `cine-ctrl`, prefijados por vista, y `cine-fs-senial`, que se crea
+al vuelo—, más los dos botones `cine-str-cambiar` y `cine-str-seguir`. **Ninguno de los cinco cae
+en ninguno de los barridos destructivos de «Nuevo estudio»**, verificado uno por uno: ninguno
+termina en `-aviso`, `-badge`, `-arrow` ni `-ref-fuente`, y ninguno arranca con los nueve prefijos
+que `limpiarCampos` barre.
+
+**UN globo nuevo**: `VINFO` pasa de **156 a 157**, por `hfaicos-bnp`.
+
+**NINGÚN CORTE CLÍNICO SE MOVIÓ**, y los dos que la orden mandaba revisar quedaron **verificados
+con folio y sin tocar**: el del strain de pared libre del VD en **−20 %** (ASE 2025 de corazón
+derecho, Tabla 1, hoja 5, folio 145) y el del reservorio de la AI en **18 %** (Thomas 2025, hoja
+23, folio 1007, donde el comité lo respalda). **La premisa de que el 18 % era de otro contexto no
+se reprodujo.**
+
+**Cobertura: TC-1072 a TC-1079**, uno por grupo, los ocho cayendo **0/8 contra `d3e08ed`** con el
+mismo archivo de casos y sólo el `index.html` distinto, **por condiciones y ninguno por
+excepción**. **Siete casos adaptados**, tres de ellos **INVERTIDOS** (TC-1064, TC-204 y TC-205) y
+cuatro de conteo de inventario (TC-471, TC-500, TC-502 y TC-535).
+
+**38/38 mutaciones dirigidas muertas**, en un worktree y **nunca** sobre el vivo, con el md5 del
+vivo idéntico antes y después y las 38 anclas verificadas **antes** de correr. Hicieron falta
+**cuatro pasadas**: **seis huecos reales** de cobertura, **tres mal escritas** y **dos
+equivalentes**, las dos declaradas con su medición.
+
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta. **CELULAR: 38 ALTA**, la línea base
+exacta, medido con la máquina sola. **17 de 17** bloques de JS inline parsean.
+
+⚠️ **EL PENDRIVE `DISK_IMG` NO ESTABA MONTADO**, así que los **diecisiete** casos que dependen de
+él —TC-181 a TC-197— **no prueban nada en esta corrida y no son cobertura**. Ninguno de los ocho
+grupos toca ese camino. Declarado en **L13-h**.
+
+Lo declarado, en **L13-a** a **L13-i**; el mapa, en `docs/mapa/lote13-post-pr13.md`; el informe, en
+`docs/INFORME_LOTE_POST_PR13.md`; la guía manual, en
+`docs/GUIA_PRUEBA_LOTE_POST_PR13.md` (ocho pasos, uno por grupo); las sondas, en
+`scripts/_probe_lote13.mjs` con sus cuerpos aparte; el barrido, en `scripts/_mut_lote13.py`; el
+corredor de lotes, en `scripts/_lotes_lote13.sh`; el insertador de casos con su guardián, en
+`scripts/_casos_lote13.py`.
+
 ## PR13 — el mapa de strain por territorios del visor: la leyenda y los seis sectores (2026-11-25)
 
 **Sello** `v20261125-0728` · **md5** `a1b7f9a3` · **196.460** líneas · línea base `e4ee124`.

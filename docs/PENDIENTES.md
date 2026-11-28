@@ -47,6 +47,119 @@ se leen 20-80 lineas con `sed -n`.
 > `docs/mapa/tests-fichas-1068.md`; el informe, en `docs/INFORME_SGL_VISOR_PR13.md`; la guía
 > manual, en `docs/GUIA_PRUEBA_PR13.md`.
 
+### L13-a — el aviso quemado de la captura: lo que se arregló y lo que no se midió
+
+**GRUPO A, HECHO.** Las dos líneas del descargo se miden dentro del dibujante y se parten en los
+renglones que entran, con márgenes parejos de 8 unidades a cada lado. Medido en 300, 640 y 1000 px:
+**cero** textos fuera del canvas, descargo **entero** palabra por palabra y **cero** puntos
+suspensivos. Antes, a 640 px la primera línea medía **850 px contra un canvas de 640**.
+
+**Lo que NO se midió:** el PDF **impreso**. Sale igual **por construcción** —hay un solo dibujante
+y el PDF usa la misma imagen que la captura, por `imgCompressLoad`— pero esta pasada no generó un
+PDF para mirarlo rasterizado. Está en el paso A de `docs/GUIA_PRUEBA_LOTE_POST_PR13.md`.
+
+### L13-b — el copiado se declara en PÍXELES, y falta probar WORD
+
+**GRUPO B, HECHO, y se aparta de la letra de la orden.** La orden pedía el tamaño «en pt y no en
+px». Medido con `textutil` —el motor de Cocoa que Pages usa al pegar HTML, con el `\fs` del RTF en
+medios puntos—: `11pt` da `\fs29` = **14,5 pt** y `11px` da `\fs22` = **11,0 pt**. Cocoa resuelve
+los puntos a píxeles a 96 ppp y después los lee **como puntos**, así que **11 pt es justamente lo
+que produce el 14** que el médico ve. Lo que la orden pide *ver* es 11 en Pages.
+
+**FALTA DECIDIR, Y ES DE MAICOL:** **probar el pegado en WORD**, que tiene su propio importador de
+HTML y respeta los puntos. Si ahí sale chico, el valor a probar es **`'14.6667px'`**, que da los
+mismos 11 pt por el camino de Cocoa, y es **una línea**: el tamaño vive en `CW_PT`, un solo dueño.
+
+### L13-c — el NT-proBNP: el rango salió, y qué significa el límite sigue sin decirse
+
+**GRUPO C1, HECHO.** La casilla dice «por encima del límite superior del laboratorio local», sin
+números y sin el chip de criterio propio, con un globo que cita **Lyon 2022**.
+
+**Lo que sigue abierto, de PR12-c:** la ayuda dice **dónde** está el límite y **no** dice qué
+significa estar por encima. Un marcador **basal** elevado no tiene tope, así que una frase con
+techo sería falsa, y afirmar qué implica es contenido clínico. **Decisión del médico.**
+
+### L13-d — AF-4 y AF-5 retiradas; AF-2 sigue abierta
+
+**GRUPO C2, HECHO.** Las tres frases salieron de `_SIMP_NOTAS_METODO`, identificadas contra
+`Pendientes_de_decision.docx` (sección 22, filas AF-4 y AF-5, con el cotejo contra Lang 2015 hecho
+**en imagen** el 16/11/2026). Las nueve entradas siguen siendo nueve: lo que la fuente **sí** dice
+se conservó.
+
+**AF-2 NO se tocó, por orden expresa de este lote.** Sigue vivo en el globo ⓘ `clnk-guia` de
+Configuración → CeiboLink, último párrafo: el registro manda reemplazar el texto de la guía del
+«?» y **todavía no se reemplazó**. Y el **NT-proBNP menor de FA del HFA-PEFF** queda esperando una
+lectura de Maicol, también por orden expresa.
+
+### L13-e — el retroceso del trazado alcanza a seis herramientas, y a una no
+
+**GRUPO D, HECHO.** `medRetroIndice` se consulta en `_medAreaMove`, el **único** recolector de
+puntos, así que alcanza de una vez a las seis que `_MED_HERR_ARRASTRE` declara: área, Simpson,
+strain del VI, LARS, strain del VD y la envolvente del VTI.
+
+**La que NO lo comparte, y queda reportada sin tocar:** el **strain del VI en modo 3 puntos**. Ahí
+el arrastre mueve un **punto de control** de un contorno ya sugerido, no dibuja un trazo, así que
+no hay camino al que volver — lo que ese modo ya tiene es «Rehacer los 3 puntos».
+
+### L13-f — los valores normales del conducto y de la contracción del LARS EXISTEN con folio
+
+**GRUPO F3, y es una DECISIÓN DEL MÉDICO.** Hoy el panel publica «sin corte publicado» para el
+conducto y la contracción. Pero la guía de strain de la ASE los publica: **Thomas y cols., JASE
+2025;38(11), hoja 11, folio 995** —regla `folio = hoja + 984`, comprobada en el pie impreso de las
+hojas 1, 11 y 23— da, de un metaanálisis de 2.542 sanos en 40 estudios:
+
+| magnitud | normal | IC 95 % |
+|---|---|---|
+| Reservorio | **39 %** | 38-41 |
+| Conducto | **23 %** | 21-25 |
+| Contracción | **17 %** | 16-19 |
+
+**No se agregaron**: publicar un valor de referencia donde hoy dice que no hay es contenido clínico
+nuevo. El del **reservorio** sí se usó, porque ese panel ya publicaba un corte.
+
+⚠️ **Y LA PREMISA DE LA ORDEN SOBRE EL 18 % NO SE REPRODUJO.** Decía que corresponde a «otro
+contexto (guía diastólica)» y que el límite inferior de lo normal es 23 %. La hoja 23 / folio 1007
+de esa misma guía dice, textual, que «the committee believes that using **LASr < 18%** would
+provide the…» y, entre sus puntos clave, «Impaired LASr of **<18%** is associated with elevated LV
+filling pressures». **El 18 % es el corte que el comité respalda y NO se tocó.** El **23 %** existe
+en esa hoja pero es de **un estudio de 139 pacientes** que la guía cita, no su recomendación.
+
+### L13-g — cuántos trazados pide el LARS: reportado y no cambiado
+
+**GRUPO F7.** Hoy `_LARS_PASOS` son **TRES** y `_larsCompleto` exige los tres: AI mínima, AI máxima
+y pre-contracción. Sin la pre-contracción no hay reservorio, porque el panel no publica nada hasta
+tener los tres.
+
+**La orden dice expresamente no cambiarlo.** Lo que sí se agregó es el aviso de que **sin
+electrocardiograma a la vista o en fibrilación auricular** la pre-contracción no se puede
+identificar y **sólo el reservorio es confiable** — sin bloquear nada.
+
+**Para decidir:** si con dos trazados alcanzara para publicar el reservorio solo, el panel podría
+pedir el tercero como opcional. Hoy no: los tres son obligatorios.
+
+### L13-h — el pendrive DISK_IMG no estaba montado en esta corrida
+
+**Los DIECISIETE casos que dependen de él —TC-181 a TC-197— NO prueban nada en la verificación de
+este lote y no son cobertura.** El arnés lo dice: «no se encontró /Volumes/DISK_IMG/GEMS_IMG: quedó
+SIN verificar con archivos del ecógrafo».
+
+**Ninguno de los ocho grupos de este lote toca ese camino** —ni la importación del pendrive, ni el
+lector DICOM, ni la escala del archivo—, así que lo que queda sin verificar es lo que ya estaba
+cubierto antes. Con el pendrive puesto hay que volver a correr esa banda.
+
+### L13-i — dos mutaciones EQUIVALENTES, declaradas con su medición
+
+Del barrido de 38, dos resultaron equivalentes y se reapuntaron a algo del mismo grupo que sí se
+ve. Quedan declaradas porque la razón importa:
+
+1. **Quitarle el `preventDefault` al globo del NT-proBNP.** Medido: **Chrome no activa el `<label>`
+   cuando el clic cae sobre un `<button>` hijo**, así que el clic sintético que un caso despacha no
+   tildea la casilla ni con la guarda ni sin ella. Lo que esa guarda protege es el **toque real**,
+   que no se puede despachar desde el arnés. **La guarda se queda**: el costo de tenerla es cero y
+   el de no tenerla es un puntaje movido.
+2. **«La flecha escribe en otro campo».** `sgl` y `sgl_gls` **existen los dos y están espejados**,
+   así que escribir en uno llena el otro y ninguna condición puede distinguirlos.
+
 ### PR13-a — el valor por segmento (los 16) queda DIFERIDO
 
 **Decisión de Maicol del 25/11/2026, textual:**

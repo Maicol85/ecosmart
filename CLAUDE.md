@@ -305,7 +305,33 @@ Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la v
 ## Qué es EcoSmart y cómo se trabaja
 
 - App clínica de ecocardiografía en **un solo `index.html`**: HTML + CSS + JS inline, sin build,
-  sin frameworks. Hoy **14,15 MB / 196.460 líneas**, medido con `wc -c` y `wc -l` el 2026-11-25 al cierre de la tanda **PR13** (el mapa de strain por territorios del visor: su leyenda y sus seis sectores), sobre el árbol ya sellado: sello **`v20261125-0728`**, md5 **`a1b7f9a3`**.
+  sin frameworks. Hoy **14,19 MB / 197.092 líneas**, medido con `wc -c` y `wc -l` el 2026-11-28 al cierre del **lote post-PR13** (ocho grupos: la captura del mapa, el copiado a Pages, los textos, el retroceso del trazado, «Cambiar vista», el LARS y el strain del VD, la flecha del SGL y la pantalla completa del visor), sobre el árbol ya sellado: sello **`v20261128-0251`**, md5 **`8e4caaee`**.
+  El diff del lote son **683 líneas agregadas y 51 quitadas** en `index.html`, medido con
+  `git diff --numstat` contra `d3e08ed` **sobre el árbol ya sellado**, de las que **343 son código
+  de verdad**, 312 comentario y 28 en blanco —las 683 cierran exacto, y el filtro lleva el estado
+  del comentario de bloque, que es lo que de verdad separa código de prosa—.
+  Con **CERO** `eval(` y `new Function` nuevos, **CERO** claves y contraseñas, y **UN** solo
+  `innerHTML` nuevo: `b.innerHTML = on ? '&#9986;' : '&#9974;'`, **dos entidades literales** y ni un
+  dato de nadie — **Semgrep queda en su línea base exacta de 126**.
+  **CERO** `<input>`, `<select>` y `<textarea>` nuevos: el único `<input` que el diff muestra es la
+  **misma** casilla `hfaicos_bnp`, cuya línea reaparece porque se le cambió la ayuda **dentro** de
+  su `<label>`. Medido en los **dos** árboles con la misma sonda y con el detector de que son dos:
+  **812** `input[id]`, **297** `select[id]`, **29** `textarea[id]` y **381** claves de
+  `LAB_XLS_MAP`, los cuatro **idénticos**, o sea **cero campos guardados nuevos** y las **457**
+  columnas quietas.
+  **TRES ids nuevos** —`cine-fs` y `cine-ctrl`, prefijados por vista, y `cine-fs-senial`, que se
+  crea al vuelo—, más los dos botones `cine-str-cambiar` y `cine-str-seguir`: **ninguno de los
+  cinco cae en ninguno de los barridos destructivos por sufijo o prefijo de id del archivo**,
+  verificado uno por uno. Y **UN globo nuevo**: `VINFO` pasa de **156 a 157**, por `hfaicos-bnp`.
+  **Y CERO cortes clínicos movidos**: los dos que la orden mandaba revisar quedaron **verificados
+  con folio y sin tocar** —el strain de pared libre del VD en **−20 %** (ASE 2025 de corazón
+  derecho, Tabla 1, hoja 5, folio 145) y el reservorio de la AI en **18 %** (Thomas 2025, hoja 23,
+  folio 1007, donde el comité lo respalda)—.
+  ⚠️ **POR SEXAGÉSIMA OCTAVA VEZ SEGUIDA EL RENGLÓN QUE SE ENCONTRÓ ESTABA BIEN**, y se verificó
+  de las dos formas que esta casa manda: `git show d3e08ed:index.html` da **196.460** líneas,
+  **14.152.672** bytes y el md5 **`a1b7f9a3`**, los tres idénticos a lo que el renglón decía, y el
+  sello del pie coincidía con el que `CLAUDE.md` publicaba.
+  (Antes: 14,15 MB / 196.460 al cierre de la tanda **PR13** (el mapa de strain por territorios del visor: su leyenda y sus seis sectores), sello **`v20261125-0728`**, md5 **`a1b7f9a3`**.)
   El diff de PR13 son **294 líneas agregadas y 168 quitadas** en `index.html`, medido con
   `git diff --numstat` contra `e4ee124` **sobre el árbol ya sellado**, de las que **179 son código
   de verdad**, 104 comentario y 11 en blanco —las 294 cierran exacto, y el filtro lleva el estado
@@ -1838,6 +1864,29 @@ impecable.
 (`source.branch: main`, `path: /`, certificado aprobado). Lo que se pushea a `main` **es** lo que
 sale publicado.
 
+⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR EL LOTE POST-PR13: `d3e08ed`**, el cierre de la tanda
+**PR13** —sello `v20261125-0728`, md5 `a1b7f9a3`, 196.460 líneas—. **Es lo último que hay en
+`main` antes de este lote**; los **nueve** commits del lote quedan en `main` local **sin pushear**.
+⚠️ **Y LA REFERENCIA ES EL REF LOCAL `origin/main`, que sólo se mueve al hacer `fetch` o `push`**:
+si Maicol pusheó algo desde otra máquina, hay que volver a medirlo con un `git fetch` antes de
+revertir nada. Para volver atrás SIN reescribir historia:
+
+```bash
+git revert --no-commit d3e08ed..main && git commit -m "Revertir el lote post-PR13: volver al arbol de d3e08ed" && git push origin main
+```
+
+Y si lo que hay que volver atrás es **sólo lo que la página sirve** y no la documentación:
+
+```bash
+git checkout d3e08ed -- index.html version.json && git commit -m "Volver index.html y version.json a d3e08ed" && git push origin main
+```
+
+⚠️ **Al revertir, el sello del pie vuelve al viejo y `CLAUDE.md` queda publicando el nuevo**, así
+que **TC-753 sale rojo con razón** hasta que el renglón de tamaño y la sección del lote se pongan
+al día. No es un defecto de la app: es el caso haciendo lo suyo.
+
+**El punto de retorno que PR13 declaró, textual, queda abajo.**
+
 ⚠️ **PUNTO DE RETORNO VIGENTE AL CERRAR PR13: `e4ee124`**, el cierre de la tanda **PR12** —sello
 `v20261125-0132`, md5 `b556f081`, 196.334 líneas—. **Es lo último que Maicol pusheó, y PR12 YA
 ESTÁ PUBLICADO**: verificado, `git rev-parse origin/main` da **`e4ee124`** y
@@ -2029,6 +2078,188 @@ pongan al día. No es un defecto de la app: es el caso haciendo lo suyo.
 > `docs/archivo/CLAUDE_HISTORIAL_TANDAS.md`, textuales y en su orden. Se buscan con
 > `grep -nE "^### "` y se leen por rango con `sed -n`. **Ninguna regla se movio**, otra vez:
 > lo verificado esta en `docs/INVENTARIO_LIMPIEZA_L1.md`.
+
+**El lote post-PR13 (2026-11-28) — ocho grupos: la captura del mapa, el copiado a Pages, los
+textos, el retroceso del trazado, «Cambiar vista», el LARS y el strain del VD, la flecha del SGL y
+la pantalla completa del visor.** OCHO grupos independientes y NUEVE commits. Sello
+**`v20261128-0251`**, md5 **`8e4caaee`**, **197.092** líneas. Línea base **`d3e08ed`**, el cierre
+de PR13. **Sin push: lo corre Maicol.**
+
+**TRES PREMISAS DE LA ORDEN NO SE REPRODUJERON, Y LAS TRES CAMBIARON QUÉ HABÍA QUE HACER.**
+(1) **El copiado a Pages no fallaba por el HTML**: leyendo el portapapeles de verdad, las dos vías
+entregaban `font-size:11pt` en los **doce** elementos con texto. Lo que convierte es **macOS**, y
+está medido con `textutil` —el motor de Cocoa que Pages usa al pegar, con el `\fs` del RTF en
+medios puntos—: `11pt` da `\fs29` = **14,5 pt** y `11px` da `\fs22` = **11,0**. Cocoa resuelve los
+puntos a píxeles a 96 ppp y después los lee **como puntos**, así que **11 pt es justamente lo que
+produce el 14**. ⚠️ **Se aparta de la letra de la orden**, que pedía «en pt y no en px», y queda
+declarado: lo que la orden pide VER es 11 en Pages. Queda en **un solo dueño** (`CW_PT`), así que
+volver atrás es una línea. **Lo que no se pudo medir desde acá es WORD** → **L13-b**.
+(2) **El corte de 18 % del reservorio de la AI es el que el comité respalda**: la orden decía que
+«corresponde a otro contexto (guía diastólica)» y que el límite inferior de lo normal es 23 %.
+Leída la guía de strain de la ASE —**Thomas y cols., JASE 2025;38(11)**, con la regla
+`folio = hoja + 984` comprobada en el pie impreso de las hojas 1, 11 y 23—, su hoja 23 / **folio
+1007** dice textual que «the committee believes that using **LASr < 18%** would provide the…» y,
+entre sus puntos clave, «Impaired LASr of **<18%** is associated with elevated LV filling
+pressures». **El corte NO se toca.** El **23 %** existe en esa hoja pero es de **un estudio de 139
+pacientes** que la guía cita. El valor **normal** sí se precisó: **39 %** (IC 95 % 38-41), hoja 11
+/ folio 995.
+(3) **El cálculo del strain del VD no estaba mal**: `_vdCalcular` hace `(Ls − Ld)/Ld` sobre el
+**largo del trazo que el médico dibujó**, o sea mide exactamente lo que se traza. **No hubo nada
+que ajustar**: lo que estaba mal era lo que la pantalla le pedía trazar.
+
+**GRUPO A · EL DESCARGO DE LA CAPTURA SE RECORTABA EN SILENCIO, Y ESTÁ CUANTIFICADO.** Las dos
+líneas del aviso quemado se escribían con **dos `fillText` de una sola línea**, centradas y **sin
+medir**: a **640 px** —el tamaño real de la captura— la primera medía **850 px contra un canvas de
+640**, o sea **105 px cortados a CADA lado**, y a 300 px se cortaban **las dos**. Un canvas no
+avisa cuando se pasa. Hoy son **dos constantes con un solo dueño**, se miden **dentro** del
+dibujante —donde se decide el radio— y se parten en los renglones que entran, con márgenes parejos
+de 8 unidades. Medido en 300, 640 y 1000 px: **cero** textos fuera del canvas, el descargo
+**entero** palabra por palabra, **cero** puntos suspensivos y margen de 4 px o más a los dos lados.
+**El PDF sale igual por construcción**: hay un solo dibujante.
+
+**GRUPO C · EL NT-proBNP Y LAS TRES FRASES DEL SIMPSON.** La casilla del marcador humoral basal
+deja de publicar «375-600 pg/mL» y dice **«por encima del límite superior del laboratorio local»**,
+con un globo nuevo que cita **Lyon 2022**, sin `title` por la regla de TC-500.
+⚠️ **SU BOTÓN LLEVA `preventDefault` Y `stopPropagation`, y es la única diferencia con los otros
+globos de la app**: vive **dentro** del `<label>` que envuelve la casilla, y sin eso abrirlo
+tildearía el factor y le movería el puntaje al médico.
+Y salen las **tres frases** de **AF-4** y **AF-5** de `_SIMP_NOTAS_METODO`, identificadas contra el
+registro de la biblioteca y **no a ojo** (`Pendientes_de_decision.docx`, sección 22, con el cotejo
+contra Lang 2015 hecho **en imagen** el 16/11/2026): «en diástole y en sístole **por separado**»,
+la de la geometría y «los valores normales con los que se clasifica salen de biplano». **Queda
+exactamente lo que la fuente SÍ dice**, y las **nueve** entradas siguen siendo nueve. **AF-2 y el
+NT-proBNP de FA del HFA-PEFF no se tocaron**, por orden expresa.
+
+**GRUPO D · RETROCEDER CON EL DEDO, EN SEIS HERRAMIENTAS A LA VEZ.** `medRetroIndice` se consulta
+en **`_medAreaMove` y en ningún otro lado**, que es lo que lo deja alcanzando a las seis que
+`_MED_HERR_ARRASTRE` declara —área, Simpson, strain del VI, LARS, strain del VD y la envolvente del
+VTI— sin una segunda copia que se pueda quedar vieja.
+⚠️ **SE DECIDE POR CERCANÍA A UN PUNTO VIEJO Y NO POR ÁNGULO**: con el ángulo entre los dos últimos
+segmentos, un trazo lento y tembloroso sobre el endocardio da vueltas de más de 90° todo el tiempo
+y el contorno se desarmaría solo.
+⚠️ **Y SE MIRA ANTES DE DECIMAR**: un dedo que vuelve despacio produce justamente puntos a menos de
+2 px del último, así que con el orden al revés retroceder lento no haría nada. Lo prueba un trazo
+**en U**, donde el último punto queda al lado de uno viejo.
+Se vuelve al punto **más NUEVO** dentro del radio: con el más viejo, un trazo que se cruza a sí
+mismo se borraría entero de un golpe. **Soltar no cambió.**
+
+**GRUPO E · «‹ CAMBIAR VISTA» NO PIERDE NADA, Y ES POR CONSTRUCCIÓN.** Lo único que toca es
+`_strain.eligiendoVista`, el puntero de en qué pantalla estamos; cada ventana guarda su par en
+`_strain.vistas[k]`, así que cambiar de vista mueve el puntero y **no el contenido** — los valores
+de dos ventanas **no pueden mezclarse porque nunca comparten el mismo lugar**. Medido: tras elegir
+A2C, A4C sigue con sus dos trazos y su 9,1 cm, y A2C sigue vacía.
+⚠️ **HIZO FALTA UNA MARCA Y NO ALCANZABA CON PONER LA VISTA EN `null`**: `_strainPaso` exige además
+un par trazado **sin declarar**, y después de cambiar de vista no hay ninguno.
+Lo único que se puede perder es el trazo **sin confirmar**, y por eso se **pregunta**; el camino sin
+nada pendiente queda **sincrónico de punta a punta**, que es la receta de `medStrainElegirVista`.
+
+**GRUPO F · LA CONTRADICCIÓN QUE EL MÉDICO VIO, Y EL DOBLE SIGNO.** Los cuatro textos del trazado
+del VD decían «del anillo tricuspídeo lateral, por el ápex, **hasta el anillo septal**» y dos
+líneas después «no incluyas el septo»: **las dos cosas no pueden ser**, porque un trazo de un
+anillo al otro pasando por el ápex recorre la pared libre **Y** el septo, que es el strain
+**global**. Hoy dicen «del anillo tricuspídeo lateral **hasta el ápex del VD**».
+**El doble signo «−−39,0»**: la línea anteponía un menos a cada magnitud, y con el orden de los tres
+cuadros invertido el conducto o la contracción salen **negativos**, así que el menos quedaba encima.
+Hoy se publica el **valor absoluto** con su único menos; que el orden esté mal lo sigue diciendo el
+aviso de abajo, que es su lugar. Medido con el orden invertido: conducto **−43,75** publicado con un
+solo signo.
+**El nombre de la guía, su tabla y su folio salen de los dos textos de pantalla** y pasan a un globo
+nuevo en cada panel del visor, con autor y año.
+⚠️ **LA CUERDA DEL PLANO MITRAL NO ENTRA EN EL PERÍMETRO, Y ESTÁ MEDIDO**: `_strainLargoPx` suma del
+primer punto al último y **no cierra**. El **dibujo** sí cierra la figura —con `closePath`—, que es
+lo que puede hacer pensar lo contrario, y por eso la frase del globo lo dice.
+**Cada trazo guarda su cineloop y su cuadro y se dibuja sólo ahí**: medido contando contornos, en el
+cuadro 3 sale **sólo** «AI mín.», en el 9 sólo «AI máx.», en el 14 sólo «pre-A» y en el 7
+**ninguno**. **Falla hacia dibujar**: un trazo sin cuadro —de antes de este lote— se sigue mostrando.
+Y la **pre-contracción** se explica en el panel —el punto donde **empieza la onda P**— con el aviso,
+**sin bloquear**, de que sin ECG a la vista o en fibrilación auricular ese punto no se puede
+identificar y sólo el reservorio es confiable. **Los tres trazados se siguen pidiendo** → **L13-g**.
+
+**GRUPO G · VERIFICADO Y SIN UNA LÍNEA DE CAMBIO.** El diseño acordado ya estaba hecho desde PR9:
+iconos de 14 px con zona de toque de 44×44 por un pseudo-elemento, sin `disabled` —llevan
+`aria-disabled` y su clic **dice** el motivo— y la flecha escribe en `sgl_gls`. Medido el flujo de
+dos pasos: con doce segmentos en −16 y cinco en −15, tras calcular la flecha se enciende y escribe
+**−15,7**, o sea el promedio **redondeado**.
+
+**GRUPO H · PANTALLA COMPLETA, Y NO ES LO MISMO QUE EL TAMAÑO GRANDE.** El visor ya tenía
+`cine-max`, que ocupa casi toda la ventana del navegador y deja su barra de direcciones arriba; esto
+es `requestFullscreen`, la del sistema, y es lo que hace que Escape salga por el camino nativo.
+**Antes de este lote el archivo tenía CERO apariciones de esa API.**
+⚠️ **EL ESTADO LO DICE EL NAVEGADOR Y NO UNA BANDERA PROPIA**: la clase la pone y la saca el oyente
+de `fullscreenchange`, porque se puede salir por Escape, por el gesto del sistema o porque el
+navegador la cancela, y una bandera propia se quedaría diciendo que seguimos ahí con el visor ya en
+su tamaño. **El botón pide, el evento decide.** Sin la API no se finge: se cae al tamaño grande.
+⚠️ **EL RACIMO DE ARRIBA A LA DERECHA SE APILA EN COLUMNA, Y LO DESTAPÓ EL BARRIDO**: era `flex` en
+**fila** y los tres botones quedaban al lado con el mismo borde de arriba, así que «debajo del de
+columna» no se cumplía.
+Los controles se esconden con **`opacity` y `pointer-events`, no con `display`**: con `display` el
+alto cambia, la imagen se reacomoda y el visor latiría cada tres segundos. **El botón de pantalla
+completa y el de tamaño no se esconden**: son la única forma de salir con el mouse.
+El clic sobre la imagen **cede en tres casos** —con la columna a la vista no hace nada, mientras se
+mide tampoco y un clic sobre un botón de los racimos no pausa— y va en `click` y no en
+`pointerdown`, porque un arrastre que empieza sobre la imagen no tiene que pausar. La **barra
+espaciadora** entra por el **mismo** oyente que las flechas y con las **mismas** cuatro guardas, más
+el **botón enfocado**, que la lista de las flechas no necesitaba.
+
+⚠️ **DOS DEFECTOS QUE LA SONDA CAZÓ Y LA LECTURA NO.** (1) **`cinePlay` NO EXISTE**: el dueño del
+play y de la pausa es **`cineToggle`**, que ya hace el toggle. (2) **La fila de controles de
+reproducción no tenía `id`**, así que la regla que la hace flotar en pantalla completa **no aplicaba
+a nada**.
+
+**COBERTURA: OCHO casos nuevos, TC-1072 a TC-1079**, uno por grupo, y los ocho caen **0/8 contra
+`d3e08ed`** con el mismo archivo de casos y sólo el `index.html` distinto, **por condiciones y
+NINGUNO por excepción**. **SIETE casos adaptados**, cuatro de ellos **INVERTIDOS**: **TC-1064** —que
+exigía el literal `font-size:11pt`, que es lo que daba el 14—, **TC-204** y **TC-205** —el corte se
+describe en pantalla y su cita vive en el globo— y **TC-238**, que leía el **texto fuente** de
+`_strBullsCanvas` buscando «speckle tracking» y además era **tautológico**: hoy mide la **conducta**,
+interceptando los `fillText` del dibujante. Y tres de conteo: **TC-471**, **TC-500**, **TC-502** y
+**TC-535** (`VINFO` 156 → **157**, tarjetas sin botón de Referencias 82 → **83**, globos con piso
+táctil 70 → **71**).
+
+**38/38 MUTACIONES DIRIGIDAS MUERTAS**, en un worktree y **nunca** sobre el vivo, con el md5 del
+vivo **idéntico** antes y después y las **38 anclas verificadas ANTES** de correr. Al menos **dos
+por grupo**, y **cinco no revierten nada: la aplican DE MÁS**, porque las condiciones que las matan
+son **controles negativos**.
+⚠️ **HICIERON FALTA CUATRO PASADAS, Y LAS TRES PRIMERAS DEJARON 10, 3 Y 1 SOBREVIVIENTE.** **Seis
+huecos reales de cobertura**, cerrados con condiciones nuevas y **sin aflojar una sola mutación**:
+los márgenes parejos del descargo; el piso de puntos del retroceso, que con cinco puntos no se
+ejercitaba; el orden «retroceso antes de decimar», que un trazo recto **no podía probar** y necesitó
+uno en U; el cuadro de referencias del VD, que **sólo se dibuja con resultado**; el guardado del
+cuadro en `_contornoLargo`, que el caso salteaba sembrando a mano; y el botón de salida que no se
+esconde, cuya opacidad **transiciona** y había que medir en la hoja de estilos. **Tres mal escritas
+o mal dirigidas.** Y **dos equivalentes, declaradas con su medición**: quitarle el `preventDefault`
+al globo —**Chrome no activa el `<label>` cuando el clic cae sobre un botón hijo**, así que el clic
+sintético no tildea ni con la guarda ni sin ella— y «la flecha escribe en otro campo», porque `sgl`
+y `sgl_gls` **existen los dos y están espejados**.
+
+**VERIFICACIÓN. LA SUITE COMPLETA NO SE CORRIÓ, POR ORDEN EXPRESA.** Se corrió la **banda
+relacionada**: los **300** casos cuyo cuerpo toca alguna de las zonas de los ocho grupos,
+seleccionados por el **patrón de su propio cuerpo** y no a ojo (`scripts/_lotes_lote13.sh`).
+**Semgrep 126 WARNING / 0 ERROR**, la línea base exacta, sin un aviso nuevo. **CELULAR: 38 ALTA**,
+la línea base exacta, medido con la máquina sola. **17 de 17** bloques de JS inline parsean.
+**TRES ANCHOS** (1440, 768 y 390 px) de lo que cambió visualmente: el racimo del visor en
+**columna** con el botón de 44×44 **debajo** del de columna y **dentro de la imagen**, el globo del
+NT-proBNP en 44×44 **dentro de la pantalla**, y **cero** desplazamiento horizontal del documento en
+los tres.
+⚠️ **EL PENDRIVE `DISK_IMG` NO ESTABA MONTADO, así que los DIECISIETE casos que dependen de él
+—TC-181 a TC-197— NO PRUEBAN NADA en esta corrida y no son cobertura.** El arnés lo dice con todas
+las letras. **Ninguno de los ocho grupos toca ese camino** —ni la importación del pendrive, ni el
+lector DICOM, ni la escala del archivo—, así que lo que queda sin verificar es lo que ya estaba
+cubierto antes. Declarado en **L13-h**.
+Los otros rojos quedan caracterizados midiendo: **TC-857** y **TC-899** pasan **aislados**
+—sensibilidad de lote, ya declarada por PR12 y PR13— y **TC-900**, **TC-957** y **TC-958** fallan
+**igual contra `d3e08ed`** con el mismo archivo de casos y sólo el `index.html` distinto, o sea
+**preexistentes**. **Ningún rojo de este lote.**
+
+⚠️ **LA MUDANZA DE «ESTADO VIGENTE» A `docs/archivo/` TAMPOCO SE HIZO**, por vigésima octava tanda
+seguida, y se declara en vez de dejarlo pasar: la orden no la pedía y el presupuesto se fue en los
+ocho grupos y su verificación. Lo que hay que mudar hoy es todo lo anterior a **PR13**.
+
+Lo declarado, en **L13-a** a **L13-i**; el mapa, en `docs/mapa/lote13-post-pr13.md`; el informe, en
+`docs/INFORME_LOTE_POST_PR13.md`; la guía manual, en `docs/GUIA_PRUEBA_LOTE_POST_PR13.md` (ocho
+pasos, uno por grupo); las sondas, en `scripts/_probe_lote13.mjs` con sus cuerpos aparte; el
+barrido, en `scripts/_mut_lote13.py`; el corredor de lotes, en `scripts/_lotes_lote13.sh`; el
+insertador de casos con su guardián, en `scripts/_casos_lote13.py`.
 
 **La tanda PR13 (2026-11-25) — el mapa de strain por territorios del VISOR: su leyenda y sus seis
 sectores.** CUATRO tareas y TRES commits. Sello **`v20261125-0728`**, md5 **`a1b7f9a3`**,
