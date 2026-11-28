@@ -354,7 +354,12 @@
      ⚠️ `z-index:3` PORQUE EL CANVAS DE MEDICION ES `position:absolute` Y ESTA DESPUES: sin esto,
      la capa de trazos queda encima y los botones no reciben el clic. */
   #cine-ov .cine-imgbtns { position: absolute; display: flex; gap: 2px; z-index: 3; }
-  #cine-ov .cine-imgbtns-tr { top: 0; right: 0; }
+  /* ⚠️ LOTE POST-PR13 · GRUPO H — EL RACIMO DE ARRIBA A LA DERECHA SE APILA EN COLUMNA.
+     El pedido dice que el boton de pantalla completa va DEBAJO del de columna, y el racimo era
+     `flex` en FILA: medido, los tres botones quedaban al LADO con el mismo borde de arriba, asi
+     que «debajo» no se cumplia. Los otros dos racimos -las flechas de cuadro y «Capturar»- se
+     quedan en fila: ahi no hay nada apilado que el pedido nombre. */
+  #cine-ov .cine-imgbtns-tr { top: 0; right: 0; flex-direction: column; }
   #cine-ov .cine-imgbtns-br { bottom: 0; right: 0; }
   #cine-ov .cine-imgbtns-bl { bottom: 0; left: 0; }
   #cine-ov .cine-imgb {
@@ -188159,8 +188164,8 @@ raf(loop);
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261125-0728';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1795602537182;                 /* eco-build-ms */
+const ECO_BUILD    = '20261128-0251';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1795845104116;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -188246,7 +188251,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261125-0728</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261128-0251</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
