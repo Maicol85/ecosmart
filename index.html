@@ -152988,6 +152988,11 @@ function _strainPanel() {
         '<div style="margin-top:6px;">' + bot + '</div>' +
       '</div>' + res +
       '<div style="margin-top:7px;">' +
+        /* GRUPO E: la salida sin elegir, SOLO cuando se llego aca por «Cambiar vista» y hay una
+           ventana a la que volver. En el paso 2 de siempre no se emite: ahi no hay ninguna. */
+        (_strain.eligiendoVista && _strain.vista
+          ? b('cine-str-seguir', 'btn-ghost', 'Seguir en ' + String(_strain.vista).toUpperCase()) + ' '
+          : '') +
         b('cine-str-otro', 'btn-ghost', '‹ Elegir otro cineloop') + ' ' + reset + '</div>';
   }
 
@@ -153077,6 +153082,8 @@ function _strainPanel() {
         '</div>' +
         '<div style="margin-top:6px;">' +
           b('cine-str-otro', 'btn-primary', '➕ Sí, agregar otra vista') + ' ' +
+          /* GRUPO E: tambien desde aca se puede corregir la ventana del par recien terminado. */
+          b('cine-str-cambiar', 'btn-ghost', '‹ Cambiar vista', 'margin-left:6px;') + ' ' +
           b('cine-str-reset', 'btn-ghost', 'Empezar de nuevo', 'margin-left:6px;') +
         '</div>' +
       '</div>' + res;
@@ -153097,8 +153104,12 @@ function _strainPanel() {
   /* Los botones van pegados al panel guía y ANTES del resultado. Con el bull's eye en el
      medio, «Confirmar diástole» quedaba debajo de un diagrama de 300 px: el médico acaba de
      trazar, mira la imagen, y el botón que cierra ese gesto estaba fuera de la pantalla. */
+  /* GRUPO E del lote post-PR13: «‹ Cambiar vista» se emite SIEMPRE que haya una ventana
+     declarada, o sea mientras se esta en una vista, que es lo que la orden pide. Va antes de
+     «Empezar de nuevo» —es la salida chica— y despues de confirmar, que es la accion. */
+  const camb = VA ? b('cine-str-cambiar', 'btn-ghost', '\u2039 Cambiar vista', 'margin-left:6px;') : '';
   return cab + paso +
-    '<div style="margin-top:7px;">' + seguir + (_strainCompleto() ? '' : conf + ' ') + reset + '</div>' +
+    '<div style="margin-top:7px;">' + seguir + (_strainCompleto() ? '' : conf + ' ') + camb + reset + '</div>' +
     res;
 }
 
@@ -153196,9 +153207,56 @@ function _strainThumbSrc(o) {
 function _strainPaso() {
   if (!_strain) return 'loop';
   if (!_strain.loopListo) return 'loop';
+  /* LOTE POST-PR13 · GRUPO E. La marca de «estoy eligiendo vista otra vez» manda sobre todo lo
+     demás, y hace falta una marca y no alcanza con poner la vista en null: la condición de abajo
+     exige además un par trazado SIN declarar, y después de cambiar de vista no hay ninguno. */
+  if (_strain.eligiendoVista) return 'vista';
   if (!_strain.vista && _strain.sinVista.d && _strain.sinVista.s) return 'vista';
   return 'trazar';
 }
+
+/* ══ «‹ CAMBIAR VISTA» ═══════════════════════════════════════════════════════════════════════
+   LOTE POST-PR13 · GRUPO E. El médico que eligió mal la ventana no tenía forma de volver: el
+   paso 2 sólo se alcanzaba una vez, con un par trazado sin declarar, y de ahí no se volvía.
+
+   ⚠️ NO PIERDE NADA, Y ES POR CONSTRUCCIÓN: lo único que esto toca es `eligiendoVista`, que es
+   el puntero de en qué pantalla estamos. Cada ventana guarda su par en `_strain.vistas[k]`, así
+   que cambiar de vista mueve el puntero y no el contenido — los valores de dos ventanas no se
+   pueden mezclar porque nunca comparten el mismo lugar.
+
+   ⚠️ LO ÚNICO QUE SE PUEDE PERDER ES EL TRAZO SIN CONFIRMAR, y por eso se PREGUNTA. Un trazado
+   confirmado ya está en su ventana; uno pendiente vive en `_strain.pendiente` —o en `pts3`/`ctrl`
+   si está a medio marcar en modo 3 puntos— y la pantalla del paso 2 lo dejaría sin dueño. */
+function medStrainCambiarVista() {
+  if (!_strain) return;
+  const hayPend = !!(_strain.pendiente
+                     || (_strain.pts3 && _strain.pts3.length)
+                     || (_strain.ctrl && _strain.ctrl.length));
+  const irA = function () {
+    _strain.pendiente = null; _strain.pts3 = []; _strain.ctrl = [];
+    _strain.eligiendoVista = true;
+    _medPintar(); _medEstado();
+  };
+  if (!hayPend) { irA(); return; }
+  /* ⚠️ EL CAMINO SIN NADA PENDIENTE QUEDA SINCRÓNICO DE PUNTA A PUNTA, que es la misma receta de
+     `medStrainElegirVista` y de `_simpPisarFEVIOK`: sólo espera un clic el caso que tiene algo
+     que perder. */
+  preguntaProp('Hay un trazado sin confirmar',
+    ['Si cambiás de vista ahora, ese trazado se descarta.',
+     'Lo que ya confirmaste en cada ventana no se toca.'],
+    'Cambiar de vista igual').then(function (si) { if (si) irA(); });
+}
+window.medStrainCambiarVista = medStrainCambiarVista;
+
+/* Vuelve a trazar en la ventana que ya estaba, sin elegir ninguna. Es la salida del paso 2
+   cuando se llegó por «‹ Cambiar vista»: sin esto, el médico que abre esa pantalla por error
+   queda obligado a elegir una. */
+function medStrainSeguirEnVista() {
+  if (!_strain) return;
+  _strain.eligiendoVista = false;
+  _medPintar(); _medEstado();
+}
+window.medStrainSeguirEnVista = medStrainSeguirEnVista;
 
 function medStrainElegirLoop(k) {
   if (!_strain) return;
@@ -153249,6 +153307,8 @@ function medStrainElegirVista(v) {
     if (S.s) { T.s = S.s; S.s = null; }
   }
   _strain.vista = v;
+  /* GRUPO E: elegir una ventana cierra la pantalla de eleccion. */
+  _strain.eligiendoVista = false;
   _strain.fase = (_strain.vistas[v].d && !_strain.vistas[v].s) ? 's' : 'd';
   _strain.pendiente = null; _strain.pts3 = []; _strain.ctrl = [];
   _strain.avisoCuadro = false; _strain.avisoImagen = false; _strain.ocultar = false;
@@ -153260,6 +153320,7 @@ window.medStrainElegirVista = medStrainElegirVista;
 function medStrainOtroLoop() {
   if (!_strain) return;
   _strain.loopListo = false;
+  _strain.eligiendoVista = false;   // GRUPO E: volver al paso 1 cierra la pantalla de eleccion
   _strain.vista = null;
   _strain.pendiente = null; _strain.pts3 = []; _strain.ctrl = [];
   _medPintar(); _medEstado();
@@ -156715,6 +156776,10 @@ function _medEstado() {
   _on(_medEl('cine-str-m-libre'), () => medStrainModo('libre'));
   _on(_medEl('cine-str-m-3pt'),   () => medStrainModo('3pt'));
   _on(_medEl('cine-str-otro'), medStrainOtroLoop);
+  /* GRUPO E del lote post-PR13: los dos botones de la pantalla de eleccion de ventana. Atados a
+     SU vista con `_on`, como todo lo de esta barra: pelados correrian con la vista activa. */
+  _on(_medEl('cine-str-cambiar'), medStrainCambiarVista);
+  _on(_medEl('cine-str-seguir'), medStrainSeguirEnVista);
   /* VTI. Por `data-*` y no con el índice interpolado dentro de un `onclick`: ahí el parser
      decodifica la entidad ANTES de compilar el handler, así que escapar no protegería —es el
      agujero que documenta la entrada de CardioSalud—. Y atados a SU vista con `_on`. */
