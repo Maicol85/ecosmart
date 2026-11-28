@@ -165793,17 +165793,25 @@ caso('TC-1064',
                                 false, 'datos=' + H1.length + ' informe=' + H2.length]] };
 
   /* (A) NINGUN BLOQUE QUEDA SIN TAMANIO: se recorren TODAS las etiquetas de apertura de los dos
-     HTML y cada una tiene que declarar font-size:11pt. Es la condicion literal de la orden. */
+     HTML y cada una tiene que declarar el tamanio.
+     /!\ CONDICION INVERTIDA EN EL LOTE POST-PR13 (GRUPO B), Y FALLA POR LOS DOS LADOS. Hasta hoy
+     exigia el literal «font-size:11pt», y eso es JUSTAMENTE lo que hacia que Pages pegara en 14:
+     medido con textutil -el motor de Cocoa que Pages usa al pegar HTML-, 11pt se convierte en
+     fs29, o sea 14,5 pt, porque Cocoa resuelve los puntos a pixeles a 96 ppp y despues lee esos
+     pixeles como puntos. 11px da fs22, que son 11 pt exactos. Asi que hoy se exige el PIXEL y
+     ademas que el pt ya no este. */
   const tags = h => (String(h).match(/<[a-z]+[^>]*>/g) || []);
   const sinPt = [];
-  [H1, H2].forEach(h => tags(h).forEach(t => { if (t.indexOf('font-size:11pt') < 0) sinPt.push(t.slice(0, 60)); }));
+  [H1, H2].forEach(h => tags(h).forEach(t => { if (t.indexOf('font-size:11px') < 0) sinPt.push(t.slice(0, 60)); }));
   R.nTags = tags(H1).length + tags(H2).length;
   R.sinPt = sinPt.length; R.sinPtQue = sinPt.slice(0, 4).join(' | ');
+  /* El control de la inversion: ni un solo «pt» en los dos HTML. */
+  R.ceroPt = (H1 + H2).indexOf('pt;') < 0 && (H1 + H2).indexOf('11pt') < 0;
 
   /* (B) UN SOLO TAMANIO en el cuerpo. */
   const otros = [];
   [H1, H2].forEach(h => (String(h).match(/font-size:\\s*[^;"']+/g) || []).forEach(f => {
-    if (f.replace(/\\s/g, '') !== 'font-size:11pt') otros.push(f); }));
+    if (f.replace(/\\s/g, '') !== 'font-size:11px') otros.push(f); }));
   R.otrosPt = otros.length; R.otrosQue = otros.slice(0, 4).join(' | ');
 
   /* (C) NO SE FIJA LA TIPOGRAFIA: que Pages y Word usen la suya. */
@@ -165868,8 +165876,9 @@ caso('TC-1064',
 
   return { extra: [
     ['DENOMINADOR: los dos armadores publican ' + R.nTags + ' bloques', R.nTags >= 10, R.nTags],
-    ['ningun bloque del HTML copiado queda sin 11 pt', R.sinPt === 0, R.sinPt + ' sin pt: ' + R.sinPtQue],
-    ['no aparece ningun tamanio distinto de 11 pt', R.otrosPt === 0, R.otrosQue],
+    ['ningun bloque del HTML copiado queda sin font-size:11px', R.sinPt === 0, R.sinPt + ' sin px: ' + R.sinPtQue],
+    ['y el pt ya no esta en ninguno de los dos HTML (GRUPO B invirtio esta condicion)', R.ceroPt, R.ceroPt],
+    ['no aparece ningun tamanio distinto de 11px', R.otrosPt === 0, R.otrosQue],
     ['no se fija la tipografia: sin font-family', R.sinFamily, R.sinFamily],
     ['el texto llano sigue siendo llano', R.llanoLimpio, R.llanoLimpio],
     ['y cada renglon del texto llano esta en el HTML', R.todasEnHTML,

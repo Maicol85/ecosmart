@@ -82205,7 +82205,25 @@ window._cuadCopiar = _cuadCopiar;
    del tema de la app.
    /!\ EL TEXTO LLANO NO CAMBIA NI UN BYTE: es la OTRA representacion del mismo copiado, la red
    para pegar donde no se acepta formato, y ahi lo que se pega es lo que el medico escribio. */
-const CW_PT = '11pt';
+/* == LOTE POST-PR13 - GRUPO B · EL TAMANIO VA EN PIXELES, Y ESTA MEDIDO CON EL CONVERTIDOR DEL
+   PROPIO SISTEMA. =============================================================================
+   PR12 puso «11pt» en linea en cada bloque y el pegado en Pages SEGUIA saliendo en 14. El HTML
+   no era el culpable: medido leyendo el portapapeles de verdad, las dos vias de copiado entregan
+   `font-size:11pt` en los DOCE elementos con texto. Lo que convierte es macOS.
+   /!\ LA CAUSA, MEDIDA CON `textutil`, que usa el MISMO motor de Cocoa que Pages al pegar HTML
+   (el `\fs` del RTF va en MEDIOS puntos):
+         font-size:11pt  ->  \fs29  ->  14,5 pt   <- el 14 que el medico ve
+         font-size:11px  ->  \fs22  ->  11,0 pt   <- lo que hay que escribir
+         font-size:14pt  ->  \fs37  ->  18,5 pt
+   Cocoa resuelve los PUNTOS a pixeles a 96 ppp -11pt son 14,667 px- y despues lee esos pixeles
+   COMO PUNTOS. Asi que para que en Pages salga 11 hay que declarar 11 PIXELES.
+   /!\ ESTO SE APARTA DE LA LETRA DE LA ORDEN, que pedia «en pt y no en px», y se declara: lo que
+   la orden pide VER es 11 en Pages, y 11pt es justamente lo que da 14. Queda en UN SOLO DUENIO,
+   asi que volver atras es cambiar esta linea.
+   /!\ Y LO QUE NO SE PUDO MEDIR DESDE ACA ES WORD, que tiene su propio importador de HTML y
+   respeta los pt: si ahi sale chico, el valor a probar es '14.6667px', que da los mismos 11 pt
+   de Pages por el camino de Cocoa. Declarado en PENDIENTES -> L13-b. */
+const CW_PT = '11px';
 const CW_FS = 'font-size:' + CW_PT + ';';
 /* Negrita y subrayado CON SU PROPIO tamanio: Word le da a <b> y a <u> el tamanio de su estilo de
    caracter y no el del parrafo que los contiene, asi que un titulo sin esto se pega mas grande. */

@@ -29,7 +29,8 @@ const CUERPO = await readFile(new URL('./_probe_lote13_' + QUE + '.js', import.m
 const salida = [];
 const nav = await _pw.chromium.launch({ channel:'chrome' });
 for (const W of ANCHOS) {
-  const ctx = await nav.newContext({ viewport:{ width:W.w, height:W.h } });
+  const ctx = await nav.newContext({ viewport:{ width:W.w, height:W.h },
+    permissions:['clipboard-read','clipboard-write'] });
   const pg = await ctx.newPage();
   const errs = []; pg.on('pageerror', e => errs.push(String(e&&e.message||e).slice(0,200)));
   const cons = []; pg.on('console', m => { if (m.type()==='error') cons.push(String(m.text()).slice(0,200)); });
